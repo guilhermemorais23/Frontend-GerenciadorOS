@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/app/lib/api";
 
 export default function AntesPage() {
   const params = useParams();
@@ -22,7 +21,23 @@ export default function AntesPage() {
 
   async function carregarOS() {
     try {
-      const data = await apiFetch(`/projects/tecnico/view/${id}`);
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/projects/tecnico/view/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao carregar OS");
+      }
+
       setOs(data);
     } catch (err: any) {
       alert("Erro ao carregar OS: " + err.message);
@@ -55,13 +70,16 @@ export default function AntesPage() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/projects/tecnico/antes/${id}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/projects/tecnico/antes/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
 
       const data = await res.json();
 
@@ -86,12 +104,6 @@ export default function AntesPage() {
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
 
         <h1 className="text-2xl font-bold mb-4">ANTES – {os.osNumero}</h1>
-
-        <div className="mb-4 text-sm">
-          <p><b>Cliente:</b> {os.cliente}</p>
-          {os.unidade && <p><b>Unidade:</b> {os.unidade}</p>}
-          {os.endereco && <p><b>Endereço:</b> {os.endereco}</p>}
-        </div>
 
         <div className="mb-4">
           <label className="block mb-1 font-medium">Relatório</label>

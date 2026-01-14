@@ -88,8 +88,6 @@ export default function DepoisPage() {
       }
 
       alert("Serviço finalizado com sucesso!");
-
-      // 🔥 VOLTA PRO DASHBOARD DO TÉCNICO
       router.push("/tecnico");
 
     } catch (err: any) {
@@ -107,12 +105,6 @@ export default function DepoisPage() {
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
 
         <h1 className="text-2xl font-bold mb-4">DEPOIS – {os.osNumero}</h1>
-
-        <div className="mb-4 text-sm">
-          <p><b>Cliente:</b> {os.cliente}</p>
-          {os.unidade && <p><b>Unidade:</b> {os.unidade}</p>}
-          {os.endereco && <p><b>Endereço:</b> {os.endereco}</p>}
-        </div>
 
         <div className="mb-4">
           <label className="block mb-1 font-medium">Relatório final</label>
