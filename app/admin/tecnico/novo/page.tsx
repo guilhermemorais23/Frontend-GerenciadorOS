@@ -1,0 +1,97 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/app/lib/api";
+
+export default function NovoTecnicoPage() {
+  const router = useRouter();
+
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      await apiFetch("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          nome,
+          email,
+          senha,
+          role: "tecnico",
+        }),
+      });
+
+      alert("Técnico cadastrado com sucesso!");
+      router.push("/admin/tecnico");
+
+    } catch (err: any) {
+      alert("Erro: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 text-black">
+      <div className="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
+
+        <h1 className="text-2xl font-bold mb-4">Cadastrar Técnico</h1>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+
+          <input
+            type="text"
+            placeholder="Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Senha"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+
+          <div className="flex gap-2 mt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              {loading ? "Salvando..." : "Salvar"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/admin/tecnico")}
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+            >
+              Voltar
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  );
+}
