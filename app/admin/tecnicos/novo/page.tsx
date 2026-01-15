@@ -28,7 +28,7 @@ export default function NovoTecnicoPage() {
       });
 
       alert("Técnico cadastrado com sucesso!");
-      router.push("/admin/tecnico");
+      router.push("/admin/tecnicos");
 
     } catch (err: any) {
       alert("Erro: " + err.message);
@@ -83,7 +83,7 @@ export default function NovoTecnicoPage() {
 
             <button
               type="button"
-              onClick={() => router.push("/admin/tecnico")}
+              onClick={() => router.push("/admin/tecnicos")}
               className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
             >
               Voltar
