@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/app/lib/api";
 
 export default function TecnicosPage() {
   const router = useRouter();
@@ -15,12 +14,30 @@ export default function TecnicosPage() {
 
   async function carregarTecnicos() {
     try {
-      const data = await apiFetch("/auth/tecnicos");
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/tecnicos`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao buscar técnicos");
+      }
+
       setTecnicos(data);
+
     } catch (err: any) {
       alert("Erro ao carregar técnicos: " + err.message);
     } finally {
-      setLoading(false); // <<< ISSO AQUI É O QUE FALTAVA
+      // 🔥 ISSO AQUI É O QUE ESTAVA FALTANDO
+      setLoading(false);
     }
   }
 
@@ -29,9 +46,23 @@ export default function TecnicosPage() {
     if (!ok) return;
 
     try {
-      await apiFetch(`/auth/tecnicos/${id}`, {
-        method: "DELETE",
-      });
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/tecnicos/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao excluir técnico");
+      }
 
       alert("Técnico excluído com sucesso");
       carregarTecnicos();
@@ -42,7 +73,7 @@ export default function TecnicosPage() {
   }
 
   if (loading) {
-    return <div className="p-6">Carregando...</div>;
+    return <div className="p-6">Carregando técnicos...</div>;
   }
 
   return (
@@ -65,6 +96,10 @@ export default function TecnicosPage() {
         >
           + Novo Técnico
         </button>
+
+        {tecnicos.length === 0 && (
+          <p className="text-gray-500">Nenhum técnico cadastrado.</p>
+        )}
 
         <div className="space-y-3">
           {tecnicos.map((t) => (
