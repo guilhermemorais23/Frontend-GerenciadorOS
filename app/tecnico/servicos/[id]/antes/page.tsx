@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gerenciador-de-os.onrender.com";
+
 export default function AntesPage() {
   const params = useParams();
   const router = useRouter();
@@ -23,19 +25,17 @@ export default function AntesPage() {
     try {
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/projects/tecnico/view/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_URL}/projects/tecnico/view/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
 
       if (!res.ok) {
-        throw new Error(data.error || "Erro ao carregar OS");
+        throw new Error(data?.error || "Erro ao carregar OS");
       }
 
       setOs(data);
@@ -70,25 +70,22 @@ export default function AntesPage() {
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/projects/tecnico/antes/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
+      const res = await fetch(`${API_URL}/projects/tecnico/antes/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-      const data = await res.json();
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : null;
 
       if (!res.ok) {
-        throw new Error(data.error || "Erro ao salvar ANTES");
+        throw new Error(data?.error || "Erro ao salvar ANTES");
       }
 
       router.push(`/tecnico/servicos/${id}/depois`);
-
     } catch (err: any) {
       alert("Erro ao salvar ANTES: " + err.message);
     } finally {
@@ -123,7 +120,6 @@ export default function AntesPage() {
           />
         </div>
 
-        {/* FOTOS */}
         <div className="mb-4">
           <label className="block mb-2 font-medium">📷 Fotos</label>
 
