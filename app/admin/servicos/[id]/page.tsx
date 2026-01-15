@@ -28,6 +28,23 @@ export default function DetalheOSPage() {
     }
   }
 
+  async function cancelarOS() {
+    const ok = confirm("Tem certeza que deseja cancelar esta OS?");
+    if (!ok) return;
+
+    try {
+      await apiFetch(`/projects/admin/cancelar/${id}`, {
+        method: "PUT",
+      });
+
+      alert("OS cancelada com sucesso!");
+      await carregarOS(); // 🔥 atualiza na hora
+
+    } catch (err: any) {
+      alert("Erro ao cancelar: " + err.message);
+    }
+  }
+
   function gerarPDF() {
     if (!os) return;
 
@@ -66,6 +83,15 @@ export default function DetalheOSPage() {
     return <div className="p-6 text-center text-red-600">OS não encontrada</div>;
   }
 
+  const statusColor =
+    os.status === "cancelado"
+      ? "bg-red-100 text-red-700 border-red-300"
+      : os.status === "concluido"
+      ? "bg-green-100 text-green-700 border-green-300"
+      : os.status === "em_andamento"
+      ? "bg-blue-100 text-blue-700 border-blue-300"
+      : "bg-yellow-100 text-yellow-700 border-yellow-300";
+
   return (
     <div className="min-h-screen bg-gray-100 p-4 flex justify-center">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
@@ -74,7 +100,7 @@ export default function DetalheOSPage() {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Detalhes da OS</h1>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button
               onClick={gerarPDF}
               className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg transition"
@@ -86,7 +112,14 @@ export default function DetalheOSPage() {
               onClick={() => router.push(`/admin/servicos/${id}/editar`)}
               className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-lg transition"
             >
-               ✏️ Alterar
+              ✏️ Alterar
+            </button>
+
+            <button
+              onClick={cancelarOS}
+              className="bg-red-600 hover:bg-red-700 text-white text-sm px-4 py-2 rounded-lg transition"
+            >
+              ❌ Cancelar
             </button>
 
             <button
@@ -110,7 +143,9 @@ export default function DetalheOSPage() {
           {/* STATUS */}
           <div>
             <p className="text-xs text-gray-600 font-semibold">STATUS</p>
-            <p className="font-bold">{os.status}</p>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm border ${statusColor}`}>
+              {os.status}
+            </span>
           </div>
 
           {/* CLIENTE */}
@@ -169,19 +204,6 @@ export default function DetalheOSPage() {
             <p className="text-gray-900 mb-2 whitespace-pre-line">
               {os.antes?.relatorio || "-"}
             </p>
-
-            {os.antes?.fotos?.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {os.antes.fotos.map((foto: string, idx: number) => (
-                  <img
-                    key={idx}
-                    src={`data:image/jpeg;base64,${foto}`}
-                    alt="antes"
-                    className="rounded-lg border object-cover"
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* DEPOIS */}
@@ -190,19 +212,6 @@ export default function DetalheOSPage() {
             <p className="text-gray-900 mb-2 whitespace-pre-line">
               {os.depois?.relatorio || "-"}
             </p>
-
-            {os.depois?.fotos?.length > 0 && (
-              <div className="grid grid-cols-3 gap-2">
-                {os.depois.fotos.map((foto: string, idx: number) => (
-                  <img
-                    key={idx}
-                    src={`data:image/jpeg;base64,${foto}`}
-                    alt="depois"
-                    className="rounded-lg border object-cover"
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
         </div>
