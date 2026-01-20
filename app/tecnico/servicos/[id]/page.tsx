@@ -36,6 +36,19 @@ export default function AntesPage() {
       }
 
       const data = await res.json();
+
+      // 🔒 REGRA 1 — OS CONCLUÍDA → VISUALIZAÇÃO
+      if (data.status === "concluido") {
+        router.replace(`/tecnico/servicos/${id}/visualizar`);
+        return;
+      }
+
+      // 🔁 REGRA 2 — ANTES JÁ FEITO → PULAR PARA DEPOIS
+      if (data.antes && data.antes.fotos && data.antes.fotos.length > 0) {
+        router.replace(`/tecnico/servicos/${id}/depois`);
+        return;
+      }
+
       setOs(data);
     } catch (err) {
       alert("Erro ao carregar OS");
@@ -46,12 +59,11 @@ export default function AntesPage() {
 
   function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
-    const files = Array.from(e.target.files);
-    setFotos(files);
+    setFotos(Array.from(e.target.files));
   }
 
   function removerFoto(index: number) {
-    setFotos(fotos.filter((_, i) => i !== index));
+    setFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function salvarAntes() {
@@ -98,37 +110,34 @@ export default function AntesPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">ANTES – {os.osNumero}</h1>
+        <h1 className="text-2xl font-bold mb-2">
+          ANTES – {os.osNumero}
+        </h1>
 
-        <div className="mb-4">
-          <p>
-            <b>Cliente:</b> {os.cliente}
-          </p>
-          {os.marca && (
-            <p>
-              <b>Marca:</b> {os.marca}
-            </p>
-          )}
-          {os.unidade && (
-            <p>
-              <b>Unidade:</b> {os.unidade}
-            </p>
-          )}
-          {os.endereco && (
-            <p>
-              <b>Endereço:</b> {os.endereco}
-            </p>
-          )}
-          {os.detalhamento && (
-            <div className="mt-2 p-3 bg-yellow-50 border rounded">
-              <b>Detalhamento do serviço:</b>
-              <p>{os.detalhamento}</p>
-            </div>
-          )}
+        {/* DATAS */}
+        <p className="text-sm text-gray-600 mb-4">
+          Criado em: {new Date(os.createdAt).toLocaleDateString("pt-BR")} •
+          Última atualização: {new Date(os.updatedAt).toLocaleDateString("pt-BR")}
+        </p>
+
+        {/* INFO */}
+        <div className="mb-4 space-y-1">
+          <p><b>Cliente:</b> {os.cliente}</p>
+          {os.marca && <p><b>Marca:</b> {os.marca}</p>}
+          {os.unidade && <p><b>Unidade:</b> {os.unidade}</p>}
+          {os.endereco && <p><b>Endereço:</b> {os.endereco}</p>}
         </div>
 
+        {os.detalhamento && (
+          <div className="mb-4 p-3 bg-yellow-50 border rounded">
+            <b>Detalhamento:</b>
+            <p>{os.detalhamento}</p>
+          </div>
+        )}
+
+        {/* RELATÓRIO */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Relatório</label>
+          <label className="block text-sm font-medium mb-1">Relatório (Antes)</label>
           <textarea
             value={relatorio}
             onChange={(e) => setRelatorio(e.target.value)}
@@ -136,6 +145,7 @@ export default function AntesPage() {
           />
         </div>
 
+        {/* OBSERVAÇÃO */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Observação</label>
           <textarea
@@ -145,6 +155,7 @@ export default function AntesPage() {
           />
         </div>
 
+        {/* FOTOS */}
         <div className="mb-4">
           <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer">
             📷 Adicionar fotos
@@ -178,7 +189,7 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full transition"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full"
         >
           Salvar e ir para DEPOIS →
         </button>
