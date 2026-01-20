@@ -126,7 +126,7 @@ export default function EditarOSPage() {
         telefone,
         detalhamento,
         status,
-        tecnicoId,
+        tecnico: tecnicoId || null,
         antes: {
           relatorio: antesRelatorio,
           fotos: [...antesFotos, ...novasAntesBase64],
