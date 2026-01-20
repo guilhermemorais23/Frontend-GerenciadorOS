@@ -5,25 +5,37 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   const headers: any = {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options.headers || {})
+    ...(options.headers || {}),
   };
 
-  // ❗ SÓ define JSON se NÃO for FormData
+  // Só define JSON se NÃO for FormData
   if (!(options.body instanceof FormData)) {
     headers["Content-Type"] = "application/json";
   }
 
   const res = await fetch(API_URL + path, {
     ...options,
-    headers
+    headers,
   });
 
-  const text = await res.text();
-
-  try {
-    return JSON.parse(text);
-  } catch (err) {
-    console.error("❌ Backend não retornou JSON. Resposta foi:", text);
-    throw new Error("Resposta inválida do servidor");
+  // ❌ erro HTTP
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(errorText || "Erro na requisição");
   }
+
+  // ✅ 204 No Content → não tenta parse
+  if (res.status === 204) {
+    return null;
+  }
+
+  const contentType = res.headers.get("content-type");
+
+  // ✅ Só faz JSON.parse se for JSON
+  if (contentType && contentType.includes("application/json")) {
+    return await res.json();
+  }
+
+  // ✅ Resposta vazia ou texto simples
+  return null;
 }
