@@ -8,10 +8,12 @@ const API_URL =
 
 export default function AntesPage() {
   const params = useParams();
-  const id = params.id as string;
   const router = useRouter();
 
-  const [os, setOs] = useState<any | null>(null);
+  // 🔒 NORMALIZA O ID (ESSENCIAL)
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
+
+  const [os, setOs] = useState<any>(null);
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
@@ -19,9 +21,9 @@ export default function AntesPage() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
     carregarOS();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   async function carregarOS() {
     try {
@@ -31,25 +33,27 @@ export default function AntesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) throw new Error();
-
       const data = await res.json();
 
-      // 🔒 CONCLUÍDA → VISUALIZAR
+      if (!res.ok) {
+        throw new Error(data?.error || "Erro ao buscar OS");
+      }
+
+      // 🔁 fluxo inteligente
       if (data.status === "concluido") {
         router.replace(`/tecnico/servicos/${id}/visualizar`);
         return;
       }
 
-      // 🔁 ANTES JÁ FEITO → DEPOIS
       if (data.antes?.fotos?.length > 0) {
         router.replace(`/tecnico/servicos/${id}/depois`);
         return;
       }
 
       setOs(data);
-    } catch {
+    } catch (err: any) {
       alert("Erro ao carregar OS");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -61,12 +65,13 @@ export default function AntesPage() {
     setFotos((prev) => [...prev, ...Array.from(files)]);
   }
 
-  function removerFoto(index: number) {
-    setFotos((prev) => prev.filter((_, i) => i !== index));
+  function removerFoto(i: number) {
+    setFotos((prev) => prev.filter((_, idx) => idx !== i));
   }
 
   async function salvarAntes() {
     setSalvando(true);
+
     try {
       const token = localStorage.getItem("token");
       const formData = new FormData();
@@ -92,14 +97,12 @@ export default function AntesPage() {
   }
 
   if (loading) return <p className="p-6">Carregando...</p>;
-  if (!os) return null; // 🔴 evita erro falso
+  if (!os) return <p className="p-6">OS não encontrada</p>;
 
   return (
     <div className="min-h-screen bg-gray-100 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4">
-          ANTES – {os.osNumero}
-        </h1>
+        <h1 className="text-2xl font-bold mb-4">ANTES – {os.osNumero}</h1>
 
         <textarea
           placeholder="Relatório"
