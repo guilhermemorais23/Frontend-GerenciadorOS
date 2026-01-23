@@ -155,57 +155,60 @@ export default function TecnicoPage() {
                 </span>
               </div>
 
-              {/* INFORMAÇÕES DA OS */}
-              <div className="space-y-1 text-sm text-gray-700">
-                {/* ===== DASA ===== */}
-                {s.cliente?.toLowerCase() === "dasa" && (
-                  <>
-                    <div>
-                      <b>Cliente:</b> DASA
-                    </div>
+             {/* INFORMAÇÕES DA OS */}
+<div className="space-y-1 text-sm text-gray-700">
 
-                    {s.marca && (
-                      <div>
-                        <b>Marca:</b> {s.marca}
-                      </div>
-                    )}
+  {/* CLIENTE – SEMPRE */}
+  <div>
+    <b>Cliente:</b> {s.cliente}
+  </div>
 
-                    {s.unidade && (
-                      <div>
-                        <b>Unidade:</b> {s.unidade}
-                      </div>
-                    )}
-                  </>
-                )}
+  {/* ===== DASA ===== */}
+  {s.cliente?.toLowerCase() === "dasa" && (
+    <>
+      {s.marca && (
+        <div>
+          <b>Marca:</b> {s.marca}
+        </div>
+      )}
 
-                {/* ===== NÃO DASA (BRINKS, ETC) ===== */}
-                {s.cliente?.toLowerCase() !== "dasa" &&
-                  (s.Subcliente || s.subgrupo) && (
-                    <div>
-                      <b>Subcliente:</b> {s.Subcliente || s.subgrupo}
-                    </div>
-                  )}
+      {s.unidade && (
+        <div>
+          <b>Unidade:</b> {s.unidade}
+        </div>
+      )}
+    </>
+  )}
 
-                {/* ===== CAMPOS COMUNS ===== */}
-                {s.endereco && (
-                  <div>
-                    <b>Endereço:</b> {s.endereco}
-                  </div>
-                )}
+  {/* ===== NÃO DASA (BRINKS, ETC) ===== */}
+  {s.cliente?.toLowerCase() !== "dasa" &&
+    (s.Subcliente || s.subgrupo) && (
+      <div>
+        <b>Subcliente:</b> {s.Subcliente || s.subgrupo}
+      </div>
+  )}
 
-                {s.telefone && (
-                  <div>
-                    <b>Telefone:</b> {s.telefone}
-                  </div>
-                )}
+  {/* CAMPOS COMUNS */}
+  {s.endereco && (
+    <div>
+      <b>Endereço:</b> {s.endereco}
+    </div>
+  )}
 
-                {s.detalhamento && (
-                  <div className="mt-2 p-2 bg-yellow-50 border rounded text-sm">
-                    <b>Detalhamento:</b>
-                    <p>{s.detalhamento}</p>
-                  </div>
-                )}
-              </div>
+  {s.telefone && (
+    <div>
+      <b>Telefone:</b> {s.telefone}
+    </div>
+  )}
+
+  {s.detalhamento && (
+    <div className="mt-2 p-2 bg-yellow-50 border rounded text-sm">
+      <b>Detalhamento:</b>
+      <p>{s.detalhamento}</p>
+    </div>
+  )}
+</div>
+
 
               {/* AÇÕES */}
               <div className="flex gap-2 mt-2 flex-wrap">
