@@ -144,13 +144,12 @@ export default function AntesPage() {
           <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer">
             📷 Adicionar fotos
             <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              hidden
-              onChange={handleFotos}
-            />
+  type="file"
+  accept="image/*"
+  capture="environment"
+  multiple
+/>
+
           </label>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
