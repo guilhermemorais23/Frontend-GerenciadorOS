@@ -11,8 +11,6 @@ export default function TecnicoServicoPage() {
   const router = useRouter();
 
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
-
-  const [os, setOs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,11 +26,10 @@ export default function TecnicoServicoPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = await res.json();
-
       if (!res.ok) throw new Error();
 
-      // 🔁 fluxo correto
+      const data = await res.json();
+
       if (data.status === "concluido") {
         router.replace(`/tecnico/servicos/${id}/visualizar`);
         return;
@@ -45,14 +42,13 @@ export default function TecnicoServicoPage() {
 
       router.replace(`/tecnico/servicos/${id}/antes`);
     } catch {
-      setOs(null);
+      router.replace("/tecnico");
     } finally {
       setLoading(false);
     }
   }
 
   if (loading) return <p className="p-6">Carregando...</p>;
-  if (!os) return <p className="p-6">OS não encontrada</p>;
 
   return null;
 }
