@@ -155,16 +155,17 @@ export default function TecnicoPage() {
                 </span>
               </div>
 
-             {/* INFORMAÇÕES DA OS */}
+
+                    {/* INFORMAÇÕES DA OS */}
 <div className="space-y-1 text-sm text-gray-700">
 
-  {/* CLIENTE – SEMPRE */}
+  {/* CLIENTE – SEMPRE MOSTRA */}
   <div>
     <b>Cliente:</b> {s.cliente}
   </div>
 
   {/* ===== DASA ===== */}
-  {s.cliente?.toLowerCase() === "dasa" && (
+  {s.cliente?.toUpperCase() === "DASA" && (
     <>
       {s.marca && (
         <div>
@@ -181,14 +182,12 @@ export default function TecnicoPage() {
   )}
 
   {/* ===== NÃO DASA (BRINKS, ETC) ===== */}
-  {s.cliente?.toLowerCase() !== "dasa" &&
-    (s.Subcliente || s.subgrupo) && (
-      <div>
-        <b>Subcliente:</b> {s.Subcliente || s.subgrupo}
-      </div>
+  {s.cliente?.toUpperCase() !== "DASA" && s.Subcliente && (
+    <div>
+      <b>Subcliente:</b> {s.Subcliente}
+    </div>
   )}
 
-  {/* CAMPOS COMUNS */}
   {s.endereco && (
     <div>
       <b>Endereço:</b> {s.endereco}
@@ -208,6 +207,7 @@ export default function TecnicoPage() {
     </div>
   )}
 </div>
+
 
 
               {/* AÇÕES */}
