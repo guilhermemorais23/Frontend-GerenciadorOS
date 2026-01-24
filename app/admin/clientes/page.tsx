@@ -197,74 +197,109 @@ export default function AdminClientesPage() {
       </div>
 
       {/* ===== MODAL EDITAR ===== */}
-      {clienteEditando && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-3">
-            <h2 className="text-xl font-bold">Editar Cliente</h2>
+{clienteEditando && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white rounded-xl p-6 w-full max-w-md space-y-4">
 
-            <input
-              className="border p-2 w-full rounded"
-              placeholder="Cliente"
-              value={clienteEditando.cliente}
-              onChange={(e) =>
-                setClienteEditando({ ...clienteEditando, cliente: e.target.value })
-              }
-            />
+      <h2 className="text-xl font-bold">Editar Cliente</h2>
 
-            <input
-              className="border p-2 w-full rounded"
-              placeholder="Subcliente / Unidade"
-              value={clienteEditando.subcliente || ""}
-              onChange={(e) =>
-                setClienteEditando({ ...clienteEditando, subcliente: e.target.value })
-              }
-            />
+      {/* RESUMO ATUAL */}
+      <div className="bg-gray-50 border rounded p-3 text-sm space-y-1">
+        <div><b>Cliente:</b> {clienteEditando.cliente}</div>
+        {clienteEditando.subcliente && (
+          <div><b>Subcliente / Unidade:</b> {clienteEditando.subcliente}</div>
+        )}
+        {clienteEditando.marca && (
+          <div><b>Marca:</b> {clienteEditando.marca}</div>
+        )}
+        {clienteEditando.telefone && (
+          <div><b>Telefone atual:</b> {clienteEditando.telefone}</div>
+        )}
+        {clienteEditando.endereco && (
+          <div><b>Endereço atual:</b> {clienteEditando.endereco}</div>
+        )}
+      </div>
 
-            <input
-              className="border p-2 w-full rounded"
-              placeholder="Marca (opcional – DASA)"
-              value={clienteEditando.marca || ""}
-              onChange={(e) =>
-                setClienteEditando({ ...clienteEditando, marca: e.target.value })
-              }
-            />
+      {/* CAMPOS EDITÁVEIS */}
+      <input
+        className="border p-2 w-full rounded"
+        placeholder="Cliente"
+        value={clienteEditando.cliente}
+        onChange={(e) =>
+          setClienteEditando({
+            ...clienteEditando,
+            cliente: e.target.value,
+          })
+        }
+      />
 
-            <input
-              className="border p-2 w-full rounded"
-              placeholder="Endereço"
-              value={clienteEditando.endereco || ""}
-              onChange={(e) =>
-                setClienteEditando({ ...clienteEditando, endereco: e.target.value })
-              }
-            />
+      <input
+        className="border p-2 w-full rounded"
+        placeholder="Subcliente / Unidade"
+        value={clienteEditando.subcliente || ""}
+        onChange={(e) =>
+          setClienteEditando({
+            ...clienteEditando,
+            subcliente: e.target.value,
+          })
+        }
+      />
 
-            <input
-              className="border p-2 w-full rounded"
-              placeholder="Telefone"
-              value={clienteEditando.telefone || ""}
-              onChange={(e) =>
-                setClienteEditando({ ...clienteEditando, telefone: e.target.value })
-              }
-            />
+      <input
+        className="border p-2 w-full rounded"
+        placeholder="Marca (opcional – DASA)"
+        value={clienteEditando.marca || ""}
+        onChange={(e) =>
+          setClienteEditando({
+            ...clienteEditando,
+            marca: e.target.value,
+          })
+        }
+      />
 
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={salvarEdicaoCliente}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full"
-              >
-                Salvar
-              </button>
+      <input
+        className="border p-2 w-full rounded"
+        placeholder="Endereço"
+        value={clienteEditando.endereco || ""}
+        onChange={(e) =>
+          setClienteEditando({
+            ...clienteEditando,
+            endereco: e.target.value,
+          })
+        }
+      />
 
-              <button
-                onClick={() => setClienteEditando(null)}
-                className="bg-gray-300 px-4 py-2 rounded w-full"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <input
+        className="border p-2 w-full rounded"
+        placeholder="Telefone"
+        value={clienteEditando.telefone || ""}
+        onChange={(e) =>
+          setClienteEditando({
+            ...clienteEditando,
+            telefone: e.target.value,
+          })
+        }
+      />
+
+      <div className="flex gap-2 pt-2">
+        <button
+          onClick={salvarEdicaoCliente}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded w-full"
+        >
+          Salvar
+        </button>
+
+        <button
+          onClick={() => setClienteEditando(null)}
+          className="bg-gray-300 px-4 py-2 rounded w-full"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
