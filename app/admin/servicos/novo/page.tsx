@@ -4,111 +4,35 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
-const DASA_LISTA = [
-  { unidade: "PRAIME", marca: "CERPE" },
-  { unidade: "João de Barros", marca: "CERPE" },
-  { unidade: "Canela", marca: "NTO - Bahia" },
-  { unidade: "ALDEOTA", marca: "LabPasteur" },
-  { unidade: "VILA DO ATLANTICO", marca: "IMAGE" },
-  { unidade: "CERPE GRAÇAS - HOSPITAL", marca: "CERPE" },
-  { unidade: "JAIME DA FONTE", marca: "CERPE" },
-  { unidade: "NTO-NORDESTE", marca: "CERPE" },
-  { unidade: "BOA VIAGEM I", marca: "CERPE" },
-  { unidade: "BOA VIAGEM II", marca: "CERPE" },
-  { unidade: "IBURA", marca: "CERPE" },
-  { unidade: "ABDIAS", marca: "CERPE" },
-  { unidade: "Abreu Lima", marca: "CERPE" },
-  { unidade: "DERBY 2", marca: "CERPE" },
-  { unidade: "IPSEP", marca: "CERPE" },
-  { unidade: "PIEDADE II", marca: "CERPE" },
-  { unidade: "GOIANA", marca: "CERPE" },
-  { unidade: "CASA CAIADA", marca: "CERPE" },
-  { unidade: "IPOJUCA", marca: "CERPE" },
-  { unidade: "PALMARES", marca: "CERPE" },
-  { unidade: "RIBEIRÃO", marca: "CERPE" },
-  { unidade: "SURUBIM", marca: "CERPE" },
-  { unidade: "OLINDA", marca: "CERPE" },
-  { unidade: "PAULISTA 2", marca: "CERPE" },
-  { unidade: "SETUBAL", marca: "CERPE" },
-  { unidade: "GRAVATA", marca: "CERPE" },
-  { unidade: "BOA VIAGEM", marca: "BORIS BERENSTEIN" },
-  { unidade: "PIEDADE", marca: "BORIS BERENSTEIN" },
-  { unidade: "MESSEJANA", marca: "LabPasteur" },
-  { unidade: "BEZERRA DE MENEZES", marca: "LabPasteur" },
-  { unidade: "PARANGABA", marca: "LabPasteur" },
-  { unidade: "FATIMA", marca: "LabPasteur" },
-  { unidade: "OLIVEIRA PAIVA", marca: "LabPasteur" },
-  { unidade: "RENASCENÇA", marca: "GASPAR" },
-  { unidade: "ANJO DA GUARDA", marca: "GASPAR" },
-  { unidade: "CALHAU", marca: "GASPAR" },
-  { unidade: "ITAJARA", marca: "IMAGE MEMORIAL" },
-  { unidade: "Campo Grande", marca: "IMAGE MEMORIAL" },
-  { unidade: "LE-SÃO MARCOS", marca: "LEME" },
-  { unidade: "CANELA", marca: "LEME" },
-  { unidade: "GARIBALDI", marca: "LEME" },
-  { unidade: "PATAMARES", marca: "LEME" },
-  { unidade: "CABULA", marca: "LEME" },
-  { unidade: "IMBUI", marca: "LEME" },
-  { unidade: "NTO-ADM", marca: "LEME" },
-  { unidade: "ITAIGARA", marca: "LEME" },
-  { unidade: "VILA DO ATLANTICO", marca: "LEME" },
-  { unidade: "MEMORIAL", marca: "IMAGE" },
-  { unidade: "DERBY", marca: "CERPE" },
-  { unidade: "CAXANGA", marca: "CERPE" },
-  { unidade: "MADALENA - PRIME", marca: "CERPE - PRAIME" },
-  { unidade: "BEBERIBE", marca: "CERPE" },
-  { unidade: "Graças", marca: "CERPE" },
-  { unidade: "GRAVATÁ", marca: "CERPE" },
-  { unidade: "Igarassu", marca: "CERPE" },
-  { unidade: "CE NTH RECIFE", marca: "CERPE" },
-  { unidade: "Jaboatão", marca: "CERPE" },
-  { unidade: "Janga", marca: "CERPE" },
-  { unidade: "NTH - ADM", marca: "CERPE" },
-  { unidade: "PRAZERES", marca: "CERPE" },
-  { unidade: "Setubal II", marca: "CERPE" },
-  { unidade: "IMBIRIBEIRA", marca: "NTO - Recife" },
-  { unidade: "Jardim São Paulo", marca: "CERPE" },
-  { unidade: "HOLANDESES", marca: "GASPAR" },
-  { unidade: "JP Gaspar", marca: "GASPAR" },
-  { unidade: "LEME", marca: "IMAGE" },
-  { unidade: "ARMAZEM", marca: "LABPASTEUR" },
-  { unidade: "Itapoã", marca: "LEME" },
-  { unidade: "SÃO MARCOS", marca: "LEME" },
-  { unidade: "ONDINA", marca: "NTO - Recife" },
-  { unidade: "STELLA MARIS", marca: "LEME" },
-  { unidade: "CABO DE SANTO AGOSTINHO", marca: "BORIS BERENSTEIN" },
-  { unidade: "JAQUEIRA", marca: "CERPE" },
-  { unidade: "CARPINA", marca: "CERPE" },
-  { unidade: "CAMINHO DE AREIA", marca: "LEME" },
-  { unidade: "COSTA AZUL", marca: "LEME" },
-  { unidade: "CAMINHO DAS ARVORES", marca: "LEME" },
-  { unidade: "JARDINS", marca: "GASPAR" },
-  { unidade: "JARDINS PRIME", marca: "GASPAR" },
-];
-
 export default function NovaOSPage() {
   const router = useRouter();
 
-  const [cliente, setCliente] = useState("");
-  const [subcliente, setSubcliente] = useState("");
+  const [clientes, setClientes] = useState<any[]>([]);
   const [subclientes, setSubclientes] = useState<any[]>([]);
+  const [tecnicos, setTecnicos] = useState<any[]>([]);
+
+  const [cliente, setCliente] = useState("");
+  const [subclienteId, setSubclienteId] = useState("");
   const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
-  const [marca, setMarca] = useState("");
-  const [unidade, setUnidade] = useState("");
   const [detalhamento, setDetalhamento] = useState("");
-
-  const [tecnicos, setTecnicos] = useState<any[]>([]);
   const [tecnicoId, setTecnicoId] = useState("");
 
   const [loading, setLoading] = useState(false);
 
-  const [buscaDasa, setBuscaDasa] = useState("");
-  const [mostrarListaDasa, setMostrarListaDasa] = useState(false);
-
   useEffect(() => {
+    carregarClientes();
     carregarTecnicos();
   }, []);
+
+  async function carregarClientes() {
+    try {
+      const data = await apiFetch("/clientes");
+      setClientes(data);
+    } catch {
+      alert("Erro ao carregar clientes");
+    }
+  }
 
   async function carregarTecnicos() {
     try {
@@ -119,26 +43,27 @@ export default function NovaOSPage() {
     }
   }
 
-  async function carregarSubclientes(nomeCliente: string) {
-    try {
-      const data = await apiFetch(`/clientes/by-cliente/${nomeCliente}`);
-      setSubclientes(data);
-    } catch {
-      setSubclientes([]);
-    }
+  function selecionarCliente(nome: string) {
+    setCliente(nome);
+    setSubclienteId("");
+    setEndereco("");
+    setTelefone("");
+
+    const lista = clientes.filter(
+      (c) => c.cliente.toLowerCase() === nome.toLowerCase()
+    );
+
+    setSubclientes(lista);
   }
 
-  const isDASA = cliente.trim().toLowerCase() === "dasa";
+  function selecionarSubcliente(id: string) {
+    setSubclienteId(id);
 
-  const listaFiltrada = DASA_LISTA.filter((item) =>
-    `${item.unidade} ${item.marca}`.toLowerCase().includes(buscaDasa.toLowerCase())
-  );
-
-  function selecionarDasa(item: { unidade: string; marca: string }) {
-    setUnidade(item.unidade);
-    setMarca(item.marca);
-    setMostrarListaDasa(false);
-    setBuscaDasa("");
+    const selecionado = subclientes.find((s) => s._id === id);
+    if (selecionado) {
+      setEndereco(selecionado.endereco || "");
+      setTelefone(selecionado.telefone || "");
+    }
   }
 
   async function salvarOS() {
@@ -147,6 +72,8 @@ export default function NovaOSPage() {
       return;
     }
 
+    const sub = subclientes.find((s) => s._id === subclienteId);
+
     setLoading(true);
 
     try {
@@ -154,11 +81,9 @@ export default function NovaOSPage() {
         method: "POST",
         body: JSON.stringify({
           cliente,
-          subcliente,
+          subcliente: sub?.subcliente || "",
           endereco,
           telefone,
-          marca: isDASA ? marca : "",
-          unidade: isDASA ? unidade : "",
           detalhamento,
           tecnicoId,
         }),
@@ -167,134 +92,67 @@ export default function NovaOSPage() {
       alert("OS criada com sucesso!");
       router.push("/admin");
     } catch (err: any) {
-      alert("Erro: " + err.message);
+      alert(err.message);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-black">
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
+    <div className="min-h-screen bg-gray-100 p-6 text-black">
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-4">
 
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Nova Ordem de Serviço</h1>
-          <button
-            onClick={() => router.push("/admin")}
-            className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"
-          >
-            Voltar
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold">Nova Ordem de Serviço</h1>
 
         {/* CLIENTE */}
-        <input
-          className="border p-2 rounded w-full mb-3"
-          placeholder="Cliente (ex: DASA ou Brinks)"
+        <select
+          className="border p-2 rounded w-full"
           value={cliente}
-          onChange={(e) => {
-            const valor = e.target.value;
-            setCliente(valor);
+          onChange={(e) => selecionarCliente(e.target.value)}
+        >
+          <option value="">Selecione o cliente</option>
+          {[...new Set(clientes.map((c) => c.cliente))].map((nome) => (
+            <option key={nome} value={nome}>
+              {nome}
+            </option>
+          ))}
+        </select>
 
-            if (valor.trim().toLowerCase() === "dasa") {
-              setMostrarListaDasa(true);
-              setSubclientes([]);
-              setSubcliente("");
-            } else {
-              setMostrarListaDasa(false);
-              setBuscaDasa("");
-              setUnidade("");
-              setMarca("");
-              carregarSubclientes(valor);
-            }
-          }}
-        />
-
-        {/* SUBCLIENTE (para clientes normais como Brinks) */}
-        {subclientes.length > 0 && !isDASA && (
+        {/* SUBCLIENTE */}
+        {subclientes.length > 0 && (
           <select
-            className="border p-2 rounded w-full mb-3"
-            value={subcliente}
-            onChange={(e) => setSubcliente(e.target.value)}
+            className="border p-2 rounded w-full"
+            value={subclienteId}
+            onChange={(e) => selecionarSubcliente(e.target.value)}
           >
             <option value="">Selecione o subcliente</option>
             {subclientes.map((s) => (
-              <option key={s._id} value={s.subcliente}>
-                {s.subcliente}
+              <option key={s._id} value={s._id}>
+                {s.subcliente || "Sem subcliente"}
               </option>
             ))}
           </select>
         )}
 
-        {/* LISTA DASA */}
-        {isDASA && mostrarListaDasa && (
-          <div className="border rounded p-3 mb-4 bg-gray-50">
-            <p className="font-semibold mb-2">Selecionar Unidade / Marca (DASA)</p>
-
-            <input
-              className="border p-2 rounded w-full mb-3"
-              placeholder="Buscar unidade ou marca..."
-              value={buscaDasa}
-              onChange={(e) => setBuscaDasa(e.target.value)}
-            />
-
-            <div className="max-h-60 overflow-y-auto flex flex-col gap-2">
-              {listaFiltrada.map((item, index) => (
-                <div
-                  key={index}
-                  onClick={() => selecionarDasa(item)}
-                  className="cursor-pointer p-2 rounded border bg-white hover:bg-blue-100"
-                >
-                  <b>{item.unidade}</b> — {item.marca}
-                </div>
-              ))}
-
-              {listaFiltrada.length === 0 && (
-                <p className="text-sm text-gray-500">Nenhum resultado encontrado</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* UNIDADE */}
-        {isDASA && (
-          <input
-            className="border p-2 rounded w-full mb-3 bg-gray-100"
-            placeholder="Unidade"
-            value={unidade}
-            readOnly
-          />
-        )}
-
-        {/* MARCA */}
-        {isDASA && (
-          <input
-            className="border p-2 rounded w-full mb-3 bg-gray-100"
-            placeholder="Marca"
-            value={marca}
-            readOnly
-          />
-        )}
-
         {/* ENDEREÇO */}
         <input
-          className="border p-2 rounded w-full mb-3"
+          className="border p-2 rounded w-full bg-gray-100"
           placeholder="Endereço"
           value={endereco}
-          onChange={(e) => setEndereco(e.target.value)}
+          readOnly
         />
 
         {/* TELEFONE */}
         <input
-          className="border p-2 rounded w-full mb-3"
+          className="border p-2 rounded w-full bg-gray-100"
           placeholder="Telefone"
           value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
+          readOnly
         />
 
         {/* DETALHAMENTO */}
         <textarea
-          className="border p-2 rounded w-full mb-4"
+          className="border p-2 rounded w-full"
           rows={4}
           placeholder="Detalhamento do serviço"
           value={detalhamento}
@@ -303,7 +161,7 @@ export default function NovaOSPage() {
 
         {/* TÉCNICO */}
         <select
-          className="border p-2 rounded w-full mb-6"
+          className="border p-2 rounded w-full"
           value={tecnicoId}
           onChange={(e) => setTecnicoId(e.target.value)}
         >
@@ -318,7 +176,7 @@ export default function NovaOSPage() {
         <button
           onClick={salvarOS}
           disabled={loading}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded w-full"
         >
           {loading ? "Salvando..." : "Salvar OS"}
         </button>

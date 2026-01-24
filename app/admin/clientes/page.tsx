@@ -1,13 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
-export default function ClientesPage() {
-  const router = useRouter();
+export default function AdminClientesPage() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [cliente, setCliente] = useState("");
+  const [subcliente, setSubcliente] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     carregarClientes();
@@ -17,88 +21,136 @@ export default function ClientesPage() {
     try {
       const data = await apiFetch("/clientes");
       setClientes(data);
-    } catch (err: any) {
-      alert("Erro ao carregar clientes: " + err.message);
+    } catch {
+      alert("Erro ao carregar clientes");
     } finally {
       setLoading(false);
     }
   }
 
+  async function criarCliente() {
+    if (!cliente) {
+      alert("Cliente é obrigatório");
+      return;
+    }
+
+    try {
+      await apiFetch("/clientes", {
+        method: "POST",
+        body: JSON.stringify({
+          cliente,
+          subcliente,
+          endereco,
+          telefone,
+          email,
+        }),
+      });
+
+      alert("Cliente criado com sucesso!");
+      setCliente("");
+      setSubcliente("");
+      setEndereco("");
+      setTelefone("");
+      setEmail("");
+      carregarClientes();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
   async function excluirCliente(id: string) {
-    const ok = confirm("Tem certeza que deseja excluir este cliente?");
+    const ok = confirm("Deseja excluir este cliente?");
     if (!ok) return;
 
     try {
       await apiFetch(`/clientes/${id}`, { method: "DELETE" });
-      alert("Cliente excluído");
       carregarClientes();
-    } catch (err: any) {
-      alert("Erro ao excluir cliente");
+    } catch {
+      alert("Erro ao excluir");
     }
   }
 
   if (loading) {
-    return <div className="p-6 text-center">Carregando...</div>;
+    return <div className="p-6">Carregando...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
+    <div className="min-h-screen bg-gray-100 p-6 text-black">
+      <div className="max-w-5xl mx-auto bg-white rounded-xl shadow p-6 space-y-6">
 
-        {/* TOPO */}
-        <div className="flex items-center justify-between mb-4">
-  <h1 className="text-xl font-bold">Clientes</h1>
+        <h1 className="text-2xl font-bold">Clientes</h1>
 
-  <div className="flex gap-2">
-    <button
-      onClick={() => router.push("/admin")}
-      className="px-3 py-1.5 text-sm rounded bg-gray-300 hover:bg-gray-400"
-    >
-      Voltar
-    </button>
+        {/* FORM CRIAR */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <input
+            className="border p-2 rounded"
+            placeholder="Cliente (ex: DASA, BRINKS)"
+            value={cliente}
+            onChange={(e) => setCliente(e.target.value)}
+          />
 
-    <button
-      onClick={() => router.push("/admin/clientes/novo")}
-      className="px-3 py-1.5 text-sm rounded bg-green-600 hover:bg-green-700 text-white"
-    >
-      + Novo Cliente
-    </button>
-  </div>
-</div>
+          <input
+            className="border p-2 rounded"
+            placeholder="Subcliente / Unidade"
+            value={subcliente}
+            onChange={(e) => setSubcliente(e.target.value)}
+          />
 
+          <input
+            className="border p-2 rounded"
+            placeholder="Endereço"
+            value={endereco}
+            onChange={(e) => setEndereco(e.target.value)}
+          />
+
+          <input
+            className="border p-2 rounded"
+            placeholder="Telefone"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+          />
+
+          <input
+            className="border p-2 rounded md:col-span-2"
+            placeholder="Email (opcional)"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+
+        <button
+          onClick={criarCliente}
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded"
+        >
+          Salvar Cliente
+        </button>
 
         {/* LISTA */}
-        {clientes.length === 0 && (
-          <p className="text-gray-600">Nenhum cliente cadastrado.</p>
-        )}
-
-        <div className="space-y-3">
+        <div className="border-t pt-6 space-y-3">
           {clientes.map((c) => (
             <div
               key={c._id}
-              className="border rounded p-4 flex justify-between items-center"
+              className="border rounded p-4 flex flex-col md:flex-row md:justify-between gap-2"
             >
-              <div>
-                <p className="font-bold text-black">{c.cliente}</p>
-                <p className="text-sm text-gray-600">
-                  Subcliente: {c.subcliente || "-"}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Telefone: {c.telefone || "-"}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Email: {c.email || "-"}
-                </p>
+              <div className="text-sm space-y-1">
+                <div><b>Cliente:</b> {c.cliente}</div>
+                {c.subcliente && <div><b>Subcliente:</b> {c.subcliente}</div>}
+                {c.endereco && <div><b>Endereço:</b> {c.endereco}</div>}
+                {c.telefone && <div><b>Telefone:</b> {c.telefone}</div>}
               </div>
 
               <button
                 onClick={() => excluirCliente(c._id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm"
               >
                 Excluir
               </button>
             </div>
           ))}
+
+          {clientes.length === 0 && (
+            <p className="text-gray-600">Nenhum cliente cadastrado.</p>
+          )}
         </div>
 
       </div>
