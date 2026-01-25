@@ -30,29 +30,22 @@ export default function DetalheOSPage() {
     }
   }
 
-  async function cancelarOS() {
-    const ok = confirm("Tem certeza que deseja cancelar esta OS?");
-    if (!ok) return;
-
-    try {
-      await apiFetch(`/projects/admin/cancelar/${id}`, { method: "PUT" });
-      alert("OS cancelada com sucesso!");
-      carregarOS();
-    } catch (err: any) {
-      alert("Erro ao cancelar: " + err.message);
-    }
-  }
-
-  // 🔥 converte imagem da API em base64 (PDF)
+  // ================= PDF =================
   async function imageToBase64(url: string) {
-    const res = await fetch(url);
-    const blob = await res.blob();
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) return "";
+      const blob = await res.blob();
 
-    return new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return "";
+    }
   }
 
   async function gerarPDF() {
@@ -83,9 +76,15 @@ export default function DetalheOSPage() {
 
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
-        const base64 = await imageToBase64(`${API_URL}${foto}`);
-        doc.addImage(base64, "JPEG", 10, y, 60, 60);
-        y += 70;
+        const base64 =
+          foto.startsWith("data:image")
+            ? foto
+            : await imageToBase64(`${API_URL}${foto}`);
+
+        if (base64) {
+          doc.addImage(base64, "JPEG", 10, y, 60, 60);
+          y += 70;
+        }
 
         if (y > 260) {
           doc.addPage();
@@ -94,7 +93,7 @@ export default function DetalheOSPage() {
       }
     }
 
-    y += 10;
+    y += 6;
 
     // ===== DEPOIS =====
     doc.text("DEPOIS:", 10, y); y += 6;
@@ -103,9 +102,15 @@ export default function DetalheOSPage() {
 
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
-        const base64 = await imageToBase64(`${API_URL}${foto}`);
-        doc.addImage(base64, "JPEG", 10, y, 60, 60);
-        y += 70;
+        const base64 =
+          foto.startsWith("data:image")
+            ? foto
+            : await imageToBase64(`${API_URL}${foto}`);
+
+        if (base64) {
+          doc.addImage(base64, "JPEG", 10, y, 60, 60);
+          y += 70;
+        }
 
         if (y > 260) {
           doc.addPage();
@@ -121,14 +126,29 @@ export default function DetalheOSPage() {
   if (!os) return <p className="p-6">OS não encontrada</p>;
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 flex justify-center">
+    <div className="min-h-screen bg-gray-100 p-6 flex justify-center text-black">
       <div className="bg-white max-w-xl w-full p-6 rounded-xl shadow">
 
+        {/* BOTÕES */}
         <div className="flex gap-2 mb-4 flex-wrap">
-          <button onClick={gerarPDF} className="bg-blue-600 text-white px-4 py-2 rounded">
+          <button
+            onClick={gerarPDF}
+            className="bg-blue-600 text-white px-4 py-2 rounded"
+          >
             Gerar PDF
           </button>
-          <button onClick={() => router.back()} className="bg-gray-300 px-4 py-2 rounded">
+
+          <button
+            onClick={() => router.push(`/admin/servicos/${id}/editar`)}
+            className="bg-yellow-500 text-white px-4 py-2 rounded"
+          >
+            Editar
+          </button>
+
+          <button
+            onClick={() => router.back()}
+            className="bg-gray-300 px-4 py-2 rounded"
+          >
             Voltar
           </button>
         </div>
@@ -145,7 +165,11 @@ export default function DetalheOSPage() {
           {os.antes?.fotos?.map((foto: string, i: number) => (
             <img
               key={i}
-              src={`${API_URL}${foto}`}
+              src={
+                foto.startsWith("data:image")
+                  ? foto
+                  : `${API_URL}${foto}`
+              }
               className="h-32 w-full object-cover rounded border"
             />
           ))}
@@ -159,7 +183,11 @@ export default function DetalheOSPage() {
           {os.depois?.fotos?.map((foto: string, i: number) => (
             <img
               key={i}
-              src={`${API_URL}${foto}`}
+              src={
+                foto.startsWith("data:image")
+                  ? foto
+                  : `${API_URL}${foto}`
+              }
               className="h-32 w-full object-cover rounded border"
             />
           ))}
