@@ -23,20 +23,31 @@ export default function TecnicoServicoPage() {
     try {
       const token = localStorage.getItem("token");
 
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
       const res = await fetch(`${API_URL}/projects/tecnico/view/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      // 🔴 IMPORTANTE: loga a resposta inválida
+      const text = await res.text();
+
       if (!res.ok) {
-        const text = await res.text();
         console.error("Resposta inválida do backend:", text);
-        throw new Error("Resposta não JSON");
+        throw new Error("Resposta inválida");
       }
 
-      const data = await res.json();
+      let data: any;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Resposta não é JSON:", text);
+        throw e;
+      }
 
       // 🔒 OS concluída → visualizar
       if (data.status === "concluido") {
@@ -54,14 +65,16 @@ export default function TecnicoServicoPage() {
       router.replace(`/tecnico/servicos/${id}/antes`);
     } catch (err) {
       console.error("Erro ao carregar OS do técnico:", err);
-      alert("Erro ao carregar OS. Faça login novamente.");
-      router.replace("/tecnico");
+      alert("Sessão expirada ou erro ao carregar OS. Faça login novamente.");
+      router.replace("/login");
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) return <p className="p-6">Carregando...</p>;
+  if (loading) {
+    return <p className="p-6">Carregando...</p>;
+  }
 
   return null;
 }
