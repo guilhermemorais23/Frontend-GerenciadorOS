@@ -29,20 +29,38 @@ export default function DetalheOSPage() {
     }
   }
 
-  // 🔥 RESOLVE QUALQUER FORMATO DE IMAGEM
-  function resolveImageSrc(foto: string) {
+  // 🔥 FUNÇÃO DEFINITIVA PRA IMAGEM (NÃO MUDA MAIS)
+  function resolveImageSrc(foto: any) {
     if (!foto) return "";
 
-    // data:image completo
-    if (foto.startsWith("data:image")) return foto;
+    // veio como objeto (erro backend)
+    if (typeof foto === "object") {
+      console.error("Foto inválida (objeto):", foto);
+      return "";
+    }
 
-    // base64 puro
-    if (foto.length > 100 && !foto.startsWith("/")) {
+    // data:image completo
+    if (typeof foto === "string" && foto.startsWith("data:image")) {
+      return foto;
+    }
+
+    // base64 puro (SEM prefixo)
+    if (
+      typeof foto === "string" &&
+      foto.length > 50 &&
+      !foto.startsWith("/") &&
+      !foto.startsWith("http")
+    ) {
       return `data:image/jpeg;base64,${foto}`;
     }
 
-    // caminho do backend
-    return `${API_URL}${foto}`;
+    // caminho salvo no backend (/uploads/...)
+    if (typeof foto === "string" && foto.startsWith("/")) {
+      return `${API_URL}${foto}`;
+    }
+
+    console.error("Formato de imagem desconhecido:", foto);
+    return "";
   }
 
   async function gerarPDF() {
@@ -75,8 +93,10 @@ export default function DetalheOSPage() {
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
         const img = resolveImageSrc(foto);
-        doc.addImage(img, "JPEG", 10, y, 60, 60);
-        y += 70;
+        if (img) {
+          doc.addImage(img, "JPEG", 10, y, 60, 60);
+          y += 70;
+        }
 
         if (y > 260) {
           doc.addPage();
@@ -95,8 +115,10 @@ export default function DetalheOSPage() {
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
         const img = resolveImageSrc(foto);
-        doc.addImage(img, "JPEG", 10, y, 60, 60);
-        y += 70;
+        if (img) {
+          doc.addImage(img, "JPEG", 10, y, 60, 60);
+          y += 70;
+        }
 
         if (y > 260) {
           doc.addPage();
@@ -148,7 +170,7 @@ export default function DetalheOSPage() {
         <p>{os.antes?.relatorio || "-"}</p>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {os.antes?.fotos?.map((foto: string, i: number) => (
+          {os.antes?.fotos?.map((foto: any, i: number) => (
             <img
               key={i}
               src={resolveImageSrc(foto)}
@@ -162,7 +184,7 @@ export default function DetalheOSPage() {
         <p>{os.depois?.relatorio || "-"}</p>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {os.depois?.fotos?.map((foto: string, i: number) => (
+          {os.depois?.fotos?.map((foto: any, i: number) => (
             <img
               key={i}
               src={resolveImageSrc(foto)}
