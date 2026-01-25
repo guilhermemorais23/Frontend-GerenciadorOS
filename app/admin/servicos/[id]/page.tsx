@@ -3,14 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
-import jsPDF from "jspdf";
 
 const API_URL = "https://gerenciador-de-os.onrender.com";
 
 export default function DetalheOSPage() {
   const router = useRouter();
   const params = useParams();
-  const id = params.id as string;
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [os, setOs] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,27 +29,26 @@ export default function DetalheOSPage() {
     }
   }
 
-  // ================= PDF =================
-  async function imageToBase64(url: string) {
-    try {
-      const res = await fetch(url, { mode: "cors" });
-      if (!res.ok) return "";
-      const blob = await res.blob();
+  // 🔥 RESOLVE QUALQUER FORMATO DE IMAGEM
+  function resolveImageSrc(foto: string) {
+    if (!foto) return "";
 
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return "";
+    // data:image completo
+    if (foto.startsWith("data:image")) return foto;
+
+    // base64 puro
+    if (foto.length > 100 && !foto.startsWith("/")) {
+      return `data:image/jpeg;base64,${foto}`;
     }
+
+    // caminho do backend
+    return `${API_URL}${foto}`;
   }
 
   async function gerarPDF() {
     if (!os) return;
 
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     let y = 10;
 
@@ -76,15 +74,9 @@ export default function DetalheOSPage() {
 
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
-        const base64 =
-          foto.startsWith("data:image")
-            ? foto
-            : await imageToBase64(`${API_URL}${foto}`);
-
-        if (base64) {
-          doc.addImage(base64, "JPEG", 10, y, 60, 60);
-          y += 70;
-        }
+        const img = resolveImageSrc(foto);
+        doc.addImage(img, "JPEG", 10, y, 60, 60);
+        y += 70;
 
         if (y > 260) {
           doc.addPage();
@@ -102,15 +94,9 @@ export default function DetalheOSPage() {
 
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
-        const base64 =
-          foto.startsWith("data:image")
-            ? foto
-            : await imageToBase64(`${API_URL}${foto}`);
-
-        if (base64) {
-          doc.addImage(base64, "JPEG", 10, y, 60, 60);
-          y += 70;
-        }
+        const img = resolveImageSrc(foto);
+        doc.addImage(img, "JPEG", 10, y, 60, 60);
+        y += 70;
 
         if (y > 260) {
           doc.addPage();
@@ -165,11 +151,7 @@ export default function DetalheOSPage() {
           {os.antes?.fotos?.map((foto: string, i: number) => (
             <img
               key={i}
-              src={
-                foto.startsWith("data:image")
-                  ? foto
-                  : `${API_URL}${foto}`
-              }
+              src={resolveImageSrc(foto)}
               className="h-32 w-full object-cover rounded border"
             />
           ))}
@@ -183,11 +165,7 @@ export default function DetalheOSPage() {
           {os.depois?.fotos?.map((foto: string, i: number) => (
             <img
               key={i}
-              src={
-                foto.startsWith("data:image")
-                  ? foto
-                  : `${API_URL}${foto}`
-              }
+              src={resolveImageSrc(foto)}
               className="h-32 w-full object-cover rounded border"
             />
           ))}
