@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = "https://gerenciador-de-os.onrender.com";
+
 
 export default function AntesPage() {
   const { id } = useParams() as { id: string };
