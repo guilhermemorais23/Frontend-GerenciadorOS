@@ -11,8 +11,9 @@ export default function NovaOSPage() {
   const [tecnicos, setTecnicos] = useState<any[]>([]);
 
   const [cliente, setCliente] = useState("");
-  const [subcliente, setSubcliente] = useState("");
+  const [subcliente, setSubcliente] = useState(""); // será a UNIDADE
   const [marca, setMarca] = useState("");
+  const [unidade, setUnidade] = useState(""); // 🔥 NOVO
   const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
   const [detalhamento, setDetalhamento] = useState("");
@@ -20,7 +21,6 @@ export default function NovaOSPage() {
 
   const [buscaDasa, setBuscaDasa] = useState("");
   const [listaRelacionada, setListaRelacionada] = useState<any[]>([]);
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -29,26 +29,19 @@ export default function NovaOSPage() {
   }, []);
 
   async function carregarClientes() {
-    try {
-      const data = await apiFetch("/clientes");
-      setClientes(data);
-    } catch {
-      alert("Erro ao carregar clientes");
-    }
+    const data = await apiFetch("/clientes");
+    setClientes(data);
   }
 
   async function carregarTecnicos() {
-    try {
-      const data = await apiFetch("/auth/tecnicos");
-      setTecnicos(data);
-    } catch {
-      alert("Erro ao carregar técnicos");
-    }
+    const data = await apiFetch("/auth/tecnicos");
+    setTecnicos(data);
   }
 
   function selecionarCliente(nome: string) {
     setCliente(nome);
     setSubcliente("");
+    setUnidade("");
     setMarca("");
     setEndereco("");
     setTelefone("");
@@ -57,24 +50,18 @@ export default function NovaOSPage() {
     const relacionados = clientes.filter(
       (c) => c.cliente.toLowerCase() === nome.toLowerCase()
     );
-
     setListaRelacionada(relacionados);
   }
 
   function selecionarRelacionado(item: any) {
     setSubcliente(item.subcliente || "");
+    setUnidade(item.subcliente || ""); // 🔥 ESSENCIAL
     setMarca(item.marca || "");
     setEndereco(item.endereco || "");
     setTelefone(item.telefone || "");
   }
 
   const isDASA = cliente.toLowerCase() === "dasa";
-
-  const listaDasaFiltrada = listaRelacionada.filter((c) =>
-    `${c.subcliente || ""} ${c.marca || ""}`
-      .toLowerCase()
-      .includes(buscaDasa.toLowerCase())
-  );
 
   async function salvarOS() {
     if (!cliente || !tecnicoId) {
@@ -89,8 +76,8 @@ export default function NovaOSPage() {
         method: "POST",
         body: JSON.stringify({
           cliente,
-          subcliente,
           marca,
+          unidade, // 🔥 AGORA VAI PRO BANCO
           endereco,
           telefone,
           detalhamento,
@@ -110,10 +97,8 @@ export default function NovaOSPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-4">
-
         <h1 className="text-2xl font-bold">Nova Ordem de Serviço</h1>
 
-        {/* CLIENTE */}
         <select
           className="border p-2 rounded w-full"
           value={cliente}
@@ -121,45 +106,11 @@ export default function NovaOSPage() {
         >
           <option value="">Selecione o cliente</option>
           {[...new Set(clientes.map((c) => c.cliente))].map((nome) => (
-            <option key={nome} value={nome}>
-              {nome}
-            </option>
+            <option key={nome} value={nome}>{nome}</option>
           ))}
         </select>
 
-        {/* ===== DASA ===== */}
-        {isDASA && listaRelacionada.length > 0 && (
-          <>
-            <input
-              className="border p-2 rounded w-full"
-              placeholder="Buscar unidade ou marca (ex: João Pessoa, CERPE)"
-              value={buscaDasa}
-              onChange={(e) => setBuscaDasa(e.target.value)}
-            />
-
-            <div className="border rounded max-h-60 overflow-y-auto">
-              {listaDasaFiltrada.map((c) => (
-                <div
-                  key={c._id}
-                  onClick={() => selecionarRelacionado(c)}
-                  className="p-2 cursor-pointer hover:bg-blue-100 border-b"
-                >
-                  <b>{c.subcliente}</b>
-                  {c.marca && ` — ${c.marca}`}
-                </div>
-              ))}
-
-              {listaDasaFiltrada.length === 0 && (
-                <p className="p-2 text-sm text-gray-500">
-                  Nenhum resultado encontrado
-                </p>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ===== NÃO DASA ===== */}
-        {!isDASA && listaRelacionada.length > 0 && (
+        {listaRelacionada.length > 0 && (
           <select
             className="border p-2 rounded w-full"
             value={subcliente}
@@ -170,7 +121,7 @@ export default function NovaOSPage() {
               if (item) selecionarRelacionado(item);
             }}
           >
-            <option value="">Selecione o subcliente</option>
+            <option value="">Selecione a unidade</option>
             {listaRelacionada.map((c) => (
               <option key={c._id} value={c.subcliente}>
                 {c.subcliente}
@@ -179,32 +130,11 @@ export default function NovaOSPage() {
           </select>
         )}
 
-        {/* MARCA */}
-        {marca && (
-          <input
-            className="border p-2 rounded w-full bg-gray-100"
-            value={`Marca: ${marca}`}
-            readOnly
-          />
-        )}
+        <input className="border p-2 rounded w-full bg-gray-100" value={`Marca: ${marca}`} readOnly />
+        <input className="border p-2 rounded w-full bg-gray-100" value={`Unidade: ${unidade}`} readOnly />
+        <input className="border p-2 rounded w-full bg-gray-100" value={endereco} readOnly />
+        <input className="border p-2 rounded w-full bg-gray-100" value={telefone} readOnly />
 
-        {/* ENDEREÇO */}
-        <input
-          className="border p-2 rounded w-full bg-gray-100"
-          placeholder="Endereço"
-          value={endereco}
-          readOnly
-        />
-
-        {/* TELEFONE */}
-        <input
-          className="border p-2 rounded w-full bg-gray-100"
-          placeholder="Telefone"
-          value={telefone}
-          readOnly
-        />
-
-        {/* DETALHAMENTO */}
         <textarea
           className="border p-2 rounded w-full"
           rows={4}
@@ -213,7 +143,6 @@ export default function NovaOSPage() {
           onChange={(e) => setDetalhamento(e.target.value)}
         />
 
-        {/* TÉCNICO */}
         <select
           className="border p-2 rounded w-full"
           value={tecnicoId}
@@ -221,20 +150,17 @@ export default function NovaOSPage() {
         >
           <option value="">Selecione o técnico</option>
           {tecnicos.map((t) => (
-            <option key={t._id} value={t._id}>
-              {t.nome}
-            </option>
+            <option key={t._id} value={t._id}>{t.nome}</option>
           ))}
         </select>
 
         <button
           onClick={salvarOS}
           disabled={loading}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded w-full"
+          className="bg-green-600 text-white px-6 py-3 rounded w-full"
         >
           {loading ? "Salvando..." : "Salvar OS"}
         </button>
-
       </div>
     </div>
   );
