@@ -30,21 +30,17 @@ export default function DetalheOSPage() {
   }
 
   // ================= IMAGEM =================
-  function resolveImageSrc(foto: any) {
-    if (!foto || typeof foto !== "string") return "";
+  function resolveImageSrc(foto?: string) {
+    if (!foto) return "";
     if (foto.startsWith("/uploads")) return `${API_URL}${foto}`;
     if (foto.startsWith("data:image")) return foto;
     return `data:image/jpeg;base64,${foto}`;
   }
 
-  // ================= NORMALIZA TEXTO (OBS) =================
+  // ================= TEXTO =================
   function formatarTexto(texto?: string) {
     if (!texto) return "-";
-
-    // força quebra de linha correta
-    return texto
-      .replace(/\\n/g, "\n")
-      .replace(/Obs:/gi, "\nObs: ");
+    return texto.replace(/\\n/g, "\n");
   }
 
   // ================= PDF =================
@@ -63,7 +59,7 @@ export default function DetalheOSPage() {
       os.updatedAt || os.createdAt
     ).toLocaleDateString("pt-BR");
 
-    // ---------- CABEÇALHO ----------
+    // ----- CABEÇALHO -----
     doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
     doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
@@ -78,12 +74,12 @@ export default function DetalheOSPage() {
     doc.line(margin, y, pageWidth - margin, y);
     y += 8;
 
-    // ---------- DADOS ----------
+    // ----- DADOS -----
     const linha = (label: string, value: string) => {
       doc.setFont("helvetica", "bold");
       doc.text(label, margin, y);
       doc.setFont("helvetica", "normal");
-      doc.text(value || "-", margin + 38, y);
+      doc.text(value || "-", margin + 40, y);
       y += 6;
     };
 
@@ -97,8 +93,8 @@ export default function DetalheOSPage() {
 
     y += 4;
 
-    // ---------- TEXTO LONGO (OBS INCLUÍDO) ----------
-    const textoLongo = (titulo: string, texto: string) => {
+    // ----- FUNÇÃO TEXTO LONGO -----
+    const blocoTexto = (titulo: string, texto?: string) => {
       doc.setFont("helvetica", "bold");
       doc.text(titulo, margin, y);
       y += 5;
@@ -112,8 +108,12 @@ export default function DetalheOSPage() {
       y += linhas.length * 5 + 2;
     };
 
-    textoLongo("Detalhamento do Serviço:", os.detalhamento);
-    textoLongo("Relatório - Antes:", os.antes?.relatorio);
+    // ----- DETALHAMENTO -----
+    blocoTexto("Detalhamento do Serviço:", os.detalhamento);
+
+    // ----- ANTES -----
+    blocoTexto("Relatório - Antes:", os.antes?.relatorio);
+    blocoTexto("Observações - Antes:", os.antes?.obs);
 
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
@@ -126,7 +126,9 @@ export default function DetalheOSPage() {
       }
     }
 
-    textoLongo("Relatório - Depois:", os.depois?.relatorio);
+    // ----- DEPOIS -----
+    blocoTexto("Relatório - Depois:", os.depois?.relatorio);
+    blocoTexto("Observações - Depois:", os.depois?.obs);
 
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
@@ -139,7 +141,7 @@ export default function DetalheOSPage() {
       }
     }
 
-    // ---------- RODAPÉ ----------
+    // ----- RODAPÉ -----
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
@@ -190,13 +192,19 @@ export default function DetalheOSPage() {
         <p><b>Marca:</b> {os.marca || "-"}</p>
 
         <h3 className="mt-4 font-bold">DETALHAMENTO</h3>
-        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
           {formatarTexto(os.detalhamento)}
         </pre>
 
         <h3 className="mt-4 font-bold">ANTES</h3>
-        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+        <b>Relatório:</b>
+        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
           {formatarTexto(os.antes?.relatorio)}
+        </pre>
+
+        <b>Observações:</b>
+        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
+          {formatarTexto(os.antes?.obs)}
         </pre>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -206,8 +214,14 @@ export default function DetalheOSPage() {
         </div>
 
         <h3 className="mt-6 font-bold">DEPOIS</h3>
-        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+        <b>Relatório:</b>
+        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
           {formatarTexto(os.depois?.relatorio)}
+        </pre>
+
+        <b>Observações:</b>
+        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
+          {formatarTexto(os.depois?.obs)}
         </pre>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
