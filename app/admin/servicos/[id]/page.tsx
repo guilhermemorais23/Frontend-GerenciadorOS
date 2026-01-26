@@ -43,6 +43,20 @@ export default function DetalheOSPage() {
     return texto.replace(/\\n/g, "\n");
   }
 
+  // 🔥 OBS ROBUSTO (PEGA QUALQUER NOME)
+  function pegarObs(bloco: any) {
+    if (!bloco) return "-";
+
+    return (
+      bloco.obs ||
+      bloco.observacao ||
+      bloco.observacoes ||
+      bloco.obsAntes ||
+      bloco.obsDepois ||
+      "-"
+    );
+  }
+
   // ================= PDF =================
   async function gerarPDF() {
     if (!os) return;
@@ -93,7 +107,6 @@ export default function DetalheOSPage() {
 
     y += 4;
 
-    // ----- FUNÇÃO TEXTO LONGO -----
     const blocoTexto = (titulo: string, texto?: string) => {
       doc.setFont("helvetica", "bold");
       doc.text(titulo, margin, y);
@@ -108,12 +121,11 @@ export default function DetalheOSPage() {
       y += linhas.length * 5 + 2;
     };
 
-    // ----- DETALHAMENTO -----
     blocoTexto("Detalhamento do Serviço:", os.detalhamento);
 
     // ----- ANTES -----
     blocoTexto("Relatório - Antes:", os.antes?.relatorio);
-    blocoTexto("Observações - Antes:", os.antes?.obs);
+    blocoTexto("Observações - Antes:", pegarObs(os.antes));
 
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
@@ -128,7 +140,7 @@ export default function DetalheOSPage() {
 
     // ----- DEPOIS -----
     blocoTexto("Relatório - Depois:", os.depois?.relatorio);
-    blocoTexto("Observações - Depois:", os.depois?.obs);
+    blocoTexto("Observações - Depois:", pegarObs(os.depois));
 
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
@@ -171,7 +183,6 @@ export default function DetalheOSPage() {
     <div className="min-h-screen bg-gray-100 p-6 flex justify-center text-black">
       <div className="bg-white max-w-xl w-full p-6 rounded-xl shadow">
 
-        {/* BOTÕES */}
         <div className="flex gap-2 mb-4">
           <button onClick={gerarPDF} className="bg-blue-600 text-white px-4 py-2 rounded">
             Gerar PDF
@@ -187,14 +198,8 @@ export default function DetalheOSPage() {
           </button>
         </div>
 
-        {/* VER ADMIN */}
         <p><b>Cliente:</b> {os.cliente}</p>
         <p><b>Marca:</b> {os.marca || "-"}</p>
-
-        <h3 className="mt-4 font-bold">DETALHAMENTO</h3>
-        <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
-          {formatarTexto(os.detalhamento)}
-        </pre>
 
         <h3 className="mt-4 font-bold">ANTES</h3>
         <b>Relatório:</b>
@@ -204,7 +209,7 @@ export default function DetalheOSPage() {
 
         <b>Observações:</b>
         <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
-          {formatarTexto(os.antes?.obs)}
+          {formatarTexto(pegarObs(os.antes))}
         </pre>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
@@ -221,7 +226,7 @@ export default function DetalheOSPage() {
 
         <b>Observações:</b>
         <pre className="whitespace-pre-wrap bg-gray-100 p-2 rounded">
-          {formatarTexto(os.depois?.obs)}
+          {formatarTexto(pegarObs(os.depois))}
         </pre>
 
         <div className="grid grid-cols-2 gap-2 mt-2">
