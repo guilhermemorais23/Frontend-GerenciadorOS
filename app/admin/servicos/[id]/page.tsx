@@ -32,12 +32,19 @@ export default function DetalheOSPage() {
   // ================= IMAGEM =================
   function resolveImageSrc(foto: any) {
     if (!foto || typeof foto !== "string") return "";
-
     if (foto.startsWith("/uploads")) return `${API_URL}${foto}`;
     if (foto.startsWith("data:image")) return foto;
-
-    // base64 puro
     return `data:image/jpeg;base64,${foto}`;
+  }
+
+  // ================= NORMALIZA TEXTO (OBS) =================
+  function formatarTexto(texto?: string) {
+    if (!texto) return "-";
+
+    // força quebra de linha correta
+    return texto
+      .replace(/\\n/g, "\n")
+      .replace(/Obs:/gi, "\nObs: ");
   }
 
   // ================= PDF =================
@@ -65,9 +72,7 @@ export default function DetalheOSPage() {
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`OS Nº: ${os.osNumero}`, margin, y);
-    doc.text(`Data: ${dataExecucao}`, pageWidth - margin, y, {
-      align: "right",
-    });
+    doc.text(`Data: ${dataExecucao}`, pageWidth - margin, y, { align: "right" });
     y += 8;
 
     doc.line(margin, y, pageWidth - margin, y);
@@ -92,7 +97,7 @@ export default function DetalheOSPage() {
 
     y += 4;
 
-    // ---------- TEXTO LONGO ----------
+    // ---------- TEXTO LONGO (OBS INCLUÍDO) ----------
     const textoLongo = (titulo: string, texto: string) => {
       doc.setFont("helvetica", "bold");
       doc.text(titulo, margin, y);
@@ -100,7 +105,7 @@ export default function DetalheOSPage() {
 
       doc.setFont("helvetica", "normal");
       const linhas = doc.splitTextToSize(
-        texto || "-",
+        formatarTexto(texto),
         pageWidth - margin * 2
       );
       doc.text(linhas, margin, y);
@@ -110,7 +115,6 @@ export default function DetalheOSPage() {
     textoLongo("Detalhamento do Serviço:", os.detalhamento);
     textoLongo("Relatório - Antes:", os.antes?.relatorio);
 
-    // ---------- FOTOS ANTES ----------
     if (os.antes?.fotos?.length) {
       for (const foto of os.antes.fotos) {
         if (y + 55 > pageHeight - 25) {
@@ -124,7 +128,6 @@ export default function DetalheOSPage() {
 
     textoLongo("Relatório - Depois:", os.depois?.relatorio);
 
-    // ---------- FOTOS DEPOIS ----------
     if (os.depois?.fotos?.length) {
       for (const foto of os.depois.fotos) {
         if (y + 55 > pageHeight - 25) {
@@ -168,53 +171,48 @@ export default function DetalheOSPage() {
 
         {/* BOTÕES */}
         <div className="flex gap-2 mb-4">
-          <button
-            onClick={gerarPDF}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
+          <button onClick={gerarPDF} className="bg-blue-600 text-white px-4 py-2 rounded">
             Gerar PDF
           </button>
-
           <button
             onClick={() => router.push(`/admin/servicos/${id}/editar`)}
             className="bg-yellow-500 text-white px-4 py-2 rounded"
           >
             Editar
           </button>
-
-          <button
-            onClick={() => router.back()}
-            className="bg-gray-300 px-4 py-2 rounded"
-          >
+          <button onClick={() => router.back()} className="bg-gray-300 px-4 py-2 rounded">
             Voltar
           </button>
         </div>
 
-        {/* VISUALIZAÇÃO */}
+        {/* VER ADMIN */}
         <p><b>Cliente:</b> {os.cliente}</p>
         <p><b>Marca:</b> {os.marca || "-"}</p>
 
+        <h3 className="mt-4 font-bold">DETALHAMENTO</h3>
+        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+          {formatarTexto(os.detalhamento)}
+        </pre>
+
         <h3 className="mt-4 font-bold">ANTES</h3>
-        <p>{os.antes?.relatorio || "-"}</p>
+        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+          {formatarTexto(os.antes?.relatorio)}
+        </pre>
+
         <div className="grid grid-cols-2 gap-2 mt-2">
           {os.antes?.fotos?.map((f: string, i: number) => (
-            <img
-              key={i}
-              src={resolveImageSrc(f)}
-              className="h-32 w-full object-cover rounded border"
-            />
+            <img key={i} src={resolveImageSrc(f)} className="h-32 w-full object-cover rounded border" />
           ))}
         </div>
 
         <h3 className="mt-6 font-bold">DEPOIS</h3>
-        <p>{os.depois?.relatorio || "-"}</p>
+        <pre className="whitespace-pre-wrap text-sm bg-gray-100 p-2 rounded">
+          {formatarTexto(os.depois?.relatorio)}
+        </pre>
+
         <div className="grid grid-cols-2 gap-2 mt-2">
           {os.depois?.fotos?.map((f: string, i: number) => (
-            <img
-              key={i}
-              src={resolveImageSrc(f)}
-              className="h-32 w-full object-cover rounded border"
-            />
+            <img key={i} src={resolveImageSrc(f)} className="h-32 w-full object-cover rounded border" />
           ))}
         </div>
 
