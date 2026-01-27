@@ -23,15 +23,18 @@ export default function AdminPage() {
   const [dataFim, setDataFim] = useState("");
   const [periodoAtivo, setPeriodoAtivo] = useState("");
 
-  useEffect(() => {
-    const role = localStorage.getItem("role");
-    if (role !== "admin") {
-      router.push("/login");
-      return;
-    }
+ useEffect(() => {
+  const role = localStorage.getItem("role");
+  const token = localStorage.getItem("token");
 
-    carregarServicos();
-  }, []);
+  if (!token || role !== "admin") {
+    router.push("/login");
+    return;
+  }
+
+  carregarServicos();
+}, []);
+
 
   async function carregarServicos() {
     try {
