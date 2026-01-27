@@ -1,18 +1,15 @@
-const API_URL = "https://gerenciador-de-os.onrender.com";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export async function apiFetch(
-  path: string,
-  options: RequestInit = {}
-) {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    throw new Error("Token não encontrado. Faça login novamente.");
+export async function apiFetch(path: string, options: RequestInit = {}) {
+  if (!API_URL) {
+    throw new Error("API_URL não configurada");
   }
 
-  const headers: Record<string, any> = {
-    Authorization: `Bearer ${token}`,
-    ...(options.headers || {}),
+  const token = localStorage.getItem("token");
+
+  const headers: any = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {})
   };
 
   if (!(options.body instanceof FormData)) {
@@ -26,7 +23,7 @@ export async function apiFetch(
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || "Erro na requisição");
+    throw new Error(text || "Erro na API");
   }
 
   return res.json();
