@@ -10,41 +10,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(true);
 
   return (
-    <div className="flex min-h-screen bg-gray-100 text-black">
-      {/* SIDEBAR */}
-      <aside
-        className={`bg-white shadow-lg transition-all duration-300 ${open ? "w-64" : "w-16"}`}
-      >
-        <div className="flex items-center justify-between p-4 border-b">
-          <span className={`font-bold text-lg ${!open && "hidden"}`}>Admin</span>
-          <button onClick={() => setOpen(!open)}>
-            <Menu size={20} />
-          </button>
-        </div>
+  <div style={{ background: "red", minHeight: "100vh", padding: 20 }}>
+    <h1 style={{ color: "white", fontSize: 32 }}>
+      LAYOUT ADMIN ATIVO
+    </h1>
+    {children}
+  </div>
+);
 
-        <nav className="flex flex-col gap-1 p-2">
-          <SidebarButton icon={<LayoutDashboard />} label="Dashboard" open={open} onClick={() => router.push("/admin")} />
-          <SidebarButton icon={<Users />} label="Clientes" open={open} onClick={() => router.push("/admin/clientes")} />
-          <SidebarButton icon={<Wrench />} label="Técnicos" open={open} onClick={() => router.push("/admin/tecnicos")} />
-        </nav>
-      </aside>
-
-      {/* CONTEÚDO */}
-      <main className="flex-1 p-6">
-        {/* BOTÃO NOVA OS GLOBAL */}
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={() => router.push("/admin/servicos/novo")}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded shadow"
-          >
-            <Plus size={18} /> Nova OS
-          </button>
-        </div>
-
-        {children}
-      </main>
-    </div>
-  );
 }
 
 function SidebarButton({
