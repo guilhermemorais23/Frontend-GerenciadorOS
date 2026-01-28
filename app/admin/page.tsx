@@ -3,24 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
-import { CheckCircle, Clock, AlertCircle, Calendar } from "lucide-react";
 
 export default function AdminPage() {
   const router = useRouter();
 
   const [servicos, setServicos] = useState<any[]>([]);
-  const [servicosFiltrados, setServicosFiltrados] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("");
-
-  const [osHoje, setOsHoje] = useState(0);
-
-  // calendário
-  const [mostrarCalendario, setMostrarCalendario] = useState(false);
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
 
   // 🔒 PROTEÇÃO TOTAL
   useEffect(() => {
@@ -36,47 +24,30 @@ export default function AdminPage() {
   }, []);
 
   async function carregarServicos() {
-  setLoading(true);
+    setLoading(true);
 
-  try {
-    const data = await apiFetch("/projects/admin/all");
+    try {
+      const data = await apiFetch("/projects/admin/all");
 
-    if (!Array.isArray(data)) {
-      throw new Error("Resposta inválida do servidor");
+      if (!Array.isArray(data)) {
+        throw new Error("Resposta inválida do servidor");
+      }
+
+      const ordenado = [...data].sort((a, b) => {
+        const osA = a.osNumero || "";
+        const osB = b.osNumero || "";
+        return osB.localeCompare(osA);
+      });
+
+      setServicos(ordenado);
+    } catch (err) {
+      console.error("ADMIN LOAD ERROR:", err);
+      alert("Sessão expirada. Faça login novamente.");
+      localStorage.clear();
+      router.replace("/login");
+    } finally {
+      setLoading(false);
     }
-
-    const ordenado = [...data].sort((a, b) => {
-      const osA = a.osNumero || "";
-      const osB = b.osNumero || "";
-      return osB.localeCompare(osA);
-    });
-
-    setServicos(ordenado);
-    setServicosFiltrados(ordenado);
-    calcularOsHoje(ordenado);
-
-  } catch (err: any) {
-    console.error("ADMIN LOAD ERROR:", err);
-    alert("Sessão expirada. Faça login novamente.");
-    localStorage.clear();
-    router.replace("/login");
-
-  } finally {
-    // 🔥 ISSO GARANTE QUE O LOADING ACABA
-    setLoading(false);
-  }
-}
-
-
-  function calcularOsHoje(lista: any[]) {
-    const hoje = new Date().toISOString().split("T")[0];
-    const totalHoje = lista.filter((s) => {
-      if (!s.createdAt) return false;
-      const data = new Date(s.createdAt).toISOString().split("T")[0];
-      return data === hoje;
-    }).length;
-
-    setOsHoje(totalHoje);
   }
 
   async function cancelarServico(id: string) {
@@ -92,20 +63,6 @@ export default function AdminPage() {
     }
   }
 
-  const listaFinal = servicosFiltrados.filter((s) => {
-    const cliente = (s.cliente || "").toLowerCase();
-    const subcliente = (s.Subcliente || s.subgrupo || "").toLowerCase();
-    const buscaLower = busca.toLowerCase();
-
-    const matchBusca =
-      cliente.includes(buscaLower) ||
-      subcliente.includes(buscaLower);
-
-    const matchStatus = filtroStatus ? s.status === filtroStatus : true;
-
-    return matchBusca && matchStatus;
-  });
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -115,34 +72,32 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-black">
-      
+    <div className="grid gap-4">
+      {servicos.length === 0 && <p>Nenhuma OS encontrada.</p>}
 
-      <div className="flex gap-2 mb-6 flex-wrap">
-        <button onClick={() => router.push("/admin/servicos/novo")} className="btn-blue">+ Nova OS</button>
-        <button onClick={() => router.push("/admin/tecnicos")} className="btn-dark">Técnicos</button>
-        <button onClick={() => router.push("/admin/clientes")} className="btn-indigo">Clientes</button>
-        <button onClick={() => setMostrarCalendario(true)} className="btn-purple flex items-center gap-2">
-          <Calendar size={16} /> Calendário
-        </button>
-      </div>
+      {servicos.map((s) => (
+        <div key={s._id} className="bg-white p-4 rounded shadow">
+          <b>{s.osNumero}</b>
+          <p>Cliente: {s.cliente}</p>
+          <p>Status: {s.status}</p>
 
-      {listaFinal.length === 0 && <p>Nenhuma OS encontrada.</p>}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={() => router.push(`/admin/servicos/${s._id}`)}
+              className="btn-blue"
+            >
+              Ver
+            </button>
 
-      <div className="grid gap-4">
-        {listaFinal.map((s) => (
-          <div key={s._id} className="bg-white p-4 rounded shadow">
-            <b>{s.osNumero}</b>
-            <p>Cliente: {s.cliente}</p>
-            <p>Status: {s.status}</p>
-
-            <div className="flex gap-2 mt-2">
-              <button onClick={() => router.push(`/admin/servicos/${s._id}`)} className="btn-blue">Ver</button>
-              <button onClick={() => cancelarServico(s._id)} className="btn-red">Cancelar</button>
-            </div>
+            <button
+              onClick={() => cancelarServico(s._id)}
+              className="btn-red"
+            >
+              Cancelar
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
