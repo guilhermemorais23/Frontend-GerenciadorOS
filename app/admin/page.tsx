@@ -116,7 +116,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
-      <h1 className="text-3xl font-bold mb-4">Painel do Administrador</h1>
+      
 
       <div className="flex gap-2 mb-6 flex-wrap">
         <button onClick={() => router.push("/admin/servicos/novo")} className="btn-blue">+ Nova OS</button>
