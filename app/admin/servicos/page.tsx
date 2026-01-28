@@ -20,25 +20,34 @@ export default function AdminServicosPage() {
     carregar();
   }, []);
 
-  async function carregar() {
-    try {
-      const res = await fetch(
-        "https://gerenciador-de-os.onrender.com/projects/admin/all",
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+async function carregar() {
+  try {
+    const res = await fetch(
+      "https://gerenciador-de-os.onrender.com/projects/admin/all",
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      }
+    );
 
-      const data = await res.json();
-      setServicos(data);
-    } catch (err) {
-      alert("Erro ao carregar serviços");
-    } finally {
-      setLoading(false);
+    // 🔥 PROTEÇÃO CONTRA ERRO DO BACKEND
+    if (!res.ok) {
+      const text = await res.text();
+      console.error("Resposta inválida do backend:", text);
+      alert("Erro no backend ao carregar serviços");
+      return;
     }
+
+    const data = await res.json();
+    setServicos(data);
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao carregar serviços");
+  } finally {
+    setLoading(false);
   }
+}
 
   async function excluirOS(id: string) {
     const ok = confirm("Tem certeza que deseja EXCLUIR esta OS?");
