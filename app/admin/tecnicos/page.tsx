@@ -47,7 +47,6 @@ export default function TecnicosPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
-
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold text-black">Técnicos</h1>
           <button
@@ -85,7 +84,6 @@ export default function TecnicosPage() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );
