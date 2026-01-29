@@ -5,6 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import jsPDF from "jspdf";
 
+
+
 export default function DetalheOSPage() {
   const router = useRouter();
   const params = useParams();
@@ -106,8 +108,13 @@ export default function DetalheOSPage() {
       : "bg-yellow-100 text-yellow-700 border-yellow-300";
 
   return (
+
+    
     <div className="min-h-screen bg-gray-100 p-4 flex justify-center">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
+        <div className="bg-red-600 text-white p-2 text-center font-bold">
+  TESTE – SE VOCÊ ESTÁ VENDO ISSO, ESTE É O ARQUIVO CERTO
+</div>
 
         {/* TOPO */}
         <div className="flex items-center justify-between mb-6">
