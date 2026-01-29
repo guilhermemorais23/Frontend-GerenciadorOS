@@ -24,15 +24,17 @@ export default function EditarOSPage() {
   const [tecnicos, setTecnicos] = useState<any[]>([]);
   const [tecnicoId, setTecnicoId] = useState("");
 
- const [antesRelatorio, setAntesRelatorio] = useState("");
-const [antesObs, setAntesObs] = useState(""); // 👈 ADD
-const [antesFotos, setAntesFotos] = useState<string[]>([]);
-const [novasFotosAntes, setNovasFotosAntes] = useState<File[]>([]);
+  // ===== ANTES =====
+  const [antesRelatorio, setAntesRelatorio] = useState("");
+  const [antesObs, setAntesObs] = useState("");
+  const [antesFotos, setAntesFotos] = useState<string[]>([]);
+  const [novasFotosAntes, setNovasFotosAntes] = useState<File[]>([]);
 
-const [depoisRelatorio, setDepoisRelatorio] = useState("");
-const [depoisObs, setDepoisObs] = useState(""); // 👈 ADD
-const [depoisFotos, setDepoisFotos] = useState<string[]>([]);
-const [novasFotosDepois, setNovasFotosDepois] = useState<File[]>([]);
+  // ===== DEPOIS =====
+  const [depoisRelatorio, setDepoisRelatorio] = useState("");
+  const [depoisObs, setDepoisObs] = useState("");
+  const [depoisFotos, setDepoisFotos] = useState<string[]>([]);
+  const [novasFotosDepois, setNovasFotosDepois] = useState<File[]>([]);
 
   useEffect(() => {
     carregarOS();
@@ -53,14 +55,13 @@ const [novasFotosDepois, setNovasFotosDepois] = useState<File[]>([]);
       setStatus(data.status || "aguardando_tecnico");
       setTecnicoId(data.tecnico?._id || data.tecnico || "");
 
-    setAntesRelatorio(data.antes?.relatorio || "");
-setAntesObs(data.antes?.observacao || ""); // ✅ ADD
-setAntesFotos(data.antes?.fotos || []);
+      setAntesRelatorio(data.antes?.relatorio || "");
+      setAntesObs(data.antes?.observacao || "");
+      setAntesFotos(data.antes?.fotos || []);
 
-setDepoisRelatorio(data.depois?.relatorio || "");
-setDepoisObs(data.depois?.observacao || ""); // ✅ ADD
-setDepoisFotos(data.depois?.fotos || []);
-
+      setDepoisRelatorio(data.depois?.relatorio || "");
+      setDepoisObs(data.depois?.observacao || "");
+      setDepoisFotos(data.depois?.fotos || []);
     } catch (err: any) {
       alert("Erro ao carregar OS: " + err.message);
     } finally {
@@ -78,15 +79,11 @@ setDepoisFotos(data.depois?.fotos || []);
   }
 
   function removerFotoAntes(index: number) {
-    const nova = [...antesFotos];
-    nova.splice(index, 1);
-    setAntesFotos(nova);
+    setAntesFotos(antesFotos.filter((_, i) => i !== index));
   }
 
   function removerFotoDepois(index: number) {
-    const nova = [...depoisFotos];
-    nova.splice(index, 1);
-    setDepoisFotos(nova);
+    setDepoisFotos(depoisFotos.filter((_, i) => i !== index));
   }
 
   function handleNovasFotosAntes(files: FileList | null) {
@@ -102,11 +99,7 @@ setDepoisFotos(data.depois?.fotos || []);
   async function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
+      reader.onload = () => resolve((reader.result as string).split(",")[1]);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
@@ -134,10 +127,12 @@ setDepoisFotos(data.depois?.fotos || []);
         tecnicoId,
         antes: {
           relatorio: antesRelatorio,
+          observacao: antesObs,
           fotos: [...antesFotos, ...novasAntesBase64],
         },
         depois: {
           relatorio: depoisRelatorio,
+          observacao: depoisObs,
           fotos: [...depoisFotos, ...novasDepoisBase64],
         },
       };
@@ -156,223 +151,52 @@ setDepoisFotos(data.depois?.fotos || []);
     }
   }
 
-  if (loading) {
-    return <div className="p-6 text-center text-black">Carregando...</div>;
-  }
+  if (loading) return <div className="p-6 text-center">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gray-200 p-4 flex justify-center">
-      <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 space-y-4 text-black">
+      <div className="w-full max-w-2xl bg-white rounded-xl shadow-lg p-6 space-y-6 text-black">
 
-        {/* TOPO */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Editar Ordem de Serviço</h1>
-          <button
-            onClick={() => router.back()}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-          >
-            ← Voltar
-          </button>
+        <h1 className="text-2xl font-bold">Editar Ordem de Serviço</h1>
+
+        {/* ===== ANTES ===== */}
+        <div className="border rounded p-4">
+          <h2 className="font-bold mb-2">ANTES</h2>
+
+          <label>Relatório</label>
+          <textarea className="border p-2 w-full mb-2"
+            value={antesRelatorio}
+            onChange={(e) => setAntesRelatorio(e.target.value)}
+          />
+
+          <label>Observação</label>
+          <textarea className="border p-2 w-full mb-2"
+            value={antesObs}
+            onChange={(e) => setAntesObs(e.target.value)}
+          />
         </div>
 
-        {/* CLIENTE */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Cliente</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={cliente} onChange={(e) => setCliente(e.target.value)} />
+        {/* ===== DEPOIS ===== */}
+        <div className="border rounded p-4">
+          <h2 className="font-bold mb-2">DEPOIS</h2>
+
+          <label>Relatório</label>
+          <textarea className="border p-2 w-full mb-2"
+            value={depoisRelatorio}
+            onChange={(e) => setDepoisRelatorio(e.target.value)}
+          />
+
+          <label>Observação</label>
+          <textarea className="border p-2 w-full"
+            value={depoisObs}
+            onChange={(e) => setDepoisObs(e.target.value)}
+          />
         </div>
 
-        {/* SUBCLIENTE */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Subcliente</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={subcliente} onChange={(e) => setSubcliente(e.target.value)} />
-        </div>
-
-        {/* MARCA */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Marca</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={marca} onChange={(e) => setMarca(e.target.value)} />
-        </div>
-
-        {/* UNIDADE */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Unidade</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={unidade} onChange={(e) => setUnidade(e.target.value)} />
-        </div>
-
-        {/* ENDEREÇO */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Endereço</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={endereco} onChange={(e) => setEndereco(e.target.value)} />
-        </div>
-
-        {/* TELEFONE */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Telefone</label>
-          <input className="border border-gray-400 p-2 rounded w-full text-black"
-            value={telefone} onChange={(e) => setTelefone(e.target.value)} />
-        </div>
-
-        {/* DETALHAMENTO */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Detalhamento do Serviço</label>
-          <textarea className="border border-gray-400 p-2 rounded w-full text-black"
-            rows={3}
-            value={detalhamento} onChange={(e) => setDetalhamento(e.target.value)} />
-        </div>
-
-        {/* STATUS */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Status</label>
-          <select className="border border-gray-400 p-2 rounded w-full text-black"
-            value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="aguardando_tecnico">Aguardando Técnico</option>
-            <option value="em_andamento">Em andamento</option>
-            <option value="concluido">Concluído</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
-
-        {/* TÉCNICO */}
-        <div>
-          <label className="block font-semibold text-gray-800 mb-1">Técnico</label>
-          <select className="border border-gray-400 p-2 rounded w-full text-black"
-            value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)}>
-            <option value="">Selecione</option>
-            {tecnicos.map((t) => (
-              <option key={t._id} value={t._id}>{t.nome}</option>
-            ))}
-          </select>
-        </div>
-
-  {/* ================= ANTES ================= */}
-<div className="border border-gray-400 rounded p-4 bg-white">
-  <h2 className="font-bold text-gray-900 mb-2">ANTES</h2>
-
-  <label className="text-sm font-semibold text-gray-800">Relatório (Antes)</label>
-  <textarea
-    className="border border-gray-500 p-2 rounded w-full mb-3 text-black"
-    rows={2}
-    value={antesRelatorio}
-    onChange={(e) => setAntesRelatorio(e.target.value)}
-  />
-
-  {/* FOTOS ANTES */}
-  <div className="grid grid-cols-3 gap-2 mb-3">
-    {antesFotos.map((foto, idx) => (
-      <div key={idx} className="relative">
-        <img
-          src={`data:image/jpeg;base64,${foto}`}
-          className="rounded border border-gray-400 object-cover w-full h-24"
-        />
-        <button
-          type="button"
-          onClick={() => removerFotoAntes(idx)}
-          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full px-2 text-xs"
-        >
-          ✕
-        </button>
-      </div>
-    ))}
-  </div>
-
-  {/* BOTÕES FOTO ANTES */}
-  <div className="flex gap-3">
-    {/* CÂMERA */}
-    <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg flex items-center gap-2">
-      📷 Tirar foto
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => handleNovasFotosAntes(e.target.files)}
-      />
-    </label>
-
-    {/* ARQUIVO */}
-    <label className="cursor-pointer bg-gray-800 hover:bg-gray-900 text-white px-3 py-2 rounded-lg flex items-center gap-2">
-      📁 Arquivo
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => handleNovasFotosAntes(e.target.files)}
-      />
-    </label>
-  </div>
-</div>
-
-{/* ================= DEPOIS ================= */}
-<div className="border border-gray-400 rounded p-4 bg-white mt-6">
-  <h2 className="font-bold text-gray-900 mb-2">DEPOIS</h2>
-
-  <label className="text-sm font-semibold text-gray-800">Relatório (Depois)</label>
-  <textarea
-    className="border border-gray-500 p-2 rounded w-full mb-3 text-black"
-    rows={2}
-    value={depoisRelatorio}
-    onChange={(e) => setDepoisRelatorio(e.target.value)}
-  />
-
-  {/* FOTOS DEPOIS */}
-  <div className="grid grid-cols-3 gap-2 mb-3">
-    {depoisFotos.map((foto, idx) => (
-      <div key={idx} className="relative">
-        <img
-          src={`data:image/jpeg;base64,${foto}`}
-          className="rounded border border-gray-400 object-cover w-full h-24"
-        />
-        <button
-          type="button"
-          onClick={() => removerFotoDepois(idx)}
-          className="absolute top-1 right-1 bg-red-600 hover:bg-red-700 text-white rounded-full px-2 text-xs"
-        >
-          ✕
-        </button>
-      </div>
-    ))}
-  </div>
-
-  {/* BOTÕES FOTO DEPOIS */}
-  <div className="flex gap-3">
-    {/* CÂMERA */}
-    <label className="cursor-pointer bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center gap-2">
-      📷 Tirar foto
-      <input
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => handleNovasFotosDepois(e.target.files)}
-      />
-    </label>
-
-    {/* ARQUIVO */}
-    <label className="cursor-pointer bg-gray-800 hover:bg-gray-900 text-white px-3 py-2 rounded-lg flex items-center gap-2">
-      📁 Arquivo
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        className="hidden"
-        onChange={(e) => handleNovasFotosDepois(e.target.files)}
-      />
-    </label>
-  </div>
-</div>
-
-
-        {/* BOTÃO SALVAR */}
         <button
           onClick={salvarAlteracoes}
           disabled={salvando}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full text-lg font-semibold"
+          className="bg-green-600 text-white py-3 rounded w-full text-lg"
         >
           {salvando ? "Salvando..." : "Salvar Alterações"}
         </button>
