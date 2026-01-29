@@ -73,14 +73,28 @@ export default function TecnicosPage() {
               <div>
                 <p className="font-semibold text-black">{t.nome}</p>
                 <p className="text-sm text-gray-600">{t.email}</p>
+                <p className="text-sm text-gray-600">
+                  📞 {t.telefone || "Sem telefone"}
+                </p>
               </div>
 
-              <button
-                onClick={() => excluirTecnico(t._id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
-              >
-                Excluir
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() =>
+                    router.push(`/admin/tecnicos/${t._id}/editar`)
+                  }
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
+                >
+                  Editar
+                </button>
+
+                <button
+                  onClick={() => excluirTecnico(t._id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+                >
+                  Excluir
+                </button>
+              </div>
             </div>
           ))}
         </div>

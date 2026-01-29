@@ -136,12 +136,7 @@ ${os.detalhamento}
           <h1 className="text-2xl font-bold text-gray-900">Detalhes da OS</h1>
 
           <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={abrirWhatsApp}
-              className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg"
-            >
-              💬 WhatsApp Técnico
-            </button>
+           
 
             <button
               onClick={gerarPDF}
