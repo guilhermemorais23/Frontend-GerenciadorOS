@@ -32,7 +32,7 @@ export default function ClientesPage() {
       await apiFetch(`/clientes/${id}`, { method: "DELETE" });
       alert("Cliente excluído");
       carregarClientes();
-    } catch (err: any) {
+    } catch {
       alert("Erro ao excluir cliente");
     }
   }
@@ -47,25 +47,24 @@ export default function ClientesPage() {
 
         {/* TOPO */}
         <div className="flex items-center justify-between mb-4">
-  <h1 className="text-xl font-bold">Clientes</h1>
+          <h1 className="text-xl font-bold">Clientes</h1>
 
-  <div className="flex gap-2">
-    <button
-      onClick={() => router.push("/admin")}
-      className="px-3 py-1.5 text-sm rounded bg-gray-300 hover:bg-gray-400"
-    >
-      Voltar
-    </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => router.push("/admin")}
+              className="px-3 py-1.5 text-sm rounded bg-gray-300 hover:bg-gray-400"
+            >
+              Voltar
+            </button>
 
-    <button
-      onClick={() => router.push("/admin/clientes/novo")}
-      className="px-3 py-1.5 text-sm rounded bg-green-600 hover:bg-green-700 text-white"
-    >
-      + Novo Cliente
-    </button>
-  </div>
-</div>
-
+            <button
+              onClick={() => router.push("/admin/clientes/novo")}
+              className="px-3 py-1.5 text-sm rounded bg-green-600 hover:bg-green-700 text-white"
+            >
+              + Novo Cliente
+            </button>
+          </div>
+        </div>
 
         {/* LISTA */}
         {clientes.length === 0 && (
@@ -73,43 +72,61 @@ export default function ClientesPage() {
         )}
 
         <div className="space-y-3">
-          {clientes.map((c) => (
-            <div
-              key={c._id}
-              className="border rounded p-4 flex justify-between items-center"
-            >
-              <div>
-                <p className="font-bold text-black">{c.cliente}</p>
-                <p className="text-sm text-gray-600">
-                  Subcliente: {c.subcliente || "-"}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Telefone: {c.telefone || "-"}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Email: {c.email || "-"}
-                </p>
+          {clientes.map((c) => {
+            const isDasa = c.cliente?.toLowerCase() === "dasa";
+
+            return (
+              <div
+                key={c._id}
+                className="border rounded p-4 flex justify-between items-center"
+              >
+                <div>
+                  <p className="font-bold text-black">{c.cliente}</p>
+
+                  {isDasa ? (
+                    <>
+                      <p className="text-sm text-gray-600">
+                        Unidade: {c.unidade || "-"}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Marca: {c.marca || "-"}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-600">
+                      Subcliente: {c.subcliente || "-"}
+                    </p>
+                  )}
+
+                  <p className="text-sm text-gray-600">
+                    Telefone: {c.telefone || "-"}
+                  </p>
+
+                  <p className="text-sm text-gray-600">
+                    Email: {c.email || "-"}
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      router.push(`/admin/clientes/${c._id}/editar`)
+                    }
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    onClick={() => excluirCliente(c._id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+                  >
+                    Excluir
+                  </button>
+                </div>
               </div>
-
-            <div className="flex gap-2">
-  <button
-    onClick={() => router.push(`/admin/clientes/${c._id}/editar`)}
-    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
-  >
-    Editar
-  </button>
-
-  <button
-    onClick={() => excluirCliente(c._id)}
-    className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
-  >
-    Excluir
-  </button>
-</div>
-
-
-            </div>
-          ))}
+            );
+          })}
         </div>
 
       </div>
