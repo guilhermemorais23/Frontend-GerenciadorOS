@@ -1,116 +1,173 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/app/lib/api";
+import { useRouter } from "next/navigation";
 
-type OS = {
-  _id: string;
-  osNumero: string;
-  cliente?: string;
-  status?: string;
-};
-
-const statusColor: Record<string, string> = {
-  concluido: "bg-green-100 text-green-700",
-  em_andamento: "bg-yellow-100 text-yellow-700",
-  aguardando_tecnico: "bg-blue-100 text-blue-700",
-  cancelado: "bg-red-100 text-red-700",
-};
-
-export default function AdminPage() {
+export default function AdminDashboard() {
   const router = useRouter();
-  const [servicos, setServicos] = useState<OS[]>([]);
+
+  const [osList, setOsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [busca, setBusca] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-
-    if (!token || role !== "admin") {
-      router.replace("/login");
-      return;
-    }
-
-    carregarServicos();
+    carregarOS();
   }, []);
 
-  async function carregarServicos() {
+  async function carregarOS() {
     try {
       const data = await apiFetch("/projects/admin/all");
-      setServicos(Array.isArray(data) ? data : []);
+      setOsList(data);
     } catch {
-      localStorage.clear();
-      router.replace("/login");
+      alert("Erro ao carregar OS");
     } finally {
       setLoading(false);
     }
   }
 
-  async function cancelarServico(id: string) {
-    if (!confirm("Deseja cancelar esta OS?")) return;
-    await apiFetch(`/projects/admin/cancelar/${id}`, { method: "PUT" });
-    carregarServicos();
-  }
+  // =====================
+  // CARDS (CONTADORES)
+  // =====================
+  const contadores = useMemo(() => {
+    return {
+      aguardando: osList.filter(o => o.status === "aguardando_tecnico").length,
+      andamento: osList.filter(o => o.status === "em_andamento").length,
+      concluido: osList.filter(o => o.status === "concluido").length,
+    };
+  }, [osList]);
+
+  // =====================
+  // FILTROS
+  // =====================
+  const listaFiltrada = useMemo(() => {
+    return osList.filter(os => {
+      // STATUS
+      if (statusFiltro && os.status !== statusFiltro) return false;
+
+      // BUSCA TEXTO
+      const texto = `
+        ${os.cliente}
+        ${os.osNumero}
+        ${os.tecnico?.nome || ""}
+      `.toLowerCase();
+
+      if (busca && !texto.includes(busca.toLowerCase())) return false;
+
+      // DATA
+      if (dataInicio) {
+        if (new Date(os.createdAt) < new Date(dataInicio)) return false;
+      }
+
+      if (dataFim) {
+        if (new Date(os.createdAt) > new Date(dataFim)) return false;
+      }
+
+      return true;
+    });
+  }, [osList, statusFiltro, busca, dataInicio, dataFim]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-600">
-        Carregando...
-      </div>
-    );
+    return <div className="p-6">Carregando...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 text-black">
-      <h1 className="text-3xl font-bold mb-6">Painel do Administrador</h1>
+    <div className="p-6 bg-gray-100 min-h-screen text-black">
 
-      {servicos.length === 0 && (
-        <p className="text-gray-600">Nenhuma OS encontrada.</p>
-      )}
+      {/* ================= CARDS ================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <Card titulo="Aguardando Técnico" valor={contadores.aguardando} cor="bg-yellow-500" />
+        <Card titulo="Em Andamento" valor={contadores.andamento} cor="bg-blue-600" />
+        <Card titulo="Concluídas" valor={contadores.concluido} cor="bg-green-600" />
+      </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {servicos.map((s) => (
+      {/* ================= FILTROS ================= */}
+      <div className="bg-white p-4 rounded-xl shadow mb-6 grid gap-4 md:grid-cols-4">
+
+        <select
+          className="border p-2 rounded"
+          value={statusFiltro}
+          onChange={(e) => setStatusFiltro(e.target.value)}
+        >
+          <option value="">Todos os status</option>
+          <option value="aguardando_tecnico">Aguardando Técnico</option>
+          <option value="em_andamento">Em Andamento</option>
+          <option value="concluido">Concluído</option>
+        </select>
+
+        <input
+          className="border p-2 rounded"
+          placeholder="Buscar cliente, técnico ou OS"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
+
+        <input
+          type="date"
+          className="border p-2 rounded"
+          value={dataInicio}
+          onChange={(e) => setDataInicio(e.target.value)}
+        />
+
+        <input
+          type="date"
+          className="border p-2 rounded"
+          value={dataFim}
+          onChange={(e) => setDataFim(e.target.value)}
+        />
+      </div>
+
+      {/* ================= LISTA ================= */}
+      <div className="space-y-3">
+        {listaFiltrada.map((os) => (
           <div
-            key={s._id}
-            className="bg-white rounded-xl shadow p-5 flex flex-col justify-between"
+            key={os._id}
+            className="bg-white p-4 rounded-lg shadow flex justify-between items-center cursor-pointer hover:bg-gray-50"
+            onClick={() => router.push(`/admin/servicos/${os._id}`)}
           >
             <div>
-              <p className="text-sm text-gray-500">OS</p>
-              <p className="text-xl font-bold">{s.osNumero}</p>
-
-              <p className="mt-2 text-gray-700">
-                <b>Cliente:</b> {s.cliente || "Não informado"}
+              <p className="font-bold">{os.osNumero}</p>
+              <p className="text-sm text-gray-600">{os.cliente}</p>
+              <p className="text-xs text-gray-500">
+                Técnico: {os.tecnico?.nome || "—"}
               </p>
-
-              <span
-                className={`inline-block mt-3 px-3 py-1 rounded-full text-sm font-medium ${
-                  statusColor[s.status || ""] ||
-                  "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {s.status}
-              </span>
+              <p className="text-xs text-gray-500">
+                {new Date(os.createdAt).toLocaleDateString()}
+              </p>
             </div>
 
-            <div className="flex gap-2 mt-5">
-              <button
-                onClick={() => router.push(`/admin/servicos/${s._id}`)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded"
-              >
-                Ver
-              </button>
-
-              <button
-                onClick={() => cancelarServico(s._id)}
-                className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded"
-              >
-                Cancelar
-              </button>
-            </div>
+            <span className={`px-3 py-1 rounded-full text-sm ${statusColor(os.status)}`}>
+              {os.status}
+            </span>
           </div>
         ))}
+
+        {listaFiltrada.length === 0 && (
+          <p className="text-center text-gray-600">Nenhuma OS encontrada</p>
+        )}
       </div>
     </div>
   );
+}
+
+// ================= COMPONENTES =================
+
+function Card({ titulo, valor, cor }: any) {
+  return (
+    <div className={`${cor} text-white p-4 rounded-xl shadow`}>
+      <p className="text-sm">{titulo}</p>
+      <p className="text-3xl font-bold">{valor}</p>
+    </div>
+  );
+}
+
+function statusColor(status: string) {
+  if (status === "aguardando_tecnico") return "bg-yellow-100 text-yellow-800";
+  if (status === "em_andamento") return "bg-blue-100 text-blue-800";
+  if (status === "concluido") return "bg-green-100 text-green-800";
+  return "bg-gray-200 text-gray-800";
 }
