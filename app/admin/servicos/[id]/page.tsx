@@ -85,30 +85,107 @@ ${os.detalhamento}
     window.open(url, "_blank");
   }
 
-  function gerarPDF() {
-    if (!os) return;
+async function gerarPDF() {
+  if (!os) return;
 
-    const doc = new jsPDF();
-    let y = 10;
+  const doc = new jsPDF("p", "mm", "a4");
+  let y = 15;
 
-    doc.setFontSize(14);
-    doc.text(`Ordem de Serviço - ${os.osNumero || ""}`, 10, y);
+  const pageWidth = 210;
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+
+  // ===== CABEÇALHO =====
+  doc.setFontSize(16);
+  doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
+  y += 10;
+
+  doc.setFontSize(10);
+  doc.text(`OS: ${os.osNumero}`, margin, y);
+  doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, pageWidth - margin, y, { align: "right" });
+  y += 6;
+
+  doc.text(`Status: ${os.status}`, margin, y); y += 6;
+  doc.text(`Cliente: ${os.cliente}`, margin, y); y += 6;
+
+  if (os.marca || os.unidade) {
+    doc.text(`Marca: ${os.marca || "-"}`, margin, y); y += 6;
+    doc.text(`Unidade: ${os.unidade || "-"}`, margin, y); y += 6;
+  }
+
+  doc.text(`Endereço: ${os.endereco || "-"}`, margin, y); y += 6;
+  doc.text(`Técnico: ${os.tecnico?.nome || "-"}`, margin, y); y += 8;
+
+  // ===== DETALHAMENTO =====
+  doc.setFontSize(11);
+  doc.text("Detalhamento do Serviço", margin, y);
+  y += 6;
+
+  doc.setFontSize(10);
+  doc.text(os.detalhamento || "-", margin, y, {
+    maxWidth: contentWidth,
+  });
+  y += 20;
+
+  // =========================
+  // FUNÇÃO AUXILIAR DE IMAGEM
+  // =========================
+  const addImageSafe = async (base64: string) => {
+    return new Promise<void>((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d")!;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.8);
+
+        const imgWidth = contentWidth;
+        const imgHeight = (img.height * imgWidth) / img.width;
+
+        if (y + imgHeight > 280) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.addImage(imgData, "JPEG", margin, y, imgWidth, imgHeight);
+        y += imgHeight + 6;
+        resolve();
+      };
+      img.src = `data:image/jpeg;base64,${base64}`;
+    });
+  };
+
+  // ===== FOTOS ANTES =====
+  if (os.antes?.fotos?.length) {
+    doc.addPage();
+    y = 20;
+    doc.setFontSize(12);
+    doc.text("FOTOS ANTES", margin, y);
     y += 10;
 
-    doc.setFontSize(10);
-    doc.text(`Status: ${os.status}`, 10, y); y += 6;
-    doc.text(`Cliente: ${os.cliente}`, 10, y); y += 6;
-    doc.text(`Marca: ${os.marca || "-"}`, 10, y); y += 6;
-    doc.text(`Unidade: ${os.unidade || "-"}`, 10, y); y += 6;
-    doc.text(`Endereço: ${os.endereco || "-"}`, 10, y); y += 6;
-    doc.text(`Técnico: ${os.tecnico?.nome || "-"}`, 10, y); y += 10;
-
-    doc.text("Detalhamento do Serviço:", 10, y);
-    y += 6;
-    doc.text(os.detalhamento || "-", 10, y, { maxWidth: 180 });
-
-    doc.save(`OS-${os.osNumero || id}.pdf`);
+    for (const foto of os.antes.fotos.slice(0, 4)) {
+      await addImageSafe(foto);
+    }
   }
+
+  // ===== FOTOS DEPOIS =====
+  if (os.depois?.fotos?.length) {
+    doc.addPage();
+    y = 20;
+    doc.setFontSize(12);
+    doc.text("FOTOS DEPOIS", margin, y);
+    y += 10;
+
+    for (const foto of os.depois.fotos.slice(0, 4)) {
+      await addImageSafe(foto);
+    }
+  }
+
+  doc.save(`OS-${os.osNumero}.pdf`);
+}
 
   if (loading) {
     return <div className="p-6 text-center text-gray-700">Carregando...</div>;
