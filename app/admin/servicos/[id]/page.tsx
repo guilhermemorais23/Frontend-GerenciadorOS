@@ -84,34 +84,35 @@ ${os.detalhamento}
     const url = `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
     window.open(url, "_blank");
   }
-
 async function gerarPDF() {
   if (!os) return;
 
   const doc = new jsPDF("p", "mm", "a4");
 
-  const pageWidth = 210;
   const pageHeight = 297;
   const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-
+  const contentWidth = 180;
   let y = 20;
+
+  const ensureSpace = (needed: number) => {
+    if (y + needed > pageHeight - margin) {
+      doc.addPage();
+      y = 20;
+    }
+  };
 
   // ======================
   // CABEÇALHO
   // ======================
   doc.setFontSize(16);
-  doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
+  doc.text("ORDEM DE SERVIÇO", 105, y, { align: "center" });
   y += 10;
 
   doc.setFontSize(10);
   doc.text(`OS: ${os.osNumero}`, margin, y);
-  doc.text(
-    `Data: ${new Date().toLocaleDateString("pt-BR")}`,
-    pageWidth - margin,
-    y,
-    { align: "right" }
-  );
+  doc.text(`Data: ${new Date().toLocaleDateString("pt-BR")}`, 195, y, {
+    align: "right",
+  });
   y += 6;
 
   doc.text(`Status: ${os.status}`, margin, y); y += 5;
@@ -123,7 +124,7 @@ async function gerarPDF() {
   }
 
   doc.text(`Endereço: ${os.endereco || "-"}`, margin, y); y += 5;
-  doc.text(`Técnico: ${os.tecnico?.nome || "-"}`, margin, y); y += 8;
+  doc.text(`Técnico: ${os.tecnico?.nome || "-"}`, margin, y); y += 10;
 
   // ======================
   // DETALHAMENTO
@@ -133,110 +134,102 @@ async function gerarPDF() {
   y += 6;
 
   doc.setFontSize(10);
-  doc.text(os.detalhamento || "-", margin, y, {
-    maxWidth: contentWidth,
-  });
-  y += 15;
+  doc.text(os.detalhamento || "-", margin, y, { maxWidth: contentWidth });
+  y += 12;
 
   // ======================
-  // FUNÇÃO AUXILIAR IMAGEM
+  // FUNÇÃO RELATÓRIO
   // ======================
-  const addImageGrid = async (fotos: string[], titulo: string) => {
-    if (!fotos || fotos.length === 0) return;
+  const renderRelatorio = (titulo: string, dados: any) => {
+    if (!dados) return;
 
-    doc.addPage();
-    y = 20;
+    ensureSpace(40);
 
     doc.setFontSize(12);
     doc.text(titulo, margin, y);
+    y += 6;
+
+    doc.setFontSize(10);
+    doc.text("Relatório:", margin, y);
+    y += 5;
+    doc.text(dados.relatorio || "-", margin, y, {
+      maxWidth: contentWidth,
+    });
     y += 10;
 
-    const imgWidth = 80;
-    const imgHeight = 60;
+    doc.text("Observação:", margin, y);
+    y += 5;
+    doc.text(dados.observacao || "-", margin, y, {
+      maxWidth: contentWidth,
+    });
+    y += 10;
+  };
+
+  // ======================
+  // FUNÇÃO FOTOS 2x2
+  // ======================
+  const renderFotos = async (titulo: string, fotos: string[]) => {
+    if (!fotos || fotos.length === 0) return;
+
+    ensureSpace(80);
+
+    doc.setFontSize(12);
+    doc.text(titulo, margin, y);
+    y += 8;
+
+    const imgW = 80;
+    const imgH = 55;
     const gap = 10;
 
     let x = margin;
     let col = 0;
 
     for (const foto of fotos.slice(0, 4)) {
+      ensureSpace(imgH + 10);
+
       await new Promise<void>((resolve) => {
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          const ctx = canvas.getContext("2d")!;
-          ctx.drawImage(img, 0, 0);
-
-          const imgData = canvas.toDataURL("image/jpeg", 0.8);
-
-          doc.addImage(imgData, "JPEG", x, y, imgWidth, imgHeight);
+          doc.addImage(
+            `data:image/jpeg;base64,${foto}`,
+            "JPEG",
+            x,
+            y,
+            imgW,
+            imgH
+          );
 
           col++;
           if (col % 2 === 0) {
             x = margin;
-            y += imgHeight + gap;
+            y += imgH + gap;
           } else {
-            x += imgWidth + gap;
+            x += imgW + gap;
           }
-
           resolve();
         };
         img.src = `data:image/jpeg;base64,${foto}`;
       });
     }
+
+    y += 10;
   };
 
   // ======================
   // ANTES
   // ======================
-  if (os.antes) {
-    doc.addPage();
-    y = 20;
-
-    doc.setFontSize(12);
-    doc.text("RELATÓRIO - ANTES", margin, y);
-    y += 6;
-
-    doc.setFontSize(10);
-    doc.text(`Relatório:\n${os.antes.relatorio || "-"}`, margin, y, {
-      maxWidth: contentWidth,
-    });
-    y += 20;
-
-    doc.text(`Observação:\n${os.antes.observacao || "-"}`, margin, y, {
-      maxWidth: contentWidth,
-    });
-  }
-
-  await addImageGrid(os.antes?.fotos || [], "FOTOS - ANTES");
+  renderRelatorio("RELATÓRIO - ANTES", os.antes);
+  await renderFotos("FOTOS - ANTES", os.antes?.fotos || []);
 
   // ======================
   // DEPOIS
   // ======================
-  if (os.depois) {
-    doc.addPage();
-    y = 20;
-
-    doc.setFontSize(12);
-    doc.text("RELATÓRIO - DEPOIS", margin, y);
-    y += 6;
-
-    doc.setFontSize(10);
-    doc.text(`Relatório:\n${os.depois.relatorio || "-"}`, margin, y, {
-      maxWidth: contentWidth,
-    });
-    y += 20;
-
-    doc.text(`Observação:\n${os.depois.observacao || "-"}`, margin, y, {
-      maxWidth: contentWidth,
-    });
-  }
-
-  await addImageGrid(os.depois?.fotos || [], "FOTOS - DEPOIS");
+  renderRelatorio("RELATÓRIO - DEPOIS", os.depois);
+  await renderFotos("FOTOS - DEPOIS", os.depois?.fotos || []);
 
   doc.save(`OS-${os.osNumero}.pdf`);
 }
+
 
 
   if (loading) {
