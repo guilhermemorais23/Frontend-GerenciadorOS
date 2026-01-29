@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -10,6 +11,7 @@ export default function NovaOSPage() {
   const [cliente, setCliente] = useState("");
   const [subcliente, setSubcliente] = useState("");
   const [clientesDB, setClientesDB] = useState<any[]>([]);
+  const [mostrarLista, setMostrarLista] = useState(false);
 
   const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -39,11 +41,15 @@ export default function NovaOSPage() {
   }
 
   function selecionarClienteDB(c: any) {
+    setCliente(c.cliente || "");
     setSubcliente(c.subcliente || "");
     setEndereco(c.endereco || "");
     setTelefone(c.telefone || "");
     setMarca(c.marca || "");
     setUnidade(c.unidade || "");
+
+    setClientesDB([]);
+    setMostrarLista(false); // 🔥 FECHA A LISTA
   }
 
   async function salvarOS() {
@@ -71,8 +77,7 @@ export default function NovaOSPage() {
 
       alert(`OS ${osCriada.osNumero} criada com sucesso`);
       router.push("/admin");
-
-    } catch (err: any) {
+    } catch {
       alert("Erro ao salvar OS");
     } finally {
       setLoading(false);
@@ -87,28 +92,32 @@ export default function NovaOSPage() {
 
         {/* CLIENTE */}
         <input
-          className="border p-2 rounded w-full mb-3"
+          className="border p-2 rounded w-full mb-2"
           placeholder="Cliente (ex: DASA ou Brinks)"
           value={cliente}
           onChange={(e) => {
             const valor = e.target.value;
             setCliente(valor);
-            setClientesDB([]);
+
             setSubcliente("");
             setEndereco("");
             setTelefone("");
             setMarca("");
             setUnidade("");
 
-            if (valor.length >= 2) {
+            if (valor.trim().length >= 2) {
+              setMostrarLista(true);
               carregarClientes(valor);
+            } else {
+              setMostrarLista(false);
+              setClientesDB([]);
             }
           }}
         />
 
-        {/* LISTA CLIENTES DO BANCO */}
-        {clientesDB.length > 0 && (
-          <div className="border rounded mb-4 bg-gray-50">
+        {/* LISTA CLIENTES */}
+        {mostrarLista && clientesDB.length > 0 && (
+          <div className="border rounded mb-4 bg-white max-h-60 overflow-y-auto">
             {clientesDB.map((c) => (
               <div
                 key={c._id}
@@ -123,7 +132,7 @@ export default function NovaOSPage() {
           </div>
         )}
 
-        {/* SUBCLIENTE (NORMAL) */}
+        {/* SUBCLIENTE NORMAL */}
         {!isDASA && (
           <input
             className="border p-2 rounded w-full mb-3"
