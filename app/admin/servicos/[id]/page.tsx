@@ -112,12 +112,6 @@ export default function DetalheOSPage() {
     
     <div className="min-h-screen bg-gray-100 p-4 flex justify-center">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
-        <button
-  onClick={excluirOS}
-  className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-2 rounded-lg"
->
-  🗑️ Excluir OS
-</button>
 
         {/* TOPO */}
         <div className="flex items-center justify-between mb-6">
@@ -130,6 +124,14 @@ export default function DetalheOSPage() {
             >
               Gerar PDF
             </button>
+
+                    <button
+  onClick={excluirOS}
+  className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-2 rounded-lg"
+>
+  🗑️ Excluir OS
+</button>
+
 
             <button
               onClick={() => router.push(`/admin/servicos/${id}/editar`)}
