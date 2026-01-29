@@ -52,37 +52,66 @@ export default function NovaOSPage() {
     setMostrarLista(false); // 🔥 FECHA A LISTA
   }
 
-  async function salvarOS() {
-    if (!cliente || !tecnicoId) {
-      alert("Cliente e técnico são obrigatórios");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const osCriada = await apiFetch("/projects/admin/create", {
-        method: "POST",
-        body: JSON.stringify({
-          cliente,
-          subcliente: isDASA ? "" : subcliente,
-          endereco,
-          telefone,
-          marca: isDASA ? marca : "",
-          unidade: isDASA ? unidade : "",
-          detalhamento,
-          tecnicoId,
-        }),
-      });
-
-      alert(`OS ${osCriada.osNumero} criada com sucesso`);
-      router.push("/admin");
-    } catch {
-      alert("Erro ao salvar OS");
-    } finally {
-      setLoading(false);
-    }
+ async function salvarOS() {
+  if (!cliente || !tecnicoId) {
+    alert("Cliente e técnico são obrigatórios");
+    return;
   }
+
+  setLoading(true);
+
+  try {
+    const osCriada = await apiFetch("/projects/admin/create", {
+      method: "POST",
+      body: JSON.stringify({
+        cliente,
+        subcliente: isDASA ? "" : subcliente,
+        endereco,
+        telefone,
+        marca: isDASA ? marca : "",
+        unidade: isDASA ? unidade : "",
+        detalhamento,
+        tecnicoId,
+      }),
+    });
+
+    // 🔥 FORMATA TELEFONE
+    const telefoneLimpo = telefone.replace(/\D/g, "");
+
+    // 🔥 MENSAGEM WHATSAPP
+    const mensagem = `
+*NOVA ORDEM DE SERVIÇO*
+OS Nº: ${osCriada.osNumero}
+
+Cliente: ${cliente}
+${subcliente ? `Subcliente: ${subcliente}` : ""}
+${isDASA ? `Unidade: ${unidade}\nMarca: ${marca}` : ""}
+
+Endereço: ${endereco}
+Telefone: ${telefone}
+
+Detalhamento:
+${detalhamento}
+`;
+
+    // 🔥 URL WHATSAPP (APP NO CELULAR)
+    const urlWhats = `whatsapp://send?phone=55${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
+
+    // 🔥 ABRE O WHATSAPP
+    window.location.href = urlWhats;
+
+    // ⏱️ pequeno delay antes de voltar
+    setTimeout(() => {
+      router.push("/admin");
+    }, 500);
+
+  } catch (err) {
+    alert("Erro ao salvar OS");
+  } finally {
+    setLoading(false);
+  }
+}
+
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
