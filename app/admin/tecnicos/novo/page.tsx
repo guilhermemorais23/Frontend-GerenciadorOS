@@ -10,6 +10,7 @@ export default function NovoTecnicoPage() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,6 +24,7 @@ export default function NovoTecnicoPage() {
           nome,
           email,
           senha,
+          telefone,
           role: "tecnico",
         }),
       });
@@ -68,6 +70,15 @@ export default function NovoTecnicoPage() {
             placeholder="Senha"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
+            className="border p-2 rounded"
+            required
+          />
+
+          <input
+            type="tel"
+            placeholder="Telefone (DDD + número)"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
             className="border p-2 rounded"
             required
           />

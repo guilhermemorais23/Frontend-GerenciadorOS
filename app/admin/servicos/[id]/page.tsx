@@ -5,8 +5,6 @@ import { useRouter, useParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import jsPDF from "jspdf";
 
-
-
 export default function DetalheOSPage() {
   const router = useRouter();
   const params = useParams();
@@ -46,7 +44,6 @@ export default function DetalheOSPage() {
     }
   }
 
-  // 🔥 NOVO — EXCLUIR OS
   async function excluirOS() {
     const ok = confirm(
       "⚠️ ATENÇÃO!\n\nEssa ação NÃO pode ser desfeita.\nDeseja excluir esta OS definitivamente?"
@@ -63,6 +60,29 @@ export default function DetalheOSPage() {
     } catch (err: any) {
       alert("Erro ao excluir OS: " + err.message);
     }
+  }
+
+  function abrirWhatsApp() {
+    if (!os?.tecnico?.telefone) {
+      alert("Técnico sem telefone cadastrado");
+      return;
+    }
+
+    const telefone = os.tecnico.telefone.replace(/\D/g, "");
+
+    const mensagem = `
+Olá ${os.tecnico.nome},
+Você foi designado para a OS ${os.osNumero}.
+
+Cliente: ${os.cliente}
+Endereço: ${os.endereco}
+
+Serviço:
+${os.detalhamento}
+    `;
+
+    const url = `https://wa.me/55${telefone}?text=${encodeURIComponent(mensagem)}`;
+    window.open(url, "_blank");
   }
 
   function gerarPDF() {
@@ -108,8 +128,6 @@ export default function DetalheOSPage() {
       : "bg-yellow-100 text-yellow-700 border-yellow-300";
 
   return (
-
-    
     <div className="min-h-screen bg-gray-100 p-4 flex justify-center">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
 
@@ -119,19 +137,18 @@ export default function DetalheOSPage() {
 
           <div className="flex gap-2 flex-wrap">
             <button
+              onClick={abrirWhatsApp}
+              className="bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg"
+            >
+              💬 WhatsApp Técnico
+            </button>
+
+            <button
               onClick={gerarPDF}
               className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg"
             >
               Gerar PDF
             </button>
-
-                    <button
-  onClick={excluirOS}
-  className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-2 rounded-lg"
->
-  🗑️ Excluir OS
-</button>
-
 
             <button
               onClick={() => router.push(`/admin/servicos/${id}/editar`)}
@@ -147,6 +164,12 @@ export default function DetalheOSPage() {
               ❌ Cancelar
             </button>
 
+            <button
+              onClick={excluirOS}
+              className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-2 rounded-lg"
+            >
+              🗑️ Excluir OS
+            </button>
 
             <button
               onClick={() => router.back()}
