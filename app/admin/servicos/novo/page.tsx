@@ -75,11 +75,19 @@ export default function NovaOSPage() {
       }),
     });
 
-    // 🔥 FORMATA TELEFONE
-    const telefoneLimpo = telefone.replace(/\D/g, "");
+  const tecnicoSelecionado = tecnicos.find(t => t._id === tecnicoId);
+
+if (!tecnicoSelecionado || !tecnicoSelecionado.telefone) {
+  alert("Técnico sem telefone cadastrado");
+  return;
+}
+
+const telefoneLimpo = tecnicoSelecionado.telefone.replace(/\D/g, "");
+
+    
 
     // 🔥 MENSAGEM WHATSAPP
-    const mensagem = `
+const mensagem = `
 *NOVA ORDEM DE SERVIÇO*
 OS Nº: ${osCriada.osNumero}
 
@@ -88,11 +96,12 @@ ${subcliente ? `Subcliente: ${subcliente}` : ""}
 ${isDASA ? `Unidade: ${unidade}\nMarca: ${marca}` : ""}
 
 Endereço: ${endereco}
-Telefone: ${telefone}
+Telefone do cliente: ${telefone}
 
 Detalhamento:
 ${detalhamento}
 `;
+
 
     // 🔥 URL WHATSAPP (APP NO CELULAR)
     const urlWhats = `whatsapp://send?phone=55${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
