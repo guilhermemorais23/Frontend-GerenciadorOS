@@ -88,18 +88,9 @@ const telefoneLimpo = tecnicoSelecionado.telefone.replace(/\D/g, "");
 
     // 🔥 MENSAGEM WHATSAPP
 const mensagem = `
-*NOVA ORDEM DE SERVIÇO*
-OS Nº: ${osCriada.osNumero}
-
-Cliente: ${cliente}
-${subcliente ? `Subcliente: ${subcliente}` : ""}
-${isDASA ? `Unidade: ${unidade}\nMarca: ${marca}` : ""}
-
-Endereço: ${endereco}
-Telefone do cliente: ${telefone}
-
-Detalhamento:
-${detalhamento}
+Uma nova OS foi atribuída ao sistema Sertch.
+Favor verificar!
+}
 `;
 
 
