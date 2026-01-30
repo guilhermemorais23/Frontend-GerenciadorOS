@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-export default function AntesPage() {
+export default function DepoisPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -12,7 +12,8 @@ export default function AntesPage() {
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     carregarOS();
@@ -20,6 +21,7 @@ export default function AntesPage() {
 
   async function carregarOS() {
     try {
+      setLoading(true);
       const token = localStorage.getItem("token");
 
       const res = await fetch(
@@ -51,10 +53,12 @@ export default function AntesPage() {
   }
 
   function removerFoto(index: number) {
-    setFotos(fotos.filter((_, i) => i !== index));
+    setFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function salvarAntes() {
+  async function salvarDepois() {
+    setSalvando(true);
+
     try {
       const token = localStorage.getItem("token");
 
@@ -67,7 +71,7 @@ export default function AntesPage() {
       });
 
       const res = await fetch(
-        `https://gerenciador-de-os.onrender.com/projects/tecnico/antes/${id}`,
+        `https://gerenciador-de-os.onrender.com/projects/tecnico/depois/${id}`,
         {
           method: "PUT",
           headers: {
@@ -78,12 +82,15 @@ export default function AntesPage() {
       );
 
       if (!res.ok) {
-        throw new Error("Erro ao salvar ANTES");
+        throw new Error("Erro ao salvar DEPOIS");
       }
 
-      router.push(`/tecnico/servicos/${id}/depois`);
+      alert("Serviço finalizado com sucesso!");
+      router.push("/tecnico");
     } catch (err) {
-      alert("Erro ao salvar ANTES");
+      alert("Erro ao salvar DEPOIS");
+    } finally {
+      setSalvando(false);
     }
   }
 
@@ -98,7 +105,9 @@ export default function AntesPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">ANTES – {os.osNumero}</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          DEPOIS – {os.osNumero}
+        </h1>
 
         <div className="mb-4">
           <p>
@@ -128,7 +137,9 @@ export default function AntesPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Relatório</label>
+          <label className="block text-sm font-medium mb-1">
+            Relatório
+          </label>
           <textarea
             value={relatorio}
             onChange={(e) => setRelatorio(e.target.value)}
@@ -137,7 +148,9 @@ export default function AntesPage() {
         </div>
 
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Observação</label>
+          <label className="block text-sm font-medium mb-1">
+            Observação
+          </label>
           <textarea
             value={observacao}
             onChange={(e) => setObservacao(e.target.value)}
@@ -151,7 +164,6 @@ export default function AntesPage() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               multiple
               hidden
               onChange={handleFotosChange}
@@ -177,10 +189,11 @@ export default function AntesPage() {
         </div>
 
         <button
-          onClick={salvarAntes}
+          onClick={salvarDepois}
+          disabled={salvando}
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full transition"
         >
-          Salvar e ir para DEPOIS →
+          {salvando ? "Salvando..." : "Finalizar OS"}
         </button>
       </div>
     </div>
