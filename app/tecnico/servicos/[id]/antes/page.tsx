@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gerenciador-de-os.onrender.com";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://gerenciador-de-os.onrender.com";
 
 export default function AntesPage() {
   const params = useParams();
@@ -99,8 +101,9 @@ export default function AntesPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
-
-        <h1 className="text-2xl font-bold mb-4">ANTES – {os.osNumero}</h1>
+        <h1 className="text-2xl font-bold mb-4">
+          ANTES – {os.osNumero}
+        </h1>
 
         <div className="mb-4">
           <label className="block mb-1 font-medium">Relatório</label>
@@ -128,7 +131,6 @@ export default function AntesPage() {
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               multiple
               hidden
               onChange={handleFotosChange}
@@ -162,7 +164,6 @@ export default function AntesPage() {
         >
           {salvando ? "Salvando..." : "Salvar e ir para DEPOIS →"}
         </button>
-
       </div>
     </div>
   );
