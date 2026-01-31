@@ -7,7 +7,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://gerenciador-de-os.onrender.com";
 
-export default function DepoisPage() {
+export default function ServicoDepoisPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
@@ -35,7 +35,7 @@ export default function DepoisPage() {
 
       if (!res.ok) throw new Error();
 
-      // 🔒 SÓ ENTRA NO DEPOIS SE CONCLUÍDO
+      // 🔒 se ainda não concluiu, não pode ficar no depois
       if (data.status !== "concluido") {
         router.replace(`/tecnico/servicos/${id}/antes`);
         return;
