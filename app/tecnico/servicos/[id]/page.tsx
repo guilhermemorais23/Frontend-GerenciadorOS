@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://gerenciador-de-os.onrender.com";
+
 export default function DepoisPage() {
   const params = useParams();
   const router = useRouter();
@@ -12,7 +16,7 @@ export default function DepoisPage() {
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -21,25 +25,28 @@ export default function DepoisPage() {
 
   async function carregarOS() {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
 
-      const res = await fetch(
-        `https://gerenciador-de-os.onrender.com/projects/tecnico/view/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await fetch(`${API_URL}/projects/tecnico/view/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await res.json();
 
       if (!res.ok) {
         throw new Error("Erro ao buscar OS");
       }
 
-      const data = await res.json();
+      // 🔒 REGRA FINAL ABSOLUTA
+      if (data.status !== "concluido") {
+        router.replace(`/tecnico/servicos/${id}/antes`);
+        return;
+      }
+
       setOs(data);
-    } catch (err) {
+    } catch {
       alert("Erro ao carregar OS");
     } finally {
       setLoading(false);
@@ -48,12 +55,7 @@ export default function DepoisPage() {
 
   function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
-    const files = Array.from(e.target.files);
-    setFotos(files);
-  }
-
-  function removerFoto(index: number) {
-    setFotos((prev) => prev.filter((_, i) => i !== index));
+    setFotos(Array.from(e.target.files));
   }
 
   async function salvarDepois() {
@@ -65,42 +67,31 @@ export default function DepoisPage() {
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
+      fotos.forEach((f) => formData.append("fotos", f));
 
-      fotos.forEach((foto) => {
-        formData.append("fotos", foto);
+      const res = await fetch(`${API_URL}/projects/tecnico/depois/${id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
       });
 
-      const res = await fetch(
-        `https://gerenciador-de-os.onrender.com/projects/tecnico/depois/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        }
-      );
-
       if (!res.ok) {
-        throw new Error("Erro ao salvar DEPOIS");
+        throw new Error();
       }
 
-      alert("Serviço finalizado com sucesso!");
+      alert("OS finalizada!");
       router.push("/tecnico");
-    } catch (err) {
+    } catch {
       alert("Erro ao salvar DEPOIS");
     } finally {
       setSalvando(false);
     }
   }
 
-  if (loading) {
-    return <div className="p-6">Carregando...</div>;
-  }
-
-  if (!os) {
-    return <div className="p-6">OS não encontrada</div>;
-  }
+  if (loading) return <div className="p-6">Carregando...</div>;
+  if (!os) return <div className="p-6">OS não encontrada</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
@@ -109,89 +100,31 @@ export default function DepoisPage() {
           DEPOIS – {os.osNumero}
         </h1>
 
-        <div className="mb-4">
-          <p>
-            <b>Cliente:</b> {os.cliente}
-          </p>
-          {os.marca && (
-            <p>
-              <b>Marca:</b> {os.marca}
-            </p>
-          )}
-          {os.unidade && (
-            <p>
-              <b>Unidade:</b> {os.unidade}
-            </p>
-          )}
-          {os.endereco && (
-            <p>
-              <b>Endereço:</b> {os.endereco}
-            </p>
-          )}
-          {os.detalhamento && (
-            <div className="mt-2 p-3 bg-yellow-50 border rounded">
-              <b>Detalhamento do serviço:</b>
-              <p>{os.detalhamento}</p>
-            </div>
-          )}
-        </div>
+        <textarea
+          className="border p-2 rounded w-full mb-3"
+          placeholder="Relatório final"
+          value={relatorio}
+          onChange={(e) => setRelatorio(e.target.value)}
+        />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Relatório
-          </label>
-          <textarea
-            value={relatorio}
-            onChange={(e) => setRelatorio(e.target.value)}
-            className="border p-2 rounded w-full min-h-[80px]"
-          />
-        </div>
+        <textarea
+          className="border p-2 rounded w-full mb-3"
+          placeholder="Observação final"
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+        />
 
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Observação
-          </label>
-          <textarea
-            value={observacao}
-            onChange={(e) => setObservacao(e.target.value)}
-            className="border p-2 rounded w-full min-h-[80px]"
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer">
-            📷 Adicionar fotos
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={handleFotosChange}
-            />
-          </label>
-
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-            {fotos.map((foto, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={URL.createObjectURL(foto)}
-                  className="rounded border"
-                />
-                <button
-                  onClick={() => removerFoto(index)}
-                  className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 rounded"
-                >
-                  X
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFotosChange}
+        />
 
         <button
           onClick={salvarDepois}
           disabled={salvando}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full transition"
+          className="mt-4 bg-green-600 text-white w-full py-3 rounded"
         >
           {salvando ? "Salvando..." : "Finalizar OS"}
         </button>

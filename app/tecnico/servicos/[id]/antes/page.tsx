@@ -33,21 +33,21 @@ export default function AntesPage() {
         },
       });
 
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data?.error || "Erro ao carregar OS");
+        throw new Error("Erro ao carregar OS");
       }
 
+      // 🔒 REGRA FINAL
       if (data.status === "concluido") {
-        router.push(`/tecnico/servicos/${id}/depois`);
+        router.replace(`/tecnico/servicos/${id}/depois`);
         return;
       }
 
       setOs(data);
     } catch (err: any) {
-      alert("Erro ao carregar OS: " + err.message);
+      alert("Erro ao carregar OS");
     } finally {
       setLoading(false);
     }
@@ -55,8 +55,7 @@ export default function AntesPage() {
 
   function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
-    const novas = Array.from(e.target.files);
-    setFotos((prev) => [...prev, ...novas]);
+    setFotos(Array.from(e.target.files));
   }
 
   function removerFoto(index: number) {
@@ -67,6 +66,8 @@ export default function AntesPage() {
     setSalvando(true);
 
     try {
+      const token = localStorage.getItem("token");
+
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
@@ -74,8 +75,6 @@ export default function AntesPage() {
       fotos.forEach((foto) => {
         formData.append("fotos", foto);
       });
-
-      const token = localStorage.getItem("token");
 
       const res = await fetch(`${API_URL}/projects/tecnico/antes/${id}`, {
         method: "PUT",
@@ -85,16 +84,14 @@ export default function AntesPage() {
         body: formData,
       });
 
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : null;
-
       if (!res.ok) {
-        throw new Error(data?.error || "Erro ao salvar ANTES");
+        throw new Error("Erro ao salvar ANTES");
       }
 
+      // 👉 só aqui vai para depois
       router.push(`/tecnico/servicos/${id}/depois`);
-    } catch (err: any) {
-      alert("Erro ao salvar ANTES: " + err.message);
+    } catch {
+      alert("Erro ao salvar ANTES");
     } finally {
       setSalvando(false);
     }
@@ -110,64 +107,50 @@ export default function AntesPage() {
           ANTES – {os.osNumero}
         </h1>
 
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">Relatório</label>
-          <textarea
-            value={relatorio}
-            onChange={(e) => setRelatorio(e.target.value)}
-            className="border p-2 rounded w-full min-h-[80px]"
-          />
-        </div>
+        <textarea
+          className="border p-2 rounded w-full mb-3"
+          placeholder="Relatório"
+          value={relatorio}
+          onChange={(e) => setRelatorio(e.target.value)}
+        />
 
-        <div className="mb-4">
-          <label className="block mb-1 font-medium">Observação</label>
-          <textarea
-            value={observacao}
-            onChange={(e) => setObservacao(e.target.value)}
-            className="border p-2 rounded w-full min-h-[80px]"
-          />
-        </div>
+        <textarea
+          className="border p-2 rounded w-full mb-3"
+          placeholder="Observação"
+          value={observacao}
+          onChange={(e) => setObservacao(e.target.value)}
+        />
 
-        <div className="mb-4">
-          <label className="block mb-2 font-medium">📷 Fotos</label>
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFotosChange}
+        />
 
-          <label className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded cursor-pointer">
-            Adicionar fotos
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={handleFotosChange}
-            />
-          </label>
-
-          {fotos.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-              {fotos.map((foto, index) => (
-                <div key={index} className="relative">
-                  <img
-                    src={URL.createObjectURL(foto)}
-                    className="rounded border object-cover h-32 w-full"
-                  />
-                  <button
-                    onClick={() => removerFoto(index)}
-                    className="absolute top-1 right-1 bg-red-600 text-white text-xs px-2 rounded"
-                  >
-                    X
-                  </button>
-                </div>
-              ))}
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          {fotos.map((f, i) => (
+            <div key={i} className="relative">
+              <img
+                src={URL.createObjectURL(f)}
+                className="h-32 w-full object-cover rounded"
+              />
+              <button
+                onClick={() => removerFoto(i)}
+                className="absolute top-1 right-1 bg-red-600 text-white px-2 rounded"
+              >
+                X
+              </button>
             </div>
-          )}
+          ))}
         </div>
 
         <button
           onClick={salvarAntes}
           disabled={salvando}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded w-full transition"
+          className="mt-4 bg-green-600 text-white w-full py-3 rounded"
         >
-          {salvando ? "Salvando..." : "Salvar e ir para DEPOIS →"}
+          {salvando ? "Salvando..." : "Salvar e ir para DEPOIS"}
         </button>
       </div>
     </div>
