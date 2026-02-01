@@ -58,41 +58,135 @@ export default function DetalheOSPage() {
     }
   }
 
-  function gerarPDF() {
-    if (!os) return;
+function gerarPDF() {
+  if (!os) return;
 
-    const doc = new jsPDF("p", "mm", "a4");
-    const pageWidth = 210;
-    const margin = 15;
-    let y = 15;
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 15;
+  let y = margin;
 
-    const addLine = (txt: string) => {
-      doc.setFontSize(10);
-      doc.text(txt || "-", margin, y);
-      y += 5;
-    };
-
-    doc.setFontSize(16);
-    doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
-    y += 10;
-
-    addLine(`OS: ${os.osNumero}`);
-    addLine(`Status: ${os.status}`);
-    addLine(`Cliente: ${os.cliente}`);
-
-    if (os.cliente === "DASA") {
-      addLine(`Unidade: ${os.unidade || "-"}`);
-      addLine(`Marca: ${os.marca || "-"}`);
-    } else {
-      addLine(`Subcliente: ${os.subcliente || os.Subcliente || os.subgrupo || "-"}`);
+  function novaPaginaSePreciso(altura = 10) {
+    if (y + altura > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
     }
-
-    addLine(`Endereço: ${os.endereco || "-"}`);
-    addLine(`Telefone: ${os.telefone || "-"}`);
-    addLine(`Técnico: ${os.tecnico?.nome || "-"}`);
-
-    doc.save(`OS-${os.osNumero}.pdf`);
   }
+
+  function titulo(txt: string) {
+    novaPaginaSePreciso(10);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(txt, margin, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+  }
+
+  function texto(txt: string) {
+    const linhas = doc.splitTextToSize(
+      txt || "-",
+      pageWidth - margin * 2
+    );
+    novaPaginaSePreciso(linhas.length * 5);
+    doc.setFontSize(10);
+    doc.text(linhas, margin, y);
+    y += linhas.length * 5 + 2;
+  }
+
+  /* ================= CAPA ================= */
+  doc.setFontSize(16);
+  doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
+  y += 10;
+
+  doc.setFontSize(10);
+  texto(`OS: ${os.osNumero}`);
+  texto(`Status: ${os.status}`);
+  texto(`Cliente: ${os.cliente}`);
+  texto(`Subcliente: ${os.subcliente || "-"}`);
+  texto(`Endereço: ${os.endereco || "-"}`);
+  texto(`Telefone: ${os.telefone || "-"}`);
+  texto(`Técnico: ${os.tecnico?.nome || "-"}`);
+
+  /* ================= DETALHAMENTO ================= */
+  titulo("DETALHAMENTO DO SERVIÇO");
+  texto(os.detalhamento);
+
+  /* ================= ANTES ================= */
+  doc.addPage();
+  y = margin;
+
+  titulo("RELATÓRIO – ANTES");
+  texto(os.antes?.relatorio);
+
+  titulo("OBSERVAÇÃO – ANTES");
+  texto(os.antes?.observacao);
+
+  titulo("FOTOS – ANTES");
+
+  const fotosAntes = os.antes?.fotos || [];
+  let x = margin;
+  let imgW = 80;
+  let imgH = 55;
+
+  fotosAntes.forEach((foto: string, index: number) => {
+    novaPaginaSePreciso(imgH + 10);
+
+    doc.addImage(
+      `data:image/jpeg;base64,${foto}`,
+      "JPEG",
+      x,
+      y,
+      imgW,
+      imgH
+    );
+
+    if (x + imgW * 2 > pageWidth - margin) {
+      x = margin;
+      y += imgH + 5;
+    } else {
+      x += imgW + 5;
+    }
+  });
+
+  /* ================= DEPOIS ================= */
+  doc.addPage();
+  y = margin;
+  x = margin;
+
+  titulo("RELATÓRIO – DEPOIS");
+  texto(os.depois?.relatorio);
+
+  titulo("OBSERVAÇÃO – DEPOIS");
+  texto(os.depois?.observacao);
+
+  titulo("FOTOS – DEPOIS");
+
+  const fotosDepois = os.depois?.fotos || [];
+
+  fotosDepois.forEach((foto: string) => {
+    novaPaginaSePreciso(imgH + 10);
+
+    doc.addImage(
+      `data:image/jpeg;base64,${foto}`,
+      "JPEG",
+      x,
+      y,
+      imgW,
+      imgH
+    );
+
+    if (x + imgW * 2 > pageWidth - margin) {
+      x = margin;
+      y += imgH + 5;
+    } else {
+      x += imgW + 5;
+    }
+  });
+
+  doc.save(`OS-${os.osNumero}.pdf`);
+}
+
 
   if (loading) {
     return <div className="p-6 text-center">Carregando...</div>;
