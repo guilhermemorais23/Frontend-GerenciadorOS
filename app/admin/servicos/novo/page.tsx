@@ -1,190 +1,187 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "@/app/lib/api";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { apiFetch } from "@/app/lib/api";
 
-export default function AdminDashboard() {
+export default function NovaOSPage() {
   const router = useRouter();
 
-  const [osList, setOsList] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [cliente, setCliente] = useState("");
+  const [subcliente, setSubcliente] = useState("");
+  const [clientesDB, setClientesDB] = useState<any[]>([]);
+  const [mostrarLista, setMostrarLista] = useState(false);
 
-  const [statusFiltro, setStatusFiltro] = useState("");
-  const [busca, setBusca] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [marca, setMarca] = useState("");
+  const [unidade, setUnidade] = useState("");
+  const [detalhamento, setDetalhamento] = useState("");
 
-  // ============================
-  // 🔥 ABRE WHATSAPP (PC + CEL)
-  // ============================
-  useEffect(() => {
-    const data = localStorage.getItem("whatsapp-pendente");
-    if (!data) return;
+  const [tecnicos, setTecnicos] = useState<any[]>([]);
+  const [tecnicoId, setTecnicoId] = useState("");
 
-    const { telefone, mensagem } = JSON.parse(data);
-    localStorage.removeItem("whatsapp-pendente");
+  const [loading, setLoading] = useState(false);
 
-    if (!telefone) return;
-
-    const numero = telefone.replace(/\D/g, "");
-    const url = `https://wa.me/55${numero}?text=${encodeURIComponent(
-      mensagem
-    )}`;
-
-    // ✅ FUNCIONA EM PC E CELULAR
-    window.location.href = url;
-  }, []);
+  const isDASA = cliente.trim().toLowerCase() === "dasa";
 
   useEffect(() => {
-    carregarOS();
+    apiFetch("/auth/tecnicos").then(setTecnicos).catch(() => setTecnicos([]));
   }, []);
 
-  async function carregarOS() {
+  async function carregarClientes(nome: string) {
     try {
-      const data = await apiFetch("/projects/admin/all");
-      setOsList(data);
+      const data = await apiFetch(`/clientes/by-cliente/${nome}`);
+      setClientesDB(data);
     } catch {
-      alert("Erro ao carregar OS");
+      setClientesDB([]);
+    }
+  }
+
+  function selecionarClienteDB(c: any) {
+    setCliente(c.cliente || "");
+    setSubcliente(c.subcliente || "");
+    setEndereco(c.endereco || "");
+    setTelefone(c.telefone || "");
+    setMarca(c.marca || "");
+    setUnidade(c.unidade || "");
+    setClientesDB([]);
+    setMostrarLista(false);
+  }
+
+  async function salvarOS() {
+    if (!cliente || !tecnicoId) {
+      alert("Cliente e técnico são obrigatórios");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const tecnicoSelecionado = tecnicos.find(t => t._id === tecnicoId);
+
+      const res = await apiFetch("/projects/admin/create", {
+        method: "POST",
+        body: JSON.stringify({
+          cliente,
+          subcliente: isDASA ? "" : subcliente,
+          endereco,
+          telefone,
+          marca: isDASA ? marca : "",
+          unidade: isDASA ? unidade : "",
+          detalhamento,
+          tecnicoId,
+        }),
+      });
+
+      // 🔥 PREPARA WHATSAPP PARA A PRÓXIMA TELA
+      if (tecnicoSelecionado?.telefone && res?.osNumero) {
+        localStorage.setItem(
+          "whatsapp-pendente",
+          JSON.stringify({
+            telefone: tecnicoSelecionado.telefone,
+            mensagem: `
+Olá! 👋
+Você recebeu uma nova Ordem de Serviço.
+
+🆔 OS: ${res.osNumero}
+👤 Cliente: ${cliente}
+📍 Endereço: ${endereco}
+
+Acesse o sistema para mais detalhes.
+            `,
+          })
+        );
+      }
+
+      router.push("/admin");
+    } catch {
+      alert("Erro ao salvar OS");
     } finally {
       setLoading(false);
     }
   }
 
-  // =====================
-  // CONTADORES
-  // =====================
-  const contadores = useMemo(() => {
-    return {
-      aguardando: osList.filter(o => o.status === "aguardando_tecnico").length,
-      andamento: osList.filter(o => o.status === "em_andamento").length,
-      concluido: osList.filter(o => o.status === "concluido").length,
-    };
-  }, [osList]);
-
-  // =====================
-  // FILTROS
-  // =====================
-  const listaFiltrada = useMemo(() => {
-    return osList.filter(os => {
-      if (statusFiltro && os.status !== statusFiltro) return false;
-
-      const texto = `
-        ${os.cliente}
-        ${os.subcliente || ""}
-        ${os.unidade || ""}
-        ${os.marca || ""}
-        ${os.osNumero}
-        ${os.tecnico?.nome || ""}
-      `.toLowerCase();
-
-      if (busca && !texto.includes(busca.toLowerCase())) return false;
-
-      if (dataInicio && new Date(os.createdAt) < new Date(dataInicio)) return false;
-      if (dataFim && new Date(os.createdAt) > new Date(dataFim)) return false;
-
-      return true;
-    });
-  }, [osList, statusFiltro, busca, dataInicio, dataFim]);
-
-  if (loading) {
-    return <div className="p-6">Carregando...</div>;
-  }
-
   return (
-    <div className="p-6 bg-gray-100 min-h-screen text-black">
+    <div className="min-h-screen bg-gray-50 p-6 text-black">
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
+        <h1 className="text-2xl font-bold mb-6">Nova Ordem de Serviço</h1>
 
-      {/* CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <Card titulo="Aguardando Técnico" valor={contadores.aguardando} cor="bg-yellow-500" />
-        <Card titulo="Em Andamento" valor={contadores.andamento} cor="bg-blue-600" />
-        <Card titulo="Concluídas" valor={contadores.concluido} cor="bg-green-600" />
-      </div>
+        <input
+          className="border p-2 rounded w-full mb-2"
+          placeholder="Cliente"
+          value={cliente}
+          onChange={(e) => {
+            const v = e.target.value;
+            setCliente(v);
+            setSubcliente("");
+            setEndereco("");
+            setTelefone("");
+            setMarca("");
+            setUnidade("");
 
-      {/* FILTROS */}
-      <div className="bg-white p-4 rounded-xl shadow mb-6 grid gap-4 md:grid-cols-4">
-        <select
-          className="border p-2 rounded"
-          value={statusFiltro}
-          onChange={(e) => setStatusFiltro(e.target.value)}
-        >
-          <option value="">Todos os status</option>
-          <option value="aguardando_tecnico">Aguardando Técnico</option>
-          <option value="em_andamento">Em Andamento</option>
-          <option value="concluido">Concluído</option>
+            if (v.trim().length >= 2) {
+              setMostrarLista(true);
+              carregarClientes(v);
+            } else {
+              setMostrarLista(false);
+              setClientesDB([]);
+            }
+          }}
+        />
+
+        {mostrarLista && clientesDB.length > 0 && (
+          <div className="border rounded mb-4">
+            {clientesDB.map((c) => (
+              <div
+                key={c._id}
+                onClick={() => selecionarClienteDB(c)}
+                className="p-2 cursor-pointer hover:bg-blue-100"
+              >
+                {c.cliente} {c.subcliente && `- ${c.subcliente}`}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!isDASA && (
+          <input
+            className="border p-2 rounded w-full mb-3"
+            placeholder="Subcliente"
+            value={subcliente}
+            onChange={(e) => setSubcliente(e.target.value)}
+          />
+        )}
+
+        {isDASA && (
+          <>
+            <input className="border p-2 rounded w-full mb-3 bg-gray-100" value={unidade} readOnly />
+            <input className="border p-2 rounded w-full mb-3 bg-gray-100" value={marca} readOnly />
+          </>
+        )}
+
+        <input className="border p-2 rounded w-full mb-3" placeholder="Endereço" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+        <input className="border p-2 rounded w-full mb-3" placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
+
+        <textarea className="border p-2 rounded w-full mb-4" rows={4} placeholder="Detalhamento" value={detalhamento} onChange={(e) => setDetalhamento(e.target.value)} />
+
+        <select className="border p-2 rounded w-full mb-6" value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)}>
+          <option value="">Selecione o técnico</option>
+          {tecnicos.map((t) => (
+            <option key={t._id} value={t._id}>
+              {t.nome}
+            </option>
+          ))}
         </select>
 
-        <input
-          className="border p-2 rounded"
-          placeholder="Buscar cliente, técnico ou OS"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
-
-        <input
-          type="date"
-          className="border p-2 rounded"
-          value={dataInicio}
-          onChange={(e) => setDataInicio(e.target.value)}
-        />
-
-        <input
-          type="date"
-          className="border p-2 rounded"
-          value={dataFim}
-          onChange={(e) => setDataFim(e.target.value)}
-        />
-      </div>
-
-      {/* LISTA */}
-      <div className="space-y-3">
-        {listaFiltrada.map((os) => (
-          <div
-            key={os._id}
-            className="bg-white p-4 rounded-lg shadow flex justify-between items-center cursor-pointer hover:bg-gray-50"
-            onClick={() => router.push(`/admin/servicos/${os._id}`)}
-          >
-            <div>
-              <p className="font-bold">{os.osNumero}</p>
-              <p className="text-sm text-gray-600">{os.cliente}</p>
-              <p className="text-xs text-gray-500">
-                Técnico: {os.tecnico?.nome || "—"}
-              </p>
-              <p className="text-xs text-gray-400">
-                {new Date(os.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            <span className={`px-3 py-1 rounded-full text-sm ${statusColor(os.status)}`}>
-              {os.status}
-            </span>
-          </div>
-        ))}
-
-        {listaFiltrada.length === 0 && (
-          <p className="text-center text-gray-600">
-            Nenhuma OS encontrada
-          </p>
-        )}
+        <button
+          onClick={salvarOS}
+          disabled={loading}
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg w-full"
+        >
+          {loading ? "Salvando..." : "Salvar OS"}
+        </button>
       </div>
     </div>
   );
-}
-
-/* COMPONENTES */
-
-function Card({ titulo, valor, cor }: any) {
-  return (
-    <div className={`${cor} text-white p-4 rounded-xl shadow`}>
-      <p className="text-sm">{titulo}</p>
-      <p className="text-3xl font-bold">{valor}</p>
-    </div>
-  );
-}
-
-function statusColor(status: string) {
-  if (status === "aguardando_tecnico") return "bg-yellow-100 text-yellow-800";
-  if (status === "em_andamento") return "bg-blue-100 text-blue-800";
-  if (status === "concluido") return "bg-green-100 text-green-800";
-  return "bg-gray-200 text-gray-800";
 }
