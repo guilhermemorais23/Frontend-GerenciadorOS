@@ -154,9 +154,14 @@ export default function AdminDashboard() {
                 </>
               )}
 
-              <p className="text-xs text-gray-500">
-                Técnico: {os.tecnico?.nome || "—"}
-              </p>
+            <p className="text-xs text-gray-500">
+  Técnico:{" "}
+  {os.tecnico?.nome ||
+    os.tecnicoNome ||
+    os.tecnico_name ||
+    (typeof os.tecnico === "string" ? os.tecnico : "—")}
+</p>
+
 
               <p className="text-xs text-gray-400">
                 {new Date(os.createdAt).toLocaleDateString()}
