@@ -35,10 +35,7 @@ export default function DetalheOSPage() {
     if (!ok) return;
 
     try {
-      await apiFetch(`/projects/admin/cancelar/${id}`, {
-        method: "PUT",
-      });
-
+      await apiFetch(`/projects/admin/cancelar/${id}`, { method: "PUT" });
       alert("OS cancelada com sucesso!");
       await carregarOS();
     } catch (err: any) {
@@ -53,34 +50,12 @@ export default function DetalheOSPage() {
     if (!ok) return;
 
     try {
-      await apiFetch(`/projects/admin/delete/${id}`, {
-        method: "DELETE",
-      });
-
+      await apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" });
       alert("OS excluída com sucesso!");
       router.push("/admin");
     } catch (err: any) {
       alert("Erro ao excluir OS: " + err.message);
     }
-  }
-
-  function abrirWhatsApp() {
-    if (!os?.tecnico?.telefone) {
-      alert("Técnico sem telefone cadastrado");
-      return;
-    }
-
-    const telefone = os.tecnico.telefone.replace(/\D/g, "");
-
-    const mensagem = `
-    Uma nova OS foi atribuída ao sistema Sertch.
-Favor verificar!
-    `;
-
-    const url = `https://wa.me/55${telefone}?text=${encodeURIComponent(
-      mensagem
-    )}`;
-    window.open(url, "_blank");
   }
 
   function gerarPDF() {
@@ -91,152 +66,63 @@ Favor verificar!
     const margin = 15;
     let y = 15;
 
-    const addTitulo = (txt: string) => {
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text(txt, margin, y);
-      y += 6;
-      doc.setFont("helvetica", "normal");
-    };
-
-    const addTexto = (txt: string) => {
+    const addLine = (txt: string) => {
       doc.setFontSize(10);
-      const linhas = doc.splitTextToSize(
-        txt || "-",
-        pageWidth - margin * 2
-      );
-      doc.text(linhas, margin, y);
-      y += linhas.length * 5 + 2;
+      doc.text(txt || "-", margin, y);
+      y += 5;
     };
 
     doc.setFontSize(16);
     doc.text("ORDEM DE SERVIÇO", pageWidth / 2, y, { align: "center" });
     y += 10;
 
-    doc.setFontSize(10);
-    doc.text(`OS: ${os.osNumero}`, margin, y);
-    doc.text(
-      `Data: ${new Date().toLocaleDateString()}`,
-      pageWidth - margin,
-      y,
-      { align: "right" }
-    );
-    y += 6;
+    addLine(`OS: ${os.osNumero}`);
+    addLine(`Status: ${os.status}`);
+    addLine(`Cliente: ${os.cliente}`);
 
-    doc.text(`Status: ${os.status}`, margin, y); y += 5;
-    doc.text(`Cliente: ${os.cliente}`, margin, y); y += 5;
-    doc.text(`Marca: ${os.marca || "-"}`, margin, y); y += 5;
-    doc.text(`Unidade: ${os.unidade || "-"}`, margin, y); y += 5;
-    doc.text(`Endereço: ${os.endereco || "-"}`, margin, y); y += 5;
-    doc.text(`Técnico: ${os.tecnico?.nome || "-"}`, margin, y); y += 8;
+    if (os.cliente === "DASA") {
+      addLine(`Unidade: ${os.unidade || "-"}`);
+      addLine(`Marca: ${os.marca || "-"}`);
+    } else {
+      addLine(`Subcliente: ${os.subcliente || os.Subcliente || os.subgrupo || "-"}`);
+    }
 
-    addTitulo("DETALHAMENTO DO SERVIÇO");
-    addTexto(os.detalhamento);
-
-    addTitulo("RELATÓRIO – ANTES");
-    addTexto(os.antes?.relatorio);
-
-    addTitulo("OBSERVAÇÃO – ANTES");
-    addTexto(os.antes?.observacao);
-
-    addTitulo("FOTOS – ANTES");
-
-    const fotosAntes = os.antes?.fotos || [];
-    let xImg = margin;
-    let yImg = y;
-    const imgW = 85;
-    const imgH = 60;
-
-    fotosAntes.slice(0, 4).forEach((foto: string, index: number) => {
-      doc.addImage(
-        `data:image/jpeg;base64,${foto}`,
-        "JPEG",
-        xImg,
-        yImg,
-        imgW,
-        imgH
-      );
-
-      if (index % 2 === 0) {
-        xImg += imgW + 5;
-      } else {
-        xImg = margin;
-        yImg += imgH + 5;
-      }
-    });
-
-    doc.addPage();
-    y = 15;
-
-    addTitulo("RELATÓRIO – DEPOIS");
-    addTexto(os.depois?.relatorio);
-
-    addTitulo("OBSERVAÇÃO – DEPOIS");
-    addTexto(os.depois?.observacao);
-
-    addTitulo("FOTOS – DEPOIS");
-
-    const fotosDepois = os.depois?.fotos || [];
-    xImg = margin;
-    yImg = y;
-
-    fotosDepois.slice(0, 4).forEach((foto: string, index: number) => {
-      doc.addImage(
-        `data:image/jpeg;base64,${foto}`,
-        "JPEG",
-        xImg,
-        yImg,
-        imgW,
-        imgH
-      );
-
-      if (index % 2 === 0) {
-        xImg += imgW + 5;
-      } else {
-        xImg = margin;
-        yImg += imgH + 5;
-      }
-    });
+    addLine(`Endereço: ${os.endereco || "-"}`);
+    addLine(`Telefone: ${os.telefone || "-"}`);
+    addLine(`Técnico: ${os.tecnico?.nome || "-"}`);
 
     doc.save(`OS-${os.osNumero}.pdf`);
   }
 
   if (loading) {
-    return (
-      <div className="p-6 text-center text-gray-700">Carregando...</div>
-    );
+    return <div className="p-6 text-center">Carregando...</div>;
   }
 
   if (!os) {
-    return (
-      <div className="p-6 text-center text-red-600">
-        OS não encontrada
-      </div>
-    );
+    return <div className="p-6 text-center text-red-600">OS não encontrada</div>;
   }
 
   const statusColor =
     os.status === "cancelado"
-      ? "bg-red-100 text-red-700 border-red-300"
+      ? "bg-red-100 text-red-700"
       : os.status === "concluido"
-      ? "bg-green-100 text-green-700 border-green-300"
+      ? "bg-green-100 text-green-700"
       : os.status === "em_andamento"
-      ? "bg-blue-100 text-blue-700 border-blue-300"
-      : "bg-yellow-100 text-yellow-700 border-yellow-300";
+      ? "bg-blue-100 text-blue-700"
+      : "bg-yellow-100 text-yellow-700";
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 flex justify-center">
       <div className="w-full max-w-xl bg-white rounded-2xl shadow-lg p-6">
 
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Detalhes da OS
-          </h1>
+        {/* TOPO */}
+        <div className="flex flex-wrap justify-between gap-2 mb-6">
+          <h1 className="text-2xl font-bold">Detalhes da OS</h1>
 
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={gerarPDF}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-4 py-2 rounded-lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm"
             >
               Gerar PDF
             </button>
@@ -244,24 +130,22 @@ Favor verificar!
             {userRole === "admin" && (
               <>
                 <button
-                  onClick={() =>
-                    router.push(`/admin/servicos/${id}/editar`)
-                  }
-                  className="bg-orange-500 hover:bg-orange-600 text-white text-sm px-4 py-2 rounded-lg"
+                  onClick={() => router.push(`/admin/servicos/${id}/editar`)}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm"
                 >
                   ✏️ Alterar
                 </button>
 
                 <button
                   onClick={cancelarOS}
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-4 py-2 rounded-lg"
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm"
                 >
                   ❌ Cancelar
                 </button>
 
                 <button
                   onClick={excluirOS}
-                  className="bg-red-700 hover:bg-red-800 text-white text-sm px-4 py-2 rounded-lg"
+                  className="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm"
                 >
                   🗑️ Excluir OS
                 </button>
@@ -270,45 +154,46 @@ Favor verificar!
 
             <button
               onClick={() => router.back()}
-              className="bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm px-4 py-2 rounded-lg"
+              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg text-sm"
             >
               Voltar
             </button>
           </div>
         </div>
 
-        <div className="space-y-4 text-sm text-gray-900">
-          <div>
-            <p className="text-xs text-gray-600 font-semibold">
-              NÚMERO DA OS
-            </p>
-            <p className="font-bold text-base">
-              {os.osNumero || "-"}
-            </p>
-          </div>
+        {/* DADOS */}
+        <div className="space-y-4 text-sm">
+
+          <Info label="Número da OS" value={os.osNumero} />
 
           <div>
-            <p className="text-xs text-gray-600 font-semibold">STATUS</p>
-            <span
-              className={`inline-block px-3 py-1 rounded-full text-sm border ${statusColor}`}
-            >
+            <p className="text-xs font-semibold text-gray-600">Status</p>
+            <span className={`inline-block px-3 py-1 rounded-full ${statusColor}`}>
               {os.status}
             </span>
           </div>
 
-          <div>
-            <p className="text-xs text-gray-600 font-semibold">CLIENTE</p>
-            <p className="font-bold">{os.cliente}</p>
-          </div>
+          <Info label="Cliente" value={os.cliente} />
 
-          <div>
-            <p className="text-xs text-gray-600 font-semibold">TÉCNICO</p>
-            <p className="font-bold">{os.tecnico?.nome || "-"}</p>
-          </div>
+          {os.cliente === "DASA" ? (
+            <>
+              <Info label="Unidade" value={os.unidade} />
+              <Info label="Marca" value={os.marca} />
+            </>
+          ) : (
+            <Info
+              label="Subcliente"
+              value={os.subcliente || os.Subcliente || os.subgrupo}
+            />
+          )}
 
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-            <p className="text-xs text-blue-700 font-semibold mb-1">
-              DETALHAMENTO DO SERVIÇO
+          <Info label="Endereço" value={os.endereco} />
+          <Info label="Telefone" value={os.telefone} />
+          <Info label="Técnico" value={os.tecnico?.nome} />
+
+          <div className="bg-blue-50 p-3 rounded-lg border">
+            <p className="text-xs font-semibold text-blue-700 mb-1">
+              Detalhamento do Serviço
             </p>
             <p className="whitespace-pre-line">
               {os.detalhamento || "-"}
@@ -316,6 +201,16 @@ Favor verificar!
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function Info({ label, value }: any) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="text-xs font-semibold text-gray-600">{label}</p>
+      <p className="font-bold">{value}</p>
     </div>
   );
 }
