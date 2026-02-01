@@ -15,6 +15,31 @@ export default function AdminDashboard() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
+  /* =====================================================
+     🔥 WHATSAPP AUTOMÁTICO (PC + CELULAR)
+     NÃO REMOVE NADA DO DASHBOARD
+  ===================================================== */
+  useEffect(() => {
+    const data = localStorage.getItem("whatsapp-pendente");
+    if (!data) return;
+
+    const { telefone, mensagem } = JSON.parse(data);
+    localStorage.removeItem("whatsapp-pendente");
+
+    if (!telefone) return;
+
+    const numero = telefone.replace(/\D/g, "");
+    const url = `https://wa.me/55${numero}?text=${encodeURIComponent(
+      mensagem
+    )}`;
+
+    // ✅ FUNCIONA EM PC E CELULAR
+    window.location.href = url;
+  }, []);
+
+  /* =====================================================
+     CARREGAR OS
+  ===================================================== */
   useEffect(() => {
     carregarOS();
   }, []);
@@ -30,9 +55,9 @@ export default function AdminDashboard() {
     }
   }
 
-  // =====================
-  // CONTADORES
-  // =====================
+  /* =====================================================
+     CONTADORES
+  ===================================================== */
   const contadores = useMemo(() => {
     return {
       aguardando: osList.filter(o => o.status === "aguardando_tecnico").length,
@@ -41,9 +66,9 @@ export default function AdminDashboard() {
     };
   }, [osList]);
 
-  // =====================
-  // FILTROS
-  // =====================
+  /* =====================================================
+     FILTROS
+  ===================================================== */
   const listaFiltrada = useMemo(() => {
     return osList.filter(os => {
       if (statusFiltro && os.status !== statusFiltro) return false;
@@ -154,14 +179,13 @@ export default function AdminDashboard() {
                 </>
               )}
 
-            <p className="text-xs text-gray-500">
-  Técnico:{" "}
-  {os.tecnico?.nome ||
-    os.tecnicoNome ||
-    os.tecnico_name ||
-    (typeof os.tecnico === "string" ? os.tecnico : "—")}
-</p>
-
+              <p className="text-xs text-gray-500">
+                Técnico:{" "}
+                {os.tecnico?.nome ||
+                  os.tecnicoNome ||
+                  os.tecnico_name ||
+                  (typeof os.tecnico === "string" ? os.tecnico : "—")}
+              </p>
 
               <p className="text-xs text-gray-400">
                 {new Date(os.createdAt).toLocaleDateString()}
@@ -184,7 +208,7 @@ export default function AdminDashboard() {
   );
 }
 
-// ================= COMPONENTES =================
+/* ================= COMPONENTES ================= */
 
 function Card({ titulo, valor, cor }: any) {
   return (
