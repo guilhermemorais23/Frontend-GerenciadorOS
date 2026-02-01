@@ -8,7 +8,9 @@ export default function TecnicoPage() {
   const router = useRouter();
 
   const [servicos, setServicos] = useState<any[]>([]);
-  const [filtro, setFiltro] = useState<"aguardando_tecnico" | "em_andamento" | "concluido" | "">("");
+  const [filtro, setFiltro] = useState<
+    "aguardando_tecnico" | "em_andamento" | "concluido" | ""
+  >("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,7 +42,6 @@ export default function TecnicoPage() {
 
       alert("Chamado iniciado!");
       carregarServicos();
-
     } catch (err: any) {
       alert("Erro ao abrir chamado: " + err.message);
     }
@@ -64,12 +65,13 @@ export default function TecnicoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6 text-black">
-      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
-
+    <div className="min-h-screen bg-gray-100 p-4 md:p-6 text-black">
+      <div className="max-w-5xl mx-auto bg-white rounded-xl shadow p-4 md:p-6">
         {/* TOPO */}
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold">Painel do Técnico</h1>
+          <h1 className="text-xl md:text-2xl font-bold">
+            Painel do Técnico
+          </h1>
           <button
             onClick={logout}
             className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
@@ -80,48 +82,44 @@ export default function TecnicoPage() {
 
         {/* FILTROS */}
         <div className="flex gap-2 mb-4 flex-wrap">
-          <button
-            onClick={() => setFiltro("")}
-            className={`px-4 py-2 rounded ${filtro === "" ? "bg-blue-600 text-white" : "bg-gray-200"}`}
-          >
-            Todos
-          </button>
-
-          <button
-            onClick={() => setFiltro("aguardando_tecnico")}
-            className={`px-4 py-2 rounded ${filtro === "aguardando_tecnico" ? "bg-orange-500 text-white" : "bg-gray-200"}`}
-          >
-            Aguardando
-          </button>
-
-          <button
-            onClick={() => setFiltro("em_andamento")}
-            className={`px-4 py-2 rounded ${filtro === "em_andamento" ? "bg-yellow-500 text-white" : "bg-gray-200"}`}
-          >
-            Em andamento
-          </button>
-
-          <button
-            onClick={() => setFiltro("concluido")}
-            className={`px-4 py-2 rounded ${filtro === "concluido" ? "bg-green-600 text-white" : "bg-gray-200"}`}
-          >
-            Concluídos
-          </button>
+          {[
+            { label: "Todos", value: "" },
+            { label: "Aguardando", value: "aguardando_tecnico" },
+            { label: "Em andamento", value: "em_andamento" },
+            { label: "Concluídos", value: "concluido" },
+          ].map((f) => (
+            <button
+              key={f.label}
+              onClick={() => setFiltro(f.value as any)}
+              className={`px-4 py-2 rounded ${
+                filtro === f.value
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
 
         {/* LISTA */}
         {listaFiltrada.length === 0 && (
-          <p className="text-gray-600">Nenhum serviço encontrado.</p>
+          <p className="text-gray-600">
+            Nenhum serviço encontrado.
+          </p>
         )}
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {listaFiltrada.map((s) => (
             <div
               key={s._id}
-              className="border rounded p-4 flex flex-col gap-2"
+              className="border rounded-lg p-4 flex flex-col gap-2"
             >
-              <div className="flex justify-between items-center">
-                <span className="font-bold">{s.osNumero}</span>
+              {/* CABEÇALHO */}
+              <div className="flex justify-between items-center flex-wrap gap-2">
+                <span className="font-bold text-lg">
+                  {s.osNumero}
+                </span>
 
                 <span
                   className={`text-sm px-3 py-1 rounded-full
@@ -131,8 +129,7 @@ export default function TecnicoPage() {
                         : s.status === "em_andamento"
                         ? "bg-yellow-100 text-yellow-700"
                         : "bg-green-100 text-green-700"
-                    }
-                  `}
+                    }`}
                 >
                   {s.status === "aguardando_tecnico" && "Aguardando"}
                   {s.status === "em_andamento" && "Em andamento"}
@@ -140,21 +137,56 @@ export default function TecnicoPage() {
                 </span>
               </div>
 
-              <div>
-                <b>Cliente:</b> {s.cliente}
+              {/* DADOS DO CLIENTE */}
+              <div className="text-sm space-y-1">
+                <div>
+                  <b>Cliente:</b> {s.cliente}
+                </div>
+
+                {/* REGRA ESPECIAL DASA */}
+                {s.cliente === "DASA" ? (
+                  <>
+                    {s.unidade && (
+                      <div>
+                        <b>Unidade:</b> {s.unidade}
+                      </div>
+                    )}
+                    {s.marca && (
+                      <div>
+                        <b>Marca:</b> {s.marca}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    {(s.subcliente || s.Subcliente || s.subgrupo) && (
+                      <div>
+                        <b>Subcliente:</b>{" "}
+                        {s.subcliente || s.Subcliente || s.subgrupo}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {s.endereco && (
+                  <div>
+                    <b>Endereço:</b> {s.endereco}
+                  </div>
+                )}
+
+                {s.telefone && (
+                  <div>
+                    <b>Telefone:</b> {s.telefone}
+                  </div>
+                )}
               </div>
 
-              {(s.Subcliente || s.subgrupo) && (
-                <div className="text-sm text-gray-600">
-                  <b>Subcliente:</b> {s.Subcliente || s.subgrupo}
-                </div>
-              )}
-
-              <div className="flex gap-2 mt-2 flex-wrap">
+              {/* AÇÕES */}
+              <div className="flex gap-2 mt-3 flex-wrap">
                 {s.status === "aguardando_tecnico" && (
                   <button
                     onClick={() => abrirChamado(s._id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full md:w-auto"
                   >
                     Abrir chamado
                   </button>
@@ -162,8 +194,10 @@ export default function TecnicoPage() {
 
                 {s.status !== "aguardando_tecnico" && (
                   <button
-                    onClick={() => router.push(`/tecnico/servicos/${s._id}`)}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded"
+                    onClick={() =>
+                      router.push(`/tecnico/servicos/${s._id}`)
+                    }
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded w-full md:w-auto"
                   >
                     Ver
                   </button>
@@ -172,7 +206,6 @@ export default function TecnicoPage() {
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );
