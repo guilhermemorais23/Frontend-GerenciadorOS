@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   }
 
   // =====================
-  // CARDS (CONTADORES)
+  // CONTADORES
   // =====================
   const contadores = useMemo(() => {
     return {
@@ -46,26 +46,21 @@ export default function AdminDashboard() {
   // =====================
   const listaFiltrada = useMemo(() => {
     return osList.filter(os => {
-      // STATUS
       if (statusFiltro && os.status !== statusFiltro) return false;
 
-      // BUSCA TEXTO
       const texto = `
         ${os.cliente}
+        ${os.subcliente || os.Subcliente || os.subgrupo || ""}
+        ${os.unidade || ""}
+        ${os.marca || ""}
         ${os.osNumero}
         ${os.tecnico?.nome || ""}
       `.toLowerCase();
 
       if (busca && !texto.includes(busca.toLowerCase())) return false;
 
-      // DATA
-      if (dataInicio) {
-        if (new Date(os.createdAt) < new Date(dataInicio)) return false;
-      }
-
-      if (dataFim) {
-        if (new Date(os.createdAt) > new Date(dataFim)) return false;
-      }
+      if (dataInicio && new Date(os.createdAt) < new Date(dataInicio)) return false;
+      if (dataFim && new Date(os.createdAt) > new Date(dataFim)) return false;
 
       return true;
     });
@@ -87,7 +82,6 @@ export default function AdminDashboard() {
 
       {/* ================= FILTROS ================= */}
       <div className="bg-white p-4 rounded-xl shadow mb-6 grid gap-4 md:grid-cols-4">
-
         <select
           className="border p-2 rounded"
           value={statusFiltro}
@@ -101,7 +95,7 @@ export default function AdminDashboard() {
 
         <input
           className="border p-2 rounded"
-          placeholder="Buscar cliente, técnico ou OS"
+          placeholder="Buscar cliente, subcliente, técnico ou OS"
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
         />
@@ -129,13 +123,42 @@ export default function AdminDashboard() {
             className="bg-white p-4 rounded-lg shadow flex justify-between items-center cursor-pointer hover:bg-gray-50"
             onClick={() => router.push(`/admin/servicos/${os._id}`)}
           >
-            <div>
+            <div className="space-y-1">
               <p className="font-bold">{os.osNumero}</p>
-              <p className="text-sm text-gray-600">{os.cliente}</p>
+
+              <p className="text-sm text-gray-700">
+                Cliente: {os.cliente}
+              </p>
+
+              {/* REGRA DASA */}
+              {os.cliente === "DASA" ? (
+                <>
+                  {os.unidade && (
+                    <p className="text-xs text-gray-500">
+                      Unidade: {os.unidade}
+                    </p>
+                  )}
+                  {os.marca && (
+                    <p className="text-xs text-gray-500">
+                      Marca: {os.marca}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  {(os.subcliente || os.Subcliente || os.subgrupo) && (
+                    <p className="text-xs text-gray-500">
+                      Subcliente: {os.subcliente || os.Subcliente || os.subgrupo}
+                    </p>
+                  )}
+                </>
+              )}
+
               <p className="text-xs text-gray-500">
                 Técnico: {os.tecnico?.nome || "—"}
               </p>
-              <p className="text-xs text-gray-500">
+
+              <p className="text-xs text-gray-400">
                 {new Date(os.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -147,7 +170,9 @@ export default function AdminDashboard() {
         ))}
 
         {listaFiltrada.length === 0 && (
-          <p className="text-center text-gray-600">Nenhuma OS encontrada</p>
+          <p className="text-center text-gray-600">
+            Nenhuma OS encontrada
+          </p>
         )}
       </div>
     </div>
