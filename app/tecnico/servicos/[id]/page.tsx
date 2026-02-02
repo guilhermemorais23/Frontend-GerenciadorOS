@@ -32,11 +32,6 @@ export default function ServicoPage() {
 
       const data = await res.json();
       setOs(data);
-
-      // Se já tiver ANTES preenchido, libera DEPOIS
-      if (temAntesPreenchido(data)) {
-        setAba("antes");
-      }
     } catch {
       setOs(null);
     } finally {
@@ -44,18 +39,8 @@ export default function ServicoPage() {
     }
   }
 
-  function temAntesPreenchido(os: any) {
-    return (
-      os?.antes?.relatorio ||
-      os?.antes?.observacao ||
-      (os?.antes?.fotos && os.antes.fotos.length > 0)
-    );
-  }
-
   if (loading) return <div className="p-6">Carregando...</div>;
   if (!os) return <div className="p-6">OS não encontrada</div>;
-
-  const antesConcluido = temAntesPreenchido(os);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
@@ -70,26 +55,27 @@ export default function ServicoPage() {
         </div>
 
         {/* BOTÕES ANTES / DEPOIS */}
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <button
             onClick={() => setAba("antes")}
-            className={`px-4 py-2 rounded font-semibold ${
-              aba === "antes"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200"
-            }`}
+            className={`flex-1 py-4 text-lg font-bold rounded-lg transition
+              ${
+                aba === "antes"
+                  ? "bg-blue-600 text-white"
+                  : "bg-blue-100 text-blue-800"
+              }`}
           >
             ANTES
           </button>
 
           <button
             onClick={() => setAba("depois")}
-            disabled={!antesConcluido}
-            className={`px-4 py-2 rounded font-semibold ${
-              aba === "depois"
-                ? "bg-green-600 text-white"
-                : "bg-gray-200"
-            } ${!antesConcluido && "opacity-50 cursor-not-allowed"}`}
+            className={`flex-1 py-4 text-lg font-bold rounded-lg transition
+              ${
+                aba === "depois"
+                  ? "bg-green-600 text-white"
+                  : "bg-green-100 text-green-800"
+              }`}
           >
             DEPOIS
           </button>
@@ -108,7 +94,7 @@ export default function ServicoPage() {
         {/* ================= ANTES ================= */}
         {aba === "antes" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">ANTES</h2>
+            <h2 className="text-xl font-bold">ANTES</h2>
 
             <div>
               <p className="font-semibold">Relatório inicial</p>
@@ -141,7 +127,7 @@ export default function ServicoPage() {
         {/* ================= DEPOIS ================= */}
         {aba === "depois" && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold">DEPOIS</h2>
+            <h2 className="text-xl font-bold">DEPOIS</h2>
 
             <div>
               <p className="font-semibold">Relatório final</p>
