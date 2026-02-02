@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -9,7 +9,6 @@ const API_URL =
 
 export default function ServicoPage() {
   const params = useParams();
-  const router = useRouter();
   const id = params.id as string;
 
   const [os, setOs] = useState<any>(null);
@@ -30,12 +29,7 @@ export default function ServicoPage() {
       if (!res.ok) throw new Error();
 
       const data = await res.json();
-      console.log("OS RECEBIDA:", data); // <-- DEBUG REAL
       setOs(data);
-
-      if (data.status === "concluido") {
-        localStorage.removeItem(`os-step-${id}`);
-      }
     } catch {
       setOs(null);
     } finally {
@@ -48,49 +42,20 @@ export default function ServicoPage() {
 
   const isConcluida = os.status === "concluido";
 
-  // 🔒 LEITURA SEGURA (aceita qualquer backend)
-  const antesTexto =
-    os.antes?.observacao ||
-    os.antes?.relatorio ||
-    os.antes?.texto ||
-    "";
-
-  const depoisTexto =
-    os.depois?.observacao ||
-    os.depois?.relatorio ||
-    os.depois?.texto ||
-    "";
-
-  const antesFotos = Array.isArray(os.antes?.fotos)
-    ? os.antes.fotos
-    : [];
-
-  const depoisFotos = Array.isArray(os.depois?.fotos)
-    ? os.depois.fotos
-    : [];
-
   return (
     <div className="min-h-screen bg-gray-50 p-6 text-black">
       <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6 space-y-6">
 
+        {/* CABEÇALHO */}
         <div>
-          <h1 className="text-2xl font-bold">
-            OS {os.osNumero}
-          </h1>
+          <h1 className="text-2xl font-bold">OS {os.osNumero}</h1>
           <p className="text-sm text-gray-600">
             Status atual: <b>{os.status}</b>
           </p>
         </div>
 
-        <div className="bg-gray-50 border rounded-lg p-4 space-y-2">
-          <p className="font-semibold">Cliente</p>
-          <p>{os.cliente}</p>
-          {os.subcliente && <p><b>Subcliente:</b> {os.subcliente}</p>}
-          {os.endereco && <p><b>Endereço:</b> {os.endereco}</p>}
-          {os.telefone && <p><b>Telefone:</b> {os.telefone}</p>}
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        {/* DESCRIÇÃO */}
+        <div className="bg-blue-50 border rounded-lg p-4">
           <p className="font-semibold text-blue-700 mb-1">
             Descrição do serviço
           </p>
@@ -99,50 +64,65 @@ export default function ServicoPage() {
           </p>
         </div>
 
+        {/* ================= CONCLUÍDA ================= */}
         {isConcluida && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <h2 className="text-lg font-bold text-green-700">
               Serviço concluído
             </h2>
 
-            {/* ANTES */}
-            <div>
-              <p className="font-semibold mb-1">ANTES</p>
-              <p className="text-sm mb-2 whitespace-pre-line">
-                {antesTexto || "—"}
-              </p>
+            {/* ================= ANTES ================= */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-lg">ANTES</h3>
+
+              <div>
+                <p className="font-semibold">Relatório inicial</p>
+                <p className="text-sm whitespace-pre-line">
+                  {os.antes?.relatorio || "—"}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold">Observação inicial</p>
+                <p className="text-sm whitespace-pre-line">
+                  {os.antes?.observacao || "—"}
+                </p>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {antesFotos.map((foto: string, i: number) => (
+                {os.antes?.fotos?.map((foto: string, i: number) => (
                   <img
                     key={i}
-                    src={
-                      foto.startsWith("data:")
-                        ? foto
-                        : `data:image/jpeg;base64,${foto}`
-                    }
+                    src={`data:image/jpeg;base64,${foto}`}
                     className="h-32 w-full object-cover rounded"
                   />
                 ))}
               </div>
             </div>
 
-            {/* DEPOIS */}
-            <div>
-              <p className="font-semibold mb-1">DEPOIS</p>
-              <p className="text-sm mb-2 whitespace-pre-line">
-                {depoisTexto || "—"}
-              </p>
+            {/* ================= DEPOIS ================= */}
+            <div className="space-y-3">
+              <h3 className="font-bold text-lg">DEPOIS</h3>
+
+              <div>
+                <p className="font-semibold">Relatório final</p>
+                <p className="text-sm whitespace-pre-line">
+                  {os.depois?.relatorio || "—"}
+                </p>
+              </div>
+
+              <div>
+                <p className="font-semibold">Observação final</p>
+                <p className="text-sm whitespace-pre-line">
+                  {os.depois?.observacao || "—"}
+                </p>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
-                {depoisFotos.map((foto: string, i: number) => (
+                {os.depois?.fotos?.map((foto: string, i: number) => (
                   <img
                     key={i}
-                    src={
-                      foto.startsWith("data:")
-                        ? foto
-                        : `data:image/jpeg;base64,${foto}`
-                    }
+                    src={`data:image/jpeg;base64,${foto}`}
                     className="h-32 w-full object-cover rounded"
                   />
                 ))}
