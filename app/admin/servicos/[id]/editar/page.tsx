@@ -4,6 +4,65 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
+/* ================= COMPONENTE DE UPLOAD ================= */
+
+type UploadFotosProps = {
+  fotosExistentes: string[];
+  setFotosExistentes: React.Dispatch<React.SetStateAction<string[]>>;
+  novasFotos: File[];
+  onChange: (files: FileList | null) => void;
+};
+
+function UploadFotos({
+  fotosExistentes,
+  setFotosExistentes,
+  novasFotos,
+  onChange,
+}: UploadFotosProps) {
+  function removerFoto(index: number) {
+    setFotosExistentes(prev => prev.filter((_, i) => i !== index));
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        {fotosExistentes.map((foto, i) => (
+          <div key={i} className="relative">
+            <img
+              src={`data:image/jpeg;base64,${foto}`}
+              className="h-32 w-full object-cover rounded"
+            />
+            <button
+              type="button"
+              onClick={() => removerFoto(i)}
+              className="absolute top-1 right-1 bg-red-600 text-white px-2 text-xs rounded"
+            >
+              X
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {(fotosExistentes.length + novasFotos.length) < 4 && (
+        <label className="mt-3 flex items-center justify-center gap-2 border-2 border-dashed border-gray-400 rounded-lg p-4 cursor-pointer hover:bg-gray-100">
+          <span className="text-2xl">📷</span>
+          <span className="font-medium">Adicionar fotos</span>
+
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            className="hidden"
+            onChange={e => onChange(e.target.files)}
+          />
+        </label>
+      )}
+    </>
+  );
+}
+
+/* ================= PÁGINA ================= */
+
 export default function EditarOSPage() {
   const router = useRouter();
   const params = useParams();
@@ -24,13 +83,13 @@ export default function EditarOSPage() {
   const [tecnicos, setTecnicos] = useState<any[]>([]);
   const [tecnicoId, setTecnicoId] = useState("");
 
-  // ===== ANTES =====
+  /* ===== ANTES ===== */
   const [antesRelatorio, setAntesRelatorio] = useState("");
   const [antesObs, setAntesObs] = useState("");
   const [antesFotos, setAntesFotos] = useState<string[]>([]);
   const [novasFotosAntes, setNovasFotosAntes] = useState<File[]>([]);
 
-  // ===== DEPOIS =====
+  /* ===== DEPOIS ===== */
   const [depoisRelatorio, setDepoisRelatorio] = useState("");
   const [depoisObs, setDepoisObs] = useState("");
   const [depoisFotos, setDepoisFotos] = useState<string[]>([]);
@@ -74,22 +133,14 @@ export default function EditarOSPage() {
     setTecnicos(data);
   }
 
-  function removerFotoAntes(index: number) {
-    setAntesFotos(prev => prev.filter((_, i) => i !== index));
-  }
-
-  function removerFotoDepois(index: number) {
-    setDepoisFotos(prev => prev.filter((_, i) => i !== index));
-  }
-
   function handleNovasFotosAntes(files: FileList | null) {
     if (!files) return;
-    setNovasFotosAntes(Array.from(files));
+    setNovasFotosAntes(prev => [...prev, ...Array.from(files)]);
   }
 
   function handleNovasFotosDepois(files: FileList | null) {
     if (!files) return;
-    setNovasFotosDepois(Array.from(files));
+    setNovasFotosDepois(prev => [...prev, ...Array.from(files)]);
   }
 
   async function fileToBase64(file: File): Promise<string> {
@@ -107,10 +158,14 @@ export default function EditarOSPage() {
 
     try {
       const novasAntesBase64 = [];
-      for (const f of novasFotosAntes) novasAntesBase64.push(await fileToBase64(f));
+      for (const f of novasFotosAntes) {
+        novasAntesBase64.push(await fileToBase64(f));
+      }
 
       const novasDepoisBase64 = [];
-      for (const f of novasFotosDepois) novasDepoisBase64.push(await fileToBase64(f));
+      for (const f of novasFotosDepois) {
+        novasDepoisBase64.push(await fileToBase64(f));
+      }
 
       await apiFetch(`/projects/admin/update/${id}`, {
         method: "PUT",
@@ -163,10 +218,11 @@ export default function EditarOSPage() {
 
         <textarea className="border p-2 rounded w-full" rows={3} value={detalhamento} onChange={e => setDetalhamento(e.target.value)} />
 
-        {/* TROCAR TÉCNICO */}
         <select className="border p-2 rounded w-full" value={tecnicoId} onChange={e => setTecnicoId(e.target.value)}>
           <option value="">Selecione o técnico</option>
-          {tecnicos.map(t => <option key={t._id} value={t._id}>{t.nome}</option>)}
+          {tecnicos.map(t => (
+            <option key={t._id} value={t._id}>{t.nome}</option>
+          ))}
         </select>
 
         {/* ===== ANTES ===== */}
@@ -174,38 +230,30 @@ export default function EditarOSPage() {
         <textarea className="border p-2 rounded w-full" rows={2} value={antesRelatorio} onChange={e => setAntesRelatorio(e.target.value)} />
         <textarea className="border p-2 rounded w-full" rows={2} value={antesObs} onChange={e => setAntesObs(e.target.value)} />
 
-        <div className="grid grid-cols-2 gap-3">
-          {antesFotos.map((foto, i) => (
-            <div key={i} className="relative">
-              <img src={`data:image/jpeg;base64,${foto}`} className="h-32 w-full object-cover rounded" />
-              <button onClick={() => removerFotoAntes(i)} className="absolute top-1 right-1 bg-red-600 text-white px-2 text-xs rounded">X</button>
-            </div>
-          ))}
-        </div>
-
-        {(antesFotos.length + novasFotosAntes.length) < 4 && (
-          <input type="file" multiple accept="image/*" onChange={e => handleNovasFotosAntes(e.target.files)} />
-        )}
+        <UploadFotos
+          fotosExistentes={antesFotos}
+          setFotosExistentes={setAntesFotos}
+          novasFotos={novasFotosAntes}
+          onChange={handleNovasFotosAntes}
+        />
 
         {/* ===== DEPOIS ===== */}
         <h2 className="font-bold mt-4">DEPOIS</h2>
         <textarea className="border p-2 rounded w-full" rows={2} value={depoisRelatorio} onChange={e => setDepoisRelatorio(e.target.value)} />
         <textarea className="border p-2 rounded w-full" rows={2} value={depoisObs} onChange={e => setDepoisObs(e.target.value)} />
 
-        <div className="grid grid-cols-2 gap-3">
-          {depoisFotos.map((foto, i) => (
-            <div key={i} className="relative">
-              <img src={`data:image/jpeg;base64,${foto}`} className="h-32 w-full object-cover rounded" />
-              <button onClick={() => removerFotoDepois(i)} className="absolute top-1 right-1 bg-red-600 text-white px-2 text-xs rounded">X</button>
-            </div>
-          ))}
-        </div>
+        <UploadFotos
+          fotosExistentes={depoisFotos}
+          setFotosExistentes={setDepoisFotos}
+          novasFotos={novasFotosDepois}
+          onChange={handleNovasFotosDepois}
+        />
 
-        {(depoisFotos.length + novasFotosDepois.length) < 4 && (
-          <input type="file" multiple accept="image/*" onChange={e => handleNovasFotosDepois(e.target.files)} />
-        )}
-
-        <button onClick={salvarAlteracoes} disabled={salvando} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded w-full font-bold">
+        <button
+          onClick={salvarAlteracoes}
+          disabled={salvando}
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded w-full font-bold"
+        >
           {salvando ? "Salvando..." : "Salvar Alterações"}
         </button>
 
