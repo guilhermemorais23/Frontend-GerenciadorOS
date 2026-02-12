@@ -123,6 +123,19 @@ export default function DepoisPage() {
           />
         </label>
 
+        {/* CONTADOR E VALIDAÇÃO */}
+        <div className="mt-2 text-sm">
+          <div className={fotos.length >= 1 && fotos.length <= 4 ? "text-green-600" : "text-red-600"}>
+            {fotos.length} / 4 foto{fotos.length !== 1 && "s"} selecionada{fotos.length !== 1 && "s"}
+          </div>
+          {fotos.length === 0 && (
+            <p className="text-red-600 font-semibold mt-1">⚠️ Obrigatório: mínimo 1 foto</p>
+          )}
+          {fotos.length > 4 && (
+            <p className="text-red-600 font-semibold mt-1">⚠️ Máximo: 4 fotos (remova {fotos.length - 4})</p>
+          )}
+        </div>
+
         {/* PREVIEW */}
         {fotos.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
@@ -146,10 +159,14 @@ export default function DepoisPage() {
 
         <button
           onClick={salvarDepois}
-          disabled={salvando}
-          className="mt-6 bg-green-600 hover:bg-green-700 text-white w-full py-3 rounded"
+          disabled={salvando || fotos.length < 1 || fotos.length > 4}
+          className={`mt-6 text-white w-full py-3 rounded ${
+            fotos.length >= 1 && fotos.length <= 4
+              ? "bg-green-600 hover:bg-green-700 cursor-pointer"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
         >
-          {salvando ? "Salvando..." : "Finalizar OS"}
+          {salvando ? "Salvando..." : fotos.length === 0 ? "Adicione pelo menos 1 foto" : fotos.length > 4 ? "Remova fotos extras" : "Finalizar OS"}
         </button>
       </div>
     </div>

@@ -119,9 +119,17 @@ export default function AntesPage() {
           />
         </label>
 
-        {/* CONTADOR */}
-        <div className="mt-2 text-sm text-gray-500">
-          {fotos.length} foto{fotos.length !== 1 && "s"} selecionada{fotos.length !== 1 && "s"}
+        {/* CONTADOR E VALIDAÇÃO */}
+        <div className="mt-2 text-sm">
+          <div className={fotos.length >= 1 && fotos.length <= 4 ? "text-green-600" : "text-red-600"}>
+            {fotos.length} / 4 foto{fotos.length !== 1 && "s"} selecionada{fotos.length !== 1 && "s"}
+          </div>
+          {fotos.length === 0 && (
+            <p className="text-red-600 font-semibold mt-1">⚠️ Obrigatório: mínimo 1 foto</p>
+          )}
+          {fotos.length > 4 && (
+            <p className="text-red-600 font-semibold mt-1">⚠️ Máximo: 4 fotos (remova {fotos.length - 4})</p>
+          )}
         </div>
 
         {/* PREVIEW */}
@@ -147,10 +155,14 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          disabled={salvando}
-          className="mt-6 bg-green-600 hover:bg-green-700 text-white w-full py-3 rounded"
+          disabled={salvando || fotos.length < 1 || fotos.length > 4}
+          className={`mt-6 text-white w-full py-3 rounded ${
+            fotos.length >= 1 && fotos.length <= 4
+              ? "bg-green-600 hover:bg-green-700 cursor-pointer"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
         >
-          {salvando ? "Salvando..." : "Salvar ANTES e ir para DEPOIS"}
+          {salvando ? "Salvando..." : fotos.length === 0 ? "Adicione pelo menos 1 foto" : fotos.length > 4 ? "Remova fotos extras" : "Salvar ANTES e ir para DEPOIS"}
         </button>
       </div>
     </div>
