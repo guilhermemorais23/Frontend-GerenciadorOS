@@ -44,17 +44,7 @@ export default function AdminDashboard() {
 
  async function carregarOS() {
   try {
-    // `limit` ajuda quando o backend pagina por padrão.
-    const data = await apiFetch("/projects/admin/all?limit=1000", {
-      cache: "no-store",
-    });
-    const lista = Array.isArray(data)
-      ? data
-      : Array.isArray((data as any)?.data)
-      ? (data as any).data
-      : Array.isArray((data as any)?.items)
-      ? (data as any).items
-      : [];
+    const lista = await carregarTodasOS();
     setOsList(lista);
 
     // 🔥 ABRE WHATSAPP SÓ DEPOIS QUE CARREGAR
@@ -76,6 +66,70 @@ export default function AdminDashboard() {
     setLoading(false);
   }
 }
+
+ async function carregarTodasOS() {
+  const vistos = new Set<string>();
+  const resultado: any[] = [];
+
+  const adicionarUnicos = (lista: any[]) => {
+    for (const item of lista) {
+      const id = String(item?._id || item?.id || "");
+      const chave = id || JSON.stringify(item);
+      if (vistos.has(chave)) continue;
+      vistos.add(chave);
+      resultado.push(item);
+    }
+  };
+
+  const extrairLista = (data: any): any[] => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.results)) return data.results;
+    return [];
+  };
+
+  const primeira = await apiFetch("/projects/admin/all?page=1&limit=1000", {
+    cache: "no-store",
+  });
+  const listaPrimeira = extrairLista(primeira);
+  adicionarUnicos(listaPrimeira);
+
+  const totalPaginas =
+    Number(primeira?.totalPages) ||
+    Number(primeira?.pages) ||
+    Number(primeira?.pagination?.totalPages) ||
+    0;
+
+  if (totalPaginas > 1) {
+    for (let pagina = 2; pagina <= totalPaginas; pagina++) {
+      const resp = await apiFetch(`/projects/admin/all?page=${pagina}&limit=1000`, {
+        cache: "no-store",
+      });
+      const lista = extrairLista(resp);
+      if (!lista.length) break;
+      adicionarUnicos(lista);
+    }
+    return resultado;
+  }
+
+  // Fallback para APIs sem metadata de paginacao.
+  // Se `page` nao for suportado, a pagina 2 repetira a mesma lista e o loop para.
+  for (let pagina = 2; pagina <= 50; pagina++) {
+    const resp = await apiFetch(`/projects/admin/all?page=${pagina}&limit=1000`, {
+      cache: "no-store",
+    });
+    const lista = extrairLista(resp);
+    if (!lista.length) break;
+
+    const antes = resultado.length;
+    adicionarUnicos(lista);
+    if (resultado.length === antes) break;
+  }
+
+  return resultado;
+}
+
 
 
   /* =====================================================
