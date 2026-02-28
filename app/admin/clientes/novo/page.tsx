@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
 export default function NovoClientePage() {
+  const isProductionDeploy = process.env.NODE_ENV === "production";
   const router = useRouter();
 
   const [tipo, setTipo] = useState<"normal" | "dasa" | "">("");
@@ -26,12 +27,12 @@ export default function NovoClientePage() {
     }
 
     if (tipo === "normal" && !cliente) {
-      alert("Cliente é obrigatório");
+      alert("Cliente e obrigatorio");
       return;
     }
 
     if (tipo === "dasa" && (!unidade || !marca)) {
-      alert("Unidade e marca são obrigatórias para DASA");
+      alert("Unidade e marca sao obrigatorias para DASA");
       return;
     }
 
@@ -47,14 +48,14 @@ export default function NovoClientePage() {
           marca: tipo === "dasa" ? marca : "",
           endereco,
           telefone,
-          email,
+          ...(isProductionDeploy ? {} : { email }),
         }),
       });
 
       alert("Cliente salvo com sucesso!");
       router.push("/admin/clientes");
-    } catch (err: any) {
-      alert("Erro ao salvar cliente: " + err.message);
+    } catch (err: unknown) {
+      alert("Erro ao salvar cliente: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
       setLoading(false);
     }
@@ -63,8 +64,6 @@ export default function NovoClientePage() {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4 text-black">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6">
-
-        {/* TOPO */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold">Novo Cliente</h1>
 
@@ -76,23 +75,15 @@ export default function NovoClientePage() {
           </button>
         </div>
 
-        {/* TIPO */}
         <div className="mb-4">
-          <label className="block text-sm font-semibold mb-1">
-            Tipo de Cliente
-          </label>
-          <select
-            className="w-full border rounded-lg p-2"
-            value={tipo}
-            onChange={(e) => setTipo(e.target.value as any)}
-          >
+          <label className="block text-sm font-semibold mb-1">Tipo de Cliente</label>
+          <select className="w-full border rounded-lg p-2" value={tipo} onChange={(e) => setTipo(e.target.value as "normal" | "dasa" | "")}>
             <option value="">Selecione</option>
             <option value="normal">Cliente Normal</option>
             <option value="dasa">DASA</option>
           </select>
         </div>
 
-        {/* NORMAL */}
         {tipo === "normal" && (
           <>
             <input
@@ -111,54 +102,24 @@ export default function NovoClientePage() {
           </>
         )}
 
-        {/* DASA */}
         {tipo === "dasa" && (
           <>
-            <input
-              className="w-full border rounded-lg p-2 mb-3 bg-gray-100"
-              value="DASA"
-              disabled
-            />
+            <input className="w-full border rounded-lg p-2 mb-3 bg-gray-100" value="DASA" disabled />
 
-            <input
-              className="w-full border rounded-lg p-2 mb-3"
-              placeholder="Unidade"
-              value={unidade}
-              onChange={(e) => setUnidade(e.target.value)}
-            />
+            <input className="w-full border rounded-lg p-2 mb-3" placeholder="Unidade" value={unidade} onChange={(e) => setUnidade(e.target.value)} />
 
-            <input
-              className="w-full border rounded-lg p-2 mb-3"
-              placeholder="Marca"
-              value={marca}
-              onChange={(e) => setMarca(e.target.value)}
-            />
+            <input className="w-full border rounded-lg p-2 mb-3" placeholder="Marca" value={marca} onChange={(e) => setMarca(e.target.value)} />
           </>
         )}
 
-        {/* COMUNS */}
-        <input
-          className="w-full border rounded-lg p-2 mb-3"
-          placeholder="Endereço"
-          value={endereco}
-          onChange={(e) => setEndereco(e.target.value)}
-        />
+        <input className="w-full border rounded-lg p-2 mb-3" placeholder="Endereco" value={endereco} onChange={(e) => setEndereco(e.target.value)} />
 
-        <input
-          className="w-full border rounded-lg p-2 mb-3"
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
+        <input className="w-full border rounded-lg p-2 mb-3" placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
 
-        <input
-          className="w-full border rounded-lg p-2 mb-6"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {!isProductionDeploy && (
+          <input className="w-full border rounded-lg p-2 mb-6" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        )}
 
-        {/* SALVAR */}
         <button
           onClick={salvarCliente}
           disabled={loading}

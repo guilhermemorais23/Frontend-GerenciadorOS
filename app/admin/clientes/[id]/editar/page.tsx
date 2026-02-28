@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
 export default function EditarClientePage() {
+  const isProductionDeploy = process.env.NODE_ENV === "production";
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
@@ -19,6 +20,7 @@ export default function EditarClientePage() {
 
   useEffect(() => {
     carregarCliente();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function carregarCliente() {
@@ -28,7 +30,7 @@ export default function EditarClientePage() {
       setSubcliente(data.subcliente || "");
       setTelefone(data.telefone || "");
       setEmail(data.email || "");
-    } catch (err: any) {
+    } catch {
       alert("Erro ao carregar cliente");
     } finally {
       setLoading(false);
@@ -45,13 +47,13 @@ export default function EditarClientePage() {
           cliente,
           subcliente,
           telefone,
-          email,
+          ...(isProductionDeploy ? {} : { email }),
         }),
       });
 
       alert("Cliente atualizado com sucesso!");
       router.push("/admin/clientes");
-    } catch (err: any) {
+    } catch {
       alert("Erro ao salvar cliente");
     } finally {
       setSalvando(false);
@@ -65,38 +67,17 @@ export default function EditarClientePage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-xl mx-auto bg-white rounded-xl shadow p-6">
+        <h1 className="text-2xl font-bold mb-4 text-black">Editar Cliente</h1>
 
-        <h1 className="text-2xl font-bold mb-4 text-black">
-          Editar Cliente
-        </h1>
+        <input className="border p-2 rounded w-full mb-3" placeholder="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
 
-        <input
-          className="border p-2 rounded w-full mb-3"
-          placeholder="Cliente"
-          value={cliente}
-          onChange={(e) => setCliente(e.target.value)}
-        />
+        <input className="border p-2 rounded w-full mb-3" placeholder="Subcliente" value={subcliente} onChange={(e) => setSubcliente(e.target.value)} />
 
-        <input
-          className="border p-2 rounded w-full mb-3"
-          placeholder="Subcliente"
-          value={subcliente}
-          onChange={(e) => setSubcliente(e.target.value)}
-        />
+        <input className="border p-2 rounded w-full mb-3" placeholder="Telefone" value={telefone} onChange={(e) => setTelefone(e.target.value)} />
 
-        <input
-          className="border p-2 rounded w-full mb-3"
-          placeholder="Telefone"
-          value={telefone}
-          onChange={(e) => setTelefone(e.target.value)}
-        />
-
-        <input
-          className="border p-2 rounded w-full mb-4"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        {!isProductionDeploy && (
+          <input className="border p-2 rounded w-full mb-4" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        )}
 
         <div className="flex gap-2">
           <button
@@ -114,7 +95,6 @@ export default function EditarClientePage() {
             Cancelar
           </button>
         </div>
-
       </div>
     </div>
   );

@@ -1,12 +1,23 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
+type Cliente = {
+  _id: string;
+  cliente?: string;
+  subcliente?: string;
+  unidade?: string;
+  marca?: string;
+  telefone?: string;
+  email?: string;
+};
+
 export default function ClientesPage() {
+  const isProductionDeploy = process.env.NODE_ENV === "production";
   const router = useRouter();
-  const [clientes, setClientes] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,9 +27,9 @@ export default function ClientesPage() {
   async function carregarClientes() {
     try {
       const data = await apiFetch("/clientes");
-      setClientes(data);
-    } catch (err: any) {
-      alert("Erro ao carregar clientes: " + err.message);
+      setClientes(Array.isArray(data) ? (data as Cliente[]) : []);
+    } catch (err: unknown) {
+      alert("Erro ao carregar clientes: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
       setLoading(false);
     }
@@ -30,7 +41,7 @@ export default function ClientesPage() {
 
     try {
       await apiFetch(`/clientes/${id}`, { method: "DELETE" });
-      alert("Cliente excluído");
+      alert("Cliente excluido");
       carregarClientes();
     } catch {
       alert("Erro ao excluir cliente");
@@ -44,8 +55,6 @@ export default function ClientesPage() {
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-4xl mx-auto bg-white rounded-xl shadow p-6">
-
-        {/* TOPO */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">Clientes</h1>
 
@@ -66,52 +75,34 @@ export default function ClientesPage() {
           </div>
         </div>
 
-        {/* LISTA */}
-        {clientes.length === 0 && (
-          <p className="text-gray-600">Nenhum cliente cadastrado.</p>
-        )}
+        {clientes.length === 0 && <p className="text-gray-600">Nenhum cliente cadastrado.</p>}
 
         <div className="space-y-3">
           {clientes.map((c) => {
             const isDasa = c.cliente?.toLowerCase() === "dasa";
 
             return (
-              <div
-                key={c._id}
-                className="border rounded p-4 flex justify-between items-center"
-              >
+              <div key={c._id} className="border rounded p-4 flex justify-between items-center">
                 <div>
                   <p className="font-bold text-black">{c.cliente}</p>
 
                   {isDasa ? (
                     <>
-                      <p className="text-sm text-gray-600">
-                        Unidade: {c.unidade || "-"}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        Marca: {c.marca || "-"}
-                      </p>
+                      <p className="text-sm text-gray-600">Unidade: {c.unidade || "-"}</p>
+                      <p className="text-sm text-gray-600">Marca: {c.marca || "-"}</p>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-600">
-                      Subcliente: {c.subcliente || "-"}
-                    </p>
+                    <p className="text-sm text-gray-600">Subcliente: {c.subcliente || "-"}</p>
                   )}
 
-                  <p className="text-sm text-gray-600">
-                    Telefone: {c.telefone || "-"}
-                  </p>
+                  <p className="text-sm text-gray-600">Telefone: {c.telefone || "-"}</p>
 
-                  <p className="text-sm text-gray-600">
-                    Email: {c.email || "-"}
-                  </p>
+                  {!isProductionDeploy && <p className="text-sm text-gray-600">Email: {c.email || "-"}</p>}
                 </div>
 
                 <div className="flex gap-2">
                   <button
-                    onClick={() =>
-                      router.push(`/admin/clientes/${c._id}/editar`)
-                    }
+                    onClick={() => router.push(`/admin/clientes/${c._id}/editar`)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
                   >
                     Editar
@@ -128,7 +119,6 @@ export default function ClientesPage() {
             );
           })}
         </div>
-
       </div>
     </div>
   );
