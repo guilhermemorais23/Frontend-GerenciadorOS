@@ -27,10 +27,16 @@ type Servico = {
 
 export default function TecnicoPage() {
   const router = useRouter();
-  const FILTRO_FINALIZADAS = "__FINALIZADAS__";
+  const FILTRO_FINALIZADAS = "__FINALIZADAS__" as const;
+
+  type FiltroTecnico =
+    | typeof STATUS.ABERTA
+    | typeof STATUS.EM_ATENDIMENTO
+    | typeof STATUS.PAUSADA
+    | typeof FILTRO_FINALIZADAS;
 
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [filtro, setFiltro] = useState(STATUS.ABERTA);
+  const [filtro, setFiltro] = useState<FiltroTecnico>(STATUS.ABERTA);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -77,7 +83,7 @@ export default function TecnicoPage() {
     router.push("/login");
   }
 
-  const filtros = [
+  const filtros: Array<{ label: string; value: FiltroTecnico }> = [
     { label: "Abertas", value: STATUS.ABERTA },
     { label: "Em andamento", value: STATUS.EM_ATENDIMENTO },
     { label: "Pausadas", value: STATUS.PAUSADA },
