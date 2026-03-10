@@ -40,7 +40,7 @@ const STATUS_CONCLUIDAS = "CONCLUIDAS";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const isProductionDeploy = process.env.NODE_ENV === "production";
+  const useLegacyDashboard = process.env.NEXT_PUBLIC_USE_LEGACY_DASHBOARD === "true";
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +155,7 @@ export default function AdminDashboard() {
   }
 
   const contadores = useMemo(() => {
-    if (isProductionDeploy) {
+    if (useLegacyDashboard) {
       return {
         aguardando: osList.filter((o) => legacyStatusBucket(o.status) === "aguardando_tecnico").length,
         andamento: osList.filter((o) => legacyStatusBucket(o.status) === "em_andamento").length,
@@ -182,11 +182,11 @@ export default function AdminDashboard() {
               return s === STATUS.FINALIZADA_PELO_TECNICO || s === STATUS.VALIDADA_PELO_ADMIN;
             }).length,
     };
-  }, [isProductionDeploy, metrics, osList]);
+  }, [useLegacyDashboard, metrics, osList]);
 
   const listaFiltrada = useMemo(() => {
     return osList.filter((os) => {
-      const statusAtual = isProductionDeploy ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
+      const statusAtual = useLegacyDashboard ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
       const finalizadaOuValidada =
         statusAtual === STATUS.FINALIZADA_PELO_TECNICO ||
         statusAtual === STATUS.VALIDADA_PELO_ADMIN ||
@@ -230,14 +230,14 @@ export default function AdminDashboard() {
       const db = new Date(b.data_abertura || b.createdAt || 0).getTime();
       return da - db;
     });
-  }, [isProductionDeploy, osList, statusFiltro, busca, dataInicio, dataFim]);
+  }, [useLegacyDashboard, osList, statusFiltro, busca, dataInicio, dataFim]);
 
   const grupos = useMemo(() => {
     const ativas: OSItem[] = [];
     const concluidas: OSItem[] = [];
 
     for (const os of listaFiltrada) {
-      const statusAtual = isProductionDeploy ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
+      const statusAtual = useLegacyDashboard ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
       const finalizadaOuValidada =
         statusAtual === STATUS.FINALIZADA_PELO_TECNICO ||
         statusAtual === STATUS.VALIDADA_PELO_ADMIN ||
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
     }
 
     return { ativas, concluidas };
-  }, [isProductionDeploy, listaFiltrada]);
+  }, [useLegacyDashboard, listaFiltrada]);
 
   const mostrarConcluidas =
     Boolean(busca.trim()) ||
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        {isProductionDeploy ? (
+        {useLegacyDashboard ? (
           <>
             <Card titulo="Aguardando Técnico" valor={contadores.aguardando ?? 0} cor="bg-yellow-500" />
             <Card titulo="Em Andamento" valor={contadores.andamento ?? 0} cor="bg-blue-600" />
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
           onChange={(e) => setStatusFiltro(e.target.value)}
         >
           <option value="">Todos os status</option>
-          {isProductionDeploy ? (
+          {useLegacyDashboard ? (
             <>
               <option value="aguardando_tecnico">Aguardando Técnico</option>
               <option value="em_andamento">Em Andamento</option>
@@ -329,14 +329,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="space-y-3">
-        {grupos.ativas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOS))}
+        {grupos.ativas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS))}
 
         {mostrarConcluidas && grupos.concluidas.length > 0 && (
           <>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
               Finalizadas / Validadas
             </div>
-            {grupos.concluidas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOS))}
+            {grupos.concluidas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS))}
           </>
         )}
 
