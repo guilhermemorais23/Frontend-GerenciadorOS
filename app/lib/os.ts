@@ -11,10 +11,10 @@ const LEGACY_TO_CURRENT: Record<string, string> = {
   aguardando_tecnico: STATUS.ABERTA,
   em_andamento: STATUS.EM_ATENDIMENTO,
   em_atendimento: STATUS.EM_ATENDIMENTO,
-  concluido: STATUS.VALIDADA_PELO_ADMIN,
-  concluida: STATUS.VALIDADA_PELO_ADMIN,
-  finalizado: STATUS.VALIDADA_PELO_ADMIN,
-  finalizada: STATUS.VALIDADA_PELO_ADMIN,
+  concluido: STATUS.FINALIZADA_PELO_TECNICO,
+  concluida: STATUS.FINALIZADA_PELO_TECNICO,
+  finalizado: STATUS.FINALIZADA_PELO_TECNICO,
+  finalizada: STATUS.FINALIZADA_PELO_TECNICO,
   fechado: STATUS.VALIDADA_PELO_ADMIN,
   fechada: STATUS.VALIDADA_PELO_ADMIN,
   cancelado: STATUS.CANCELADA,
@@ -88,8 +88,7 @@ export function formatDate(date?: string | null) {
 export const TIPO_MANUTENCAO = ["CORRETIVA", "PREVENTIVA", "VISTORIA"] as const;
 export const MOTIVOS_NAO_ASSINOU = ["AUSENTE", "FERIAS", "NAO_QUIS_ASSINAR", "OUTROS"] as const;
 export const PRIORIDADES = ["BAIXA", "MEDIA", "ALTA"] as const;
-// Modo temporário: canal de envio apenas WhatsApp web (wa.me)
-export const REPORT_CHANNELS = ["WHATSAPP"] as const;
+export const REPORT_CHANNELS = ["EMAIL", "WHATSAPP", "AMBOS"] as const;
 
 export function formatDuration(totalSeconds?: number | null) {
   const seconds = Math.max(0, Number(totalSeconds || 0));
