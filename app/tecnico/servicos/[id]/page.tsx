@@ -112,10 +112,11 @@ export default function ServicoPage() {
   const canGoDepois =
     status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE;
   const canEditar = canGoDepois || status === STATUS.ABERTA;
+  const atendimentoIniciado = Boolean(os.data_inicio_atendimento);
   const podeIniciarDeslocamento =
-    !os.data_inicio_deslocamento && !os.data_fim_deslocamento && !os.deslocamento_concluido;
+    !atendimentoIniciado && !os.data_inicio_deslocamento && !os.data_fim_deslocamento && !os.deslocamento_concluido;
   const podeFinalizarDeslocamento =
-    Boolean(os.data_inicio_deslocamento) && !os.data_fim_deslocamento && !os.deslocamento_concluido;
+    !atendimentoIniciado && Boolean(os.data_inicio_deslocamento) && !os.data_fim_deslocamento && !os.deslocamento_concluido;
 
   return (
     <div className="min-h-screen p-4 text-slate-900 sm:p-6">
@@ -248,6 +249,9 @@ export default function ServicoPage() {
           <p><b>Fim deslocamento:</b> {formatDate(os.data_fim_deslocamento)}</p>
           <p><b>Tempo deslocamento:</b> {formatDuration(os.deslocamento_segundos)}</p>
           {os.deslocamento_concluido && <p><b>Status deslocamento:</b> concluído e bloqueado para esta OS</p>}
+          {atendimentoIniciado && (os.data_inicio_deslocamento || os.data_fim_deslocamento || os.deslocamento_segundos) ? (
+            <p><b>Deslocamento:</b> encerrado ao iniciar o atendimento</p>
+          ) : null}
         </div>
 
         {status === STATUS.FINALIZADA_PELO_TECNICO && (

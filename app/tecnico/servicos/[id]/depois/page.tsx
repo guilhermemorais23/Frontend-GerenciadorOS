@@ -217,6 +217,11 @@ export default function DepoisPage() {
                 <p>{os.feedback_admin}</p>
               </div>
             )}
+            <ResumoBloco titulo="Parecer inicial" texto={os.antes?.relatorio} />
+            <ResumoBloco titulo="Observações iniciais" texto={os.antes?.observacao} />
+            {(os.antes?.fotos || []).length > 0 && (
+              <ResumoFotos titulo="Fotos do ANTES" fotos={os.antes?.fotos || []} />
+            )}
             <ResumoBloco titulo="Parecer final" texto={relatorio} />
             <ResumoBloco titulo="Observações finais" texto={observacao} />
             <ResumoBloco titulo="Assinatura do técnico" imagem={assinaturaTecnico} />
@@ -230,7 +235,7 @@ export default function DepoisPage() {
                 <p>Motivo: {motivoNaoAssinou || "-"}</p>
               </div>
             )}
-            {fotos.length > 0 && (
+            {fotos.length > 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="mb-2 font-semibold text-slate-800">Fotos do DEPOIS</p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -239,7 +244,9 @@ export default function DepoisPage() {
                   ))}
                 </div>
               </div>
-            )}
+            ) : (os.depois?.fotos || []).length > 0 ? (
+              <ResumoFotos titulo="Fotos do DEPOIS" fotos={os.depois?.fotos || []} />
+            ) : null}
           </div>
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={() => setRevisando(false)} className="rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100">
@@ -538,6 +545,24 @@ function ResumoBloco({ titulo, texto, imagem }: { titulo: string; texto?: string
       ) : (
         <p className="whitespace-pre-line">{texto || "-"}</p>
       )}
+    </div>
+  );
+}
+
+function ResumoFotos({ titulo, fotos }: { titulo: string; fotos: string[] }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="mb-2 font-semibold text-slate-800">{titulo}</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {fotos.map((foto, index) => (
+          <img
+            key={`${titulo}-${index}`}
+            src={`data:image/jpeg;base64,${foto}`}
+            alt={`${titulo} ${index + 1}`}
+            className="h-28 w-full rounded-lg object-cover"
+          />
+        ))}
+      </div>
     </div>
   );
 }

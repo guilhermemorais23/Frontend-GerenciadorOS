@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL, apiFetch } from "@/app/lib/api";
+import { API_URL, apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, isOpenStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS, STATUS_OPTIONS } from "@/app/lib/os";
 
 type OSItem = {
@@ -120,7 +120,7 @@ export default function AdminDashboard() {
       if (!osId) throw new Error("OS sem identificador");
 
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/os/${osId}/report?variant=client&force=true`, {
+      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client&force=true`)}`, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
