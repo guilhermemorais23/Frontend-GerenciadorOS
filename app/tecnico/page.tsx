@@ -27,16 +27,18 @@ type Servico = {
 
 export default function TecnicoPage() {
   const router = useRouter();
+  const FILTRO_TODAS = "__TODAS__" as const;
   const FILTRO_FINALIZADAS = "__FINALIZADAS__" as const;
 
   type FiltroTecnico =
+    | typeof FILTRO_TODAS
     | typeof STATUS.ABERTA
     | typeof STATUS.EM_ATENDIMENTO
     | typeof STATUS.PAUSADA
     | typeof FILTRO_FINALIZADAS;
 
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [filtro, setFiltro] = useState<FiltroTecnico>(STATUS.ABERTA);
+  const [filtro, setFiltro] = useState<FiltroTecnico>(FILTRO_TODAS);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -84,6 +86,7 @@ export default function TecnicoPage() {
   }
 
   const filtros: Array<{ label: string; value: FiltroTecnico }> = [
+    { label: "Todas", value: FILTRO_TODAS },
     { label: "Abertas", value: STATUS.ABERTA },
     { label: "Em andamento", value: STATUS.EM_ATENDIMENTO },
     { label: "Pausadas", value: STATUS.PAUSADA },
@@ -104,6 +107,8 @@ export default function TecnicoPage() {
 
       if (filtro === FILTRO_FINALIZADAS) {
         if (!concluida) return false;
+      } else if (filtro === FILTRO_TODAS) {
+        if (concluida) return false;
       } else {
         if (concluida) return false;
         if (status !== filtro) return false;
@@ -191,9 +196,14 @@ export default function TecnicoPage() {
                     <p className="text-lg font-extrabold">{s.osNumero || "Sem OS"}</p>
                     <p className="text-sm font-semibold text-slate-700">{s.cliente || "Sem cliente"}</p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(status)}`}>
-                    {statusLabel(status)}
-                  </span>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+                      Prioridade {String(s.prioridade || "MEDIA").toUpperCase()}
+                    </span>
+                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(status)}`}>
+                      {statusLabel(status)}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">

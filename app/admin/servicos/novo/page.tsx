@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { PRIORIDADES, TIPO_MANUTENCAO } from "@/app/lib/os";
@@ -197,6 +197,53 @@ export default function NovaOSPage() {
     setMostrarLista(false);
     carregarSolicitantesVinculados(c.cliente || "", c.subcliente || "");
   }
+
+  const registrosClienteSelecionado = useMemo(() => {
+    const clienteNormalizado = normalizeText(cliente);
+    if (!clienteNormalizado) return [];
+
+    return dedupeClientes(
+      clientesDB.filter((item) => normalizeText(item.cliente || "") === clienteNormalizado)
+    );
+  }, [cliente, clientesDB]);
+
+  const subclienteOptions = useMemo(() => {
+    if (isDASA) return [];
+
+    return Array.from(
+      new Set(
+        registrosClienteSelecionado
+          .map((item) => String(item.subcliente || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [isDASA, registrosClienteSelecionado]);
+
+  useEffect(() => {
+    const registro = findClienteRegistro({
+      cliente,
+      subcliente,
+      unidade,
+      marca,
+      clientes: clientesDB,
+    });
+
+    if (!registro) return;
+
+    if (registro.endereco) setEndereco(registro.endereco);
+    if (registro.phone_e164 || registro.telefone) setTelefone(registro.phone_e164 || registro.telefone || "");
+    if (registro.email) setEmail(registro.email);
+
+    if (isDASA) {
+      if (registro.unidade) setUnidade(registro.unidade);
+      if (registro.marca) setMarca(registro.marca);
+      return;
+    }
+
+    if (registro.subcliente && registro.subcliente !== subcliente) {
+      setSubcliente(registro.subcliente);
+    }
+  }, [cliente, subcliente, unidade, marca, isDASA, clientesDB]);
 
   const clientesFiltrados = clienteBusca.trim().length < 1
     ? []
@@ -501,10 +548,18 @@ export default function NovaOSPage() {
             <label className="block sm:col-span-2">
               <span className="mb-1 block text-sm font-semibold">Subcliente</span>
               <input
+                list="subclientes-options"
                 className="w-full rounded-xl border border-slate-200 px-3 py-2.5"
                 value={subcliente}
                 onChange={(e) => setSubcliente(e.target.value)}
               />
+              <datalist id="subclientes-options">
+                {subclienteOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </datalist>
             </label>
           )}
 
@@ -677,5 +732,46 @@ function resolveSmartCliente(query: string, options: ClienteSugestao[]) {
   const startsWith = matches.filter((item) => normalizeText(formatClienteLabel(item)).startsWith(q));
   if (startsWith.length === 1) return startsWith[0];
 
+  return null;
+}
+
+function findClienteRegistro({
+  cliente,
+  subcliente,
+  unidade,
+  marca,
+  clientes,
+}: {
+  cliente: string;
+  subcliente: string;
+  unidade: string;
+  marca: string;
+  clientes: ClienteSugestao[];
+}) {
+  const clienteNormalizado = normalizeText(cliente);
+  if (!clienteNormalizado) return null;
+
+  const listaCliente = clientes.filter((item) => normalizeText(item.cliente || "") === clienteNormalizado);
+  if (listaCliente.length === 0) return null;
+
+  const subclienteNormalizado = normalizeText(subcliente);
+  const unidadeNormalizada = normalizeText(unidade);
+  const marcaNormalizada = normalizeText(marca);
+
+  const matchExato = listaCliente.find((item) => {
+    const mesmoSubcliente = subclienteNormalizado
+      ? normalizeText(item.subcliente || "") === subclienteNormalizado
+      : true;
+    const mesmaUnidade = unidadeNormalizada
+      ? normalizeText(item.unidade || "") === unidadeNormalizada
+      : true;
+    const mesmaMarca = marcaNormalizada
+      ? normalizeText(item.marca || "") === marcaNormalizada
+      : true;
+    return mesmoSubcliente && mesmaUnidade && mesmaMarca;
+  });
+
+  if (matchExato) return matchExato;
+  if (listaCliente.length === 1) return listaCliente[0];
   return null;
 }
