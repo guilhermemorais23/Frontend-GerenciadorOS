@@ -40,10 +40,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return "Dashboard";
   }, [pathname]);
 
+  async function carregarNotificacoes() {
+    try {
+      const data = await apiFetch("/admin/notifications?unread=true");
+      setNotifs(Array.isArray(data) ? data : []);
+    } catch {
+      setNotifs([]);
+    }
+  }
+
   useEffect(() => {
-    apiFetch("/admin/notifications?unread=true")
-      .then((data) => setNotifs(Array.isArray(data) ? data : []))
-      .catch(() => setNotifs([]));
+    carregarNotificacoes();
+    const interval = window.setInterval(carregarNotificacoes, 15000);
+    const onFocus = () => carregarNotificacoes();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, [pathname]);
 
   async function marcarLida(id: string) {
@@ -121,7 +136,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </button>
             <div className="relative">
               <button
-                onClick={() => setShowNotifs((v) => !v)}
+                onClick={() => {
+                  carregarNotificacoes();
+                  setShowNotifs((v) => !v);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700"
               >
                 <Bell size={16} />

@@ -174,9 +174,13 @@ export default function AdminDashboard() {
               const s = normalizeStatus(o.status);
               return s === STATUS.ABERTA || s === STATUS.EM_ATENDIMENTO || s === STATUS.PAUSADA;
             }).length,
+      aguardandoValidacao:
+        metrics?.total_finalizadas_tecnico ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.FINALIZADA_PELO_TECNICO).length,
+      validadas:
+        metrics?.total_validadas_admin ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.VALIDADA_PELO_ADMIN).length,
       finalizadas:
         metrics
-          ? (metrics.total_finalizadas_tecnico ?? 0) + (metrics.total_fechadas ?? 0)
+          ? (metrics.total_finalizadas_tecnico ?? 0) + (metrics.total_validadas_admin ?? 0)
           : osList.filter((o) => {
               const s = normalizeStatus(o.status);
               return s === STATUS.FINALIZADA_PELO_TECNICO || s === STATUS.VALIDADA_PELO_ADMIN;
@@ -263,7 +267,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         {useLegacyDashboard ? (
           <>
             <Card titulo="Aguardando Técnico" valor={contadores.aguardando ?? 0} cor="bg-yellow-500" />
@@ -276,6 +280,8 @@ export default function AdminDashboard() {
             <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" />
             <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" />
             <Card titulo="Pendentes" valor={contadores.pendentes ?? 0} cor="bg-indigo-600" />
+            <Card titulo="Aguardando validacao" valor={contadores.aguardandoValidacao ?? 0} cor="bg-emerald-600" />
+            <Card titulo="Validadas admin" valor={contadores.validadas ?? 0} cor="bg-cyan-700" />
             <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" />
           </>
         )}
@@ -296,7 +302,7 @@ export default function AdminDashboard() {
             </>
           ) : (
             <>
-              <option value={STATUS_CONCLUIDAS}>Concluídas (todas)</option>
+              <option value={STATUS_CONCLUIDAS}>Finalizadas (todas)</option>
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
                   {statusLabel(s)}

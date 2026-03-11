@@ -5,6 +5,10 @@ const API_URL_RAW =
 
 const API_URL = API_URL_RAW.replace("://localhost", "://127.0.0.1");
 
+export function projectOsPath(path: string) {
+  return `/projects/os${path.startsWith("/") ? path : `/${path}`}`;
+}
+
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
 

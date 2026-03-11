@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/app/lib/api";
+import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { MOTIVOS_NAO_ASSINOU, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSTecnico = {
@@ -131,7 +131,7 @@ export default function DepoisPage() {
         body: formData,
       });
 
-      await apiFetch(`/os/${id}/finish`, {
+      await apiFetch(projectOsPath(`/${id}/finish`), {
         method: "POST",
         body: JSON.stringify({
           tech_signature_url: assinaturaTecnico,

@@ -11,6 +11,7 @@ const LEGACY_TO_CURRENT: Record<string, string> = {
   aguardando_tecnico: STATUS.ABERTA,
   em_andamento: STATUS.EM_ATENDIMENTO,
   em_atendimento: STATUS.EM_ATENDIMENTO,
+  pausada: STATUS.PAUSADA,
   concluido: STATUS.VALIDADA_PELO_ADMIN,
   concluida: STATUS.VALIDADA_PELO_ADMIN,
   finalizado: STATUS.VALIDADA_PELO_ADMIN,

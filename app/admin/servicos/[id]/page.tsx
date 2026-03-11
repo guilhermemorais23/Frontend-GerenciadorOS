@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { API_URL, apiFetch } from "@/app/lib/api";
+import { API_URL, apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSDetalhe = {
@@ -101,13 +101,13 @@ export default function DetalheOSPage() {
       setOs(data as OSDetalhe);
       setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
       try {
-        const timerData = await apiFetch(`/os/${id}/timer`);
+        const timerData = await apiFetch(projectOsPath(`/${id}/timer`));
         setTimer(timerData as TimerData);
       } catch {
         setTimer(null);
       }
       try {
-        const eventsData = await apiFetch(`/os/${id}/events`);
+        const eventsData = await apiFetch(projectOsPath(`/${id}/events`));
         setEvents(Array.isArray(eventsData) ? eventsData : []);
       } catch {
         setEvents([]);
@@ -145,7 +145,7 @@ export default function DetalheOSPage() {
 
   async function validarOS() {
     try {
-      await apiFetch(`/os/${id}/validate`, {
+      await apiFetch(projectOsPath(`/${id}/validate`), {
         method: "POST",
         body: JSON.stringify({
           channel: "WHATSAPP",
@@ -168,7 +168,7 @@ export default function DetalheOSPage() {
 
   async function reabrirOS() {
     try {
-      await apiFetch(`/os/${id}/reopen`, { method: "POST" });
+      await apiFetch(projectOsPath(`/${id}/reopen`), { method: "POST" });
       alert("OS reaberta com sucesso");
       await carregarOS();
     } catch (err: unknown) {

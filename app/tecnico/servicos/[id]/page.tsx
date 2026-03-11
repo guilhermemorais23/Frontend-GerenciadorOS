@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/app/lib/api";
+import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type HistoricoBloco = {
@@ -83,7 +83,7 @@ export default function ServicoPage() {
         pausar: "pause",
         retomar: "resume",
       };
-      await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
+      await apiFetch(projectOsPath(`/${id}/${map[acao]}`), { method: "POST" });
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");

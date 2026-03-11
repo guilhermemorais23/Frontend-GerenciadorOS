@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/app/lib/api";
+import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type Servico = {
@@ -68,7 +68,7 @@ export default function TecnicoPage() {
         pausar: "pause",
         retomar: "resume",
       };
-      await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
+      await apiFetch(projectOsPath(`/${id}/${map[acao]}`), { method: "POST" });
       await carregarServicos();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");
