@@ -167,13 +167,17 @@ export default function NovaOSPage() {
 
     const clienteEhDasa = clienteTrim.toLowerCase() === "dasa";
     try {
-      const data = await apiFetch(
-        `/solicitantes/vinculados?cliente=${encodeURIComponent(clienteTrim)}&subcliente=${encodeURIComponent(
-          clienteEhDasa ? "" : (subclienteValor || "").trim()
-        )}&unidade=${encodeURIComponent(clienteEhDasa ? (unidade || "").trim() : "")}&marca=${encodeURIComponent(
-          clienteEhDasa ? (marca || "").trim() : ""
-        )}&limit=100`
-      );
+      const data = await apiFetch("/solicitantes/vinculados", {
+        method: "POST",
+        body: JSON.stringify({
+          cliente: clienteTrim,
+          subcliente: clienteEhDasa ? "" : (subclienteValor || "").trim(),
+          unidade: clienteEhDasa ? (unidade || "").trim() : "",
+          marca: clienteEhDasa ? (marca || "").trim() : "",
+          limit: 100,
+          mode: "list",
+        }),
+      });
       const lista = Array.isArray(data) ? (data as SolicitanteVinculado[]) : [];
       setSolicitantesVinculados(lista);
       if (!lista.some((s) => s._id === solicitanteVinculadoId)) {
@@ -373,10 +377,16 @@ export default function NovaOSPage() {
       formData.append("orcamento_previsto", tipoManutencao === "PREVENTIVA" ? orcamentoPrevisto : "");
       if (fotoProblema) formData.append("foto", fotoProblema);
 
-      await apiFetch("/projects/admin/create", {
+      const resposta = await apiFetch("/projects/admin/create", {
         method: "POST",
         body: formData,
-      });
+      }) as { whatsapp_tecnico?: { queued?: boolean; sid?: string | null; reason?: string; error?: string | null } } | null;
+
+      const whatsappTecnico = resposta?.whatsapp_tecnico;
+      if (whatsappTecnico && !whatsappTecnico.queued) {
+        const motivo = whatsappTecnico.reason || whatsappTecnico.error || "Falha ao enviar mensagem ao tecnico";
+        alert(`OS criada, mas o WhatsApp do tecnico nao foi enviado: ${motivo}`);
+      }
 
       router.push("/admin");
     } catch (err: unknown) {
