@@ -16,6 +16,7 @@ type WhatsStatus = {
   connection_state?: string;
   instance_id?: string | null;
   base_url?: string | null;
+  raw_status?: unknown;
 };
 
 export default function AdminWhatsappPage() {
@@ -128,6 +129,13 @@ export default function AdminWhatsappPage() {
                 <p>3. Com a instancia conectada, o sistema envia para tecnico e cliente sem depender do navegador.</p>
               </div>
             </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-extrabold text-slate-900">Resposta bruta da instancia</p>
+            <pre className="mt-4 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-white">
+              {JSON.stringify(status?.raw_status ?? null, null, 2)}
+            </pre>
           </div>
         </>
       )}
