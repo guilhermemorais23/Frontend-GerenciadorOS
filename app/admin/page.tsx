@@ -26,7 +26,6 @@ type OSItem = {
 };
 
 const STATUS_CONCLUIDAS = "CONCLUIDAS";
-const ADMIN_DASHBOARD_FILTERS_KEY = "admin-dashboard-filters-v1";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -43,7 +42,6 @@ export default function AdminDashboard() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
   const [previewLabel, setPreviewLabel] = useState("");
-  const [filtersReady, setFiltersReady] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -88,36 +86,6 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
-
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(ADMIN_DASHBOARD_FILTERS_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as {
-          statusFiltro?: string;
-          busca?: string;
-          dataInicio?: string;
-          dataFim?: string;
-        };
-        setStatusFiltro(parsed.statusFiltro || "");
-        setBusca(parsed.busca || "");
-        setDataInicio(parsed.dataInicio || "");
-        setDataFim(parsed.dataFim || "");
-      }
-    } catch {
-      // noop
-    } finally {
-      setFiltersReady(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!filtersReady) return;
-    sessionStorage.setItem(
-      ADMIN_DASHBOARD_FILTERS_KEY,
-      JSON.stringify({ statusFiltro, busca, dataInicio, dataFim })
-    );
-  }, [filtersReady, statusFiltro, busca, dataInicio, dataFim]);
 
   async function baixarOS(os: OSItem) {
     try {
