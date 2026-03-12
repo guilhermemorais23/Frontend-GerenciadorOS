@@ -24,6 +24,9 @@ export default function AdminWhatsappPage() {
   const [loading, setLoading] = useState(true);
   const [restarting, setRestarting] = useState(false);
   const [forcingQr, setForcingQr] = useState(false);
+  const [testPhone, setTestPhone] = useState("");
+  const [testMessage, setTestMessage] = useState("Teste enviado pelo sistema SERTECH.");
+  const [sendingTest, setSendingTest] = useState(false);
 
   async function carregarStatus() {
     try {
@@ -59,6 +62,34 @@ export default function AdminWhatsappPage() {
       await carregarStatus();
     } finally {
       setForcingQr(false);
+    }
+  }
+
+  async function enviarTeste() {
+    if (!testPhone.trim() || !testMessage.trim()) {
+      alert("Informe telefone e mensagem para o teste.");
+      return;
+    }
+
+    try {
+      setSendingTest(true);
+      const result = await apiFetch("/admin/whatsapp/test-send", {
+        method: "POST",
+        body: JSON.stringify({
+          to: testPhone,
+          message: testMessage,
+        }),
+      }) as { queued?: boolean; to?: string; reason?: string; raw?: unknown } | null;
+
+      if (result?.queued) {
+        alert(`Teste enviado com sucesso para ${result.to || testPhone}.`);
+      } else {
+        alert(`Teste nao enviado para ${result?.to || testPhone}: ${result?.reason || "falha desconhecida"}${result?.raw ? `\nDetalhe: ${JSON.stringify(result.raw)}` : ""}`);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao enviar teste");
+    } finally {
+      setSendingTest(false);
     }
   }
 
@@ -155,6 +186,32 @@ export default function AdminWhatsappPage() {
             <pre className="mt-4 overflow-auto rounded-2xl bg-slate-950 p-4 text-xs text-white">
               {JSON.stringify(status?.raw_status ?? null, null, 2)}
             </pre>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-sm font-extrabold text-slate-900">Enviar teste pelo sistema</p>
+            <div className="mt-4 grid gap-3">
+              <input
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                placeholder="Telefone com DDD"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+              />
+              <textarea
+                className="min-h-28 rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                placeholder="Mensagem"
+                value={testMessage}
+                onChange={(e) => setTestMessage(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={enviarTeste}
+                disabled={sendingTest}
+                className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800 disabled:bg-blue-400"
+              >
+                {sendingTest ? "Enviando..." : "Enviar teste"}
+              </button>
+            </div>
           </div>
         </>
       )}
