@@ -133,9 +133,13 @@ export default function TecnicoPage() {
       const pb = prioridadePeso[String(b.prioridade || "MEDIA").toUpperCase()] ?? 1;
       if (pa !== pb) return pa - pb;
 
+      const ta = new Date(a.data_abertura || 0).getTime();
+      const tb = new Date(b.data_abertura || 0).getTime();
+      if (ta !== tb) return ta - tb;
+
       const oa = Number(String(a.osNumero || "").split("-")[0]) || 0;
       const ob = Number(String(b.osNumero || "").split("-")[0]) || 0;
-      return ob - oa;
+      return oa - ob;
     });
   }, [servicos, filtro, busca]);
 

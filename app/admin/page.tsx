@@ -25,18 +25,8 @@ type OSItem = {
   solicitante_nome?: string;
 };
 
-type MetricsResponse = {
-  total_abertas?: number;
-  total_em_atendimento?: number;
-  total_pausadas?: number;
-  total_finalizadas_tecnico?: number;
-  total_validadas_admin?: number;
-  total_canceladas?: number;
-  total_fechadas?: number;
-  total_pendentes?: number;
-};
-
 const STATUS_CONCLUIDAS = "CONCLUIDAS";
+const ADMIN_DASHBOARD_FILTERS_KEY = "admin-dashboard-filters-v1";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -44,12 +34,15 @@ export default function AdminDashboard() {
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
 
   const [statusFiltro, setStatusFiltro] = useState("");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewLabel, setPreviewLabel] = useState("");
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -78,25 +71,6 @@ export default function AdminDashboard() {
     try {
       const lista = await apiFetch("/projects/admin/all");
       setOsList(Array.isArray(lista) ? lista : []);
-      try {
-        const month = new Date().toISOString().slice(0, 7);
-        const metricas = (await apiFetch(`/dashboard/metrics?month=${month}`)) as MetricsResponse;
-        if (metricas && typeof metricas === "object") {
-          setMetrics({
-            total_abertas: Number(metricas.total_abertas || 0),
-            total_em_atendimento: Number(metricas.total_em_atendimento || 0),
-            total_pausadas: Number(metricas.total_pausadas || 0),
-            total_finalizadas_tecnico: Number(metricas.total_finalizadas_tecnico || 0),
-            total_fechadas: Number(metricas.total_fechadas || 0),
-            total_pendentes: Number(metricas.total_pendentes || 0),
-          });
-        } else {
-          setMetrics(null);
-        }
-      } catch {
-        setMetrics(null);
-      }
-
       const pendente = localStorage.getItem("whatsapp-pendente");
       if (pendente) {
         const { telefone, mensagem } = JSON.parse(pendente);
@@ -113,6 +87,32 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(ADMIN_DASHBOARD_FILTERS_KEY);
+      if (!saved) return;
+      const parsed = JSON.parse(saved) as {
+        statusFiltro?: string;
+        busca?: string;
+        dataInicio?: string;
+        dataFim?: string;
+      };
+      setStatusFiltro(parsed.statusFiltro || "");
+      setBusca(parsed.busca || "");
+      setDataInicio(parsed.dataInicio || "");
+      setDataFim(parsed.dataFim || "");
+    } catch {
+      // noop
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem(
+      ADMIN_DASHBOARD_FILTERS_KEY,
+      JSON.stringify({ statusFiltro, busca, dataInicio, dataFim })
+    );
+  }, [statusFiltro, busca, dataInicio, dataFim]);
 
   async function baixarOS(os: OSItem) {
     try {
@@ -154,35 +154,88 @@ export default function AdminDashboard() {
     }
   }
 
+  async function previewOS(os: OSItem) {
+    try {
+      const osId = os._id || os.id;
+      if (!osId) throw new Error("OS sem identificador");
+
+      setPreviewOpen(true);
+      setPreviewLoading(true);
+      setPreviewLabel(os.osNumero || osId);
+
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        setPreviewUrl("");
+      }
+
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client&force=true`)}`, {
+        method: "GET",
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao carregar preview da OS");
+      }
+
+      const blob = await res.blob();
+      setPreviewUrl(URL.createObjectURL(blob));
+    } catch (err: unknown) {
+      setPreviewOpen(false);
+      alert(err instanceof Error ? err.message : "Erro ao carregar preview");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  const listaBaseDashboard = useMemo(() => {
+    return osList.filter((os) => {
+      const texto = `
+        ${os.cliente || ""}
+        ${os.subcliente || os.Subcliente || os.subgrupo || ""}
+        ${os.unidade || ""}
+        ${os.marca || ""}
+        ${os.osNumero || ""}
+        ${typeof os.tecnico === "object" ? os.tecnico?.nome || "" : os.tecnico || ""}
+        ${os.solicitante_nome || ""}
+        ${os.tipo_manutencao || ""}
+      `.toLowerCase();
+
+      if (busca && !texto.includes(busca.toLowerCase())) return false;
+
+      const dataBase = new Date(os.data_abertura || os.createdAt || "");
+      if (dataInicio && dataBase < new Date(`${dataInicio}T00:00:00`)) return false;
+      if (dataFim && dataBase > new Date(`${dataFim}T23:59:59`)) return false;
+
+      return true;
+    });
+  }, [osList, busca, dataInicio, dataFim]);
+
   const contadores = useMemo(() => {
     if (useLegacyDashboard) {
       return {
-        aguardando: osList.filter((o) => legacyStatusBucket(o.status) === "aguardando_tecnico").length,
-        andamento: osList.filter((o) => legacyStatusBucket(o.status) === "em_andamento").length,
-        concluido: osList.filter((o) => legacyStatusBucket(o.status) === "concluido").length,
+        aguardando: listaBaseDashboard.filter((o) => legacyStatusBucket(o.status) === "aguardando_tecnico").length,
+        andamento: listaBaseDashboard.filter((o) => legacyStatusBucket(o.status) === "em_andamento").length,
+        concluido: listaBaseDashboard.filter((o) => legacyStatusBucket(o.status) === "concluido").length,
       };
     }
 
     return {
-      abertas: metrics?.total_abertas ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.ABERTA).length,
-      atendimento: metrics?.total_em_atendimento ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.EM_ATENDIMENTO).length,
-      pausadas: metrics?.total_pausadas ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.PAUSADA).length,
-      pendentes:
-        metrics
-          ? (metrics.total_abertas ?? 0) + (metrics.total_em_atendimento ?? 0) + (metrics.total_pausadas ?? 0)
-          : osList.filter((o) => {
-              const s = normalizeStatus(o.status);
-              return s === STATUS.ABERTA || s === STATUS.EM_ATENDIMENTO || s === STATUS.PAUSADA || s === STATUS.DEVOLVIDA_PARA_AJUSTE;
-            }).length,
-      aguardandoValidacao:
-        metrics?.total_finalizadas_tecnico ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.FINALIZADA_PELO_TECNICO).length,
-      finalizadas:
-        metrics?.total_validadas_admin ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.VALIDADA_PELO_ADMIN).length,
+      abertas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.ABERTA).length,
+      atendimento: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.EM_ATENDIMENTO).length,
+      pausadas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.PAUSADA).length,
+      pendentes: listaBaseDashboard.filter((o) => {
+        const s = normalizeStatus(o.status);
+        return s === STATUS.ABERTA || s === STATUS.EM_ATENDIMENTO || s === STATUS.PAUSADA || s === STATUS.DEVOLVIDA_PARA_AJUSTE;
+      }).length,
+      aguardandoValidacao: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.FINALIZADA_PELO_TECNICO).length,
+      finalizadas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.VALIDADA_PELO_ADMIN).length,
     };
-  }, [useLegacyDashboard, metrics, osList]);
+  }, [useLegacyDashboard, listaBaseDashboard]);
 
   const listaFiltrada = useMemo(() => {
-    return osList.filter((os) => {
+    return listaBaseDashboard.filter((os) => {
       const statusAtual = useLegacyDashboard ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
       const finalizadaOuValidada =
         statusAtual === STATUS.FINALIZADA_PELO_TECNICO ||
@@ -204,30 +257,13 @@ export default function AdminDashboard() {
         statusFiltro === "concluido";
       if (!busca.trim() && !filtroEhConcluida && finalizadaOuValidada) return false;
 
-      const texto = `
-        ${os.cliente || ""}
-        ${os.subcliente || os.Subcliente || os.subgrupo || ""}
-        ${os.unidade || ""}
-        ${os.marca || ""}
-        ${os.osNumero || ""}
-        ${typeof os.tecnico === "object" ? os.tecnico?.nome || "" : os.tecnico || ""}
-        ${os.solicitante_nome || ""}
-        ${os.tipo_manutencao || ""}
-      `.toLowerCase();
-
-      if (busca && !texto.includes(busca.toLowerCase())) return false;
-
-      const dataBase = new Date(os.data_abertura || os.createdAt || "");
-      if (dataInicio && dataBase < new Date(`${dataInicio}T00:00:00`)) return false;
-      if (dataFim && dataBase > new Date(`${dataFim}T23:59:59`)) return false;
-
       return true;
     }).sort((a, b) => {
       const da = new Date(a.data_abertura || a.createdAt || 0).getTime();
       const db = new Date(b.data_abertura || b.createdAt || 0).getTime();
       return da - db;
     });
-  }, [useLegacyDashboard, osList, statusFiltro, busca, dataInicio, dataFim]);
+  }, [useLegacyDashboard, listaBaseDashboard, statusFiltro]);
 
   const grupos = useMemo(() => {
     const ativas: OSItem[] = [];
@@ -269,12 +305,12 @@ export default function AdminDashboard() {
           </>
         ) : (
           <>
-            <Card titulo="Abertas" valor={contadores.abertas ?? 0} cor="bg-amber-500" />
-            <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" />
-            <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" />
-            <Card titulo="Pendentes" valor={contadores.pendentes ?? 0} cor="bg-indigo-600" />
-            <Card titulo="Aguardando validacao" valor={contadores.aguardandoValidacao ?? 0} cor="bg-emerald-600" />
-            <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" />
+            <Card titulo="Abertas" valor={contadores.abertas ?? 0} cor="bg-amber-500" onClick={() => setStatusFiltro(STATUS.ABERTA)} />
+            <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" onClick={() => setStatusFiltro(STATUS.EM_ATENDIMENTO)} />
+            <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" onClick={() => setStatusFiltro(STATUS.PAUSADA)} />
+            <Card titulo="Pendentes" valor={contadores.pendentes ?? 0} cor="bg-indigo-600" onClick={() => setStatusFiltro("")} />
+            <Card titulo="Aguardando validacao" valor={contadores.aguardandoValidacao ?? 0} cor="bg-emerald-600" onClick={() => setStatusFiltro(STATUS.FINALIZADA_PELO_TECNICO)} />
+            <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" onClick={() => setStatusFiltro(STATUS.VALIDADA_PELO_ADMIN)} />
           </>
         )}
       </div>
@@ -327,14 +363,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="space-y-3">
-        {grupos.ativas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS))}
+        {grupos.ativas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS, previewOS))}
 
         {mostrarConcluidas && grupos.concluidas.length > 0 && (
           <>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
               Encerradas
             </div>
-            {grupos.concluidas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS))}
+            {grupos.concluidas.map((os) => renderOsCard(os, useLegacyDashboard, router, baixarOS, previewOS))}
           </>
         )}
 
@@ -344,16 +380,50 @@ export default function AdminDashboard() {
           </p>
         )}
       </div>
+
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 p-3 sm:p-6">
+          <div className="mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-extrabold text-slate-900">Preview da OS {previewLabel}</p>
+                <p className="text-xs text-slate-500">Visualização rápida sem entrar no detalhe da OS</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (previewUrl) URL.revokeObjectURL(previewUrl);
+                  setPreviewUrl("");
+                  setPreviewOpen(false);
+                }}
+                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="flex-1 p-4">
+              {previewLoading && (
+                <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-600">
+                  Carregando preview...
+                </div>
+              )}
+              {!previewLoading && previewUrl && (
+                <iframe title={`Preview ${previewLabel}`} src={previewUrl} className="h-full w-full rounded-2xl border border-slate-200" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function Card({ titulo, valor, cor }: { titulo: string; valor: number; cor: string }) {
+function Card({ titulo, valor, cor, onClick }: { titulo: string; valor: number; cor: string; onClick?: () => void }) {
   return (
-    <div className={`${cor} rounded-2xl p-4 text-white shadow`}>
+    <button type="button" onClick={onClick} className={`${cor} rounded-2xl p-4 text-left text-white shadow`}>
       <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{titulo}</p>
       <p className="mt-1 text-3xl font-extrabold">{valor}</p>
-    </div>
+    </button>
   );
 }
 
@@ -361,7 +431,8 @@ function renderOsCard(
   os: OSItem,
   isProductionDeploy: boolean,
   router: { push: (href: string) => void },
-  onDownload: (os: OSItem) => void
+  onDownload: (os: OSItem) => void,
+  onPreview: (os: OSItem) => void
 ) {
   const tecnicoNome =
     (typeof os.tecnico === "object" ? os.tecnico?.nome : os.tecnico) ||
@@ -374,16 +445,7 @@ function renderOsCard(
   return (
     <div
       key={osId}
-      role="button"
-      tabIndex={0}
       className="w-full rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-      onClick={() => router.push(`/admin/servicos/${osId}`)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          router.push(`/admin/servicos/${osId}`);
-        }
-      }}
     >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
@@ -421,13 +483,24 @@ function renderOsCard(
       <div className="mt-3 flex justify-end">
         <button
           type="button"
+          className="mr-2 rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
+          onClick={() => onPreview(os)}
+        >
+          Preview
+        </button>
+        <button
+          type="button"
           className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDownload(os);
-          }}
+          onClick={() => onDownload(os)}
         >
           Baixar OS
+        </button>
+        <button
+          type="button"
+          className="ml-2 rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
+          onClick={() => router.push(`/admin/servicos/${osId}`)}
+        >
+          Ver detalhes
         </button>
       </div>
     </div>

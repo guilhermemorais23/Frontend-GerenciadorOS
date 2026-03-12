@@ -109,8 +109,9 @@ export default function ServicoPage() {
   if (!os) return <div className="p-6">OS não encontrada</div>;
 
   const status = normalizeStatus(os.status);
+  const antesFeito = Boolean(os.antes?.relatorio?.trim() || os.antes?.observacao?.trim() || os.antes?.fotos?.length);
   const canGoDepois =
-    status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE;
+    antesFeito && (status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE);
   const canEditar = canGoDepois || status === STATUS.ABERTA;
   const atendimentoIniciado = Boolean(os.data_inicio_atendimento);
   const podeIniciarDeslocamento =
@@ -217,16 +218,16 @@ export default function ServicoPage() {
             </button>
           )}
 
-          {canEditar && (
+          {(status === STATUS.ABERTA || status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE) && (
             <button
               onClick={() => router.push(`/tecnico/servicos/${id}/antes`)}
               className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
             >
-              Registrar ANTES
+              {antesFeito ? "Editar ANTES" : "Registrar ANTES"}
             </button>
           )}
 
-          {canEditar && (
+          {(status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE) && (
             <button
               onClick={() => router.push(`/tecnico/servicos/${id}/depois`)}
               className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
@@ -253,6 +254,12 @@ export default function ServicoPage() {
             <p><b>Deslocamento:</b> encerrado ao iniciar o atendimento</p>
           ) : null}
         </div>
+
+        {!antesFeito && (status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE) && (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            Registre o ANTES primeiro. Depois disso, você pode sair e voltar que o progresso continua salvo.
+          </div>
+        )}
 
         {status === STATUS.FINALIZADA_PELO_TECNICO && (
           <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">

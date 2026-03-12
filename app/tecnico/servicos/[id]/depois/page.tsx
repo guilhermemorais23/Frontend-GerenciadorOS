@@ -64,8 +64,9 @@ export default function DepoisPage() {
     try {
       const data = (await apiFetch(`/projects/tecnico/view/${id}`)) as OSTecnico;
       const status = normalizeStatus(data.status);
+      const antesFeito = Boolean(data.antes?.relatorio?.trim() || data.antes?.observacao?.trim() || data.antes?.fotos?.length);
 
-      if (![STATUS.EM_ATENDIMENTO, STATUS.PAUSADA, STATUS.DEVOLVIDA_PARA_AJUSTE].includes(status as typeof STATUS.EM_ATENDIMENTO)) {
+      if (!antesFeito || ![STATUS.EM_ATENDIMENTO, STATUS.PAUSADA, STATUS.DEVOLVIDA_PARA_AJUSTE].includes(status as typeof STATUS.EM_ATENDIMENTO)) {
         router.replace(`/tecnico/servicos/${id}`);
         return;
       }
@@ -483,7 +484,7 @@ function SignaturePad({
         className="w-full rounded-xl border border-slate-300 bg-white p-3 text-left hover:bg-slate-50"
       >
         {value ? (
-          <img src={value} alt={label} className="h-28 w-full rounded-lg object-contain" />
+          <img src={value} alt={label} className="h-28 w-full rounded-lg object-contain" style={{ transform: "scaleX(1)" }} />
         ) : (
           <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-sm font-semibold text-slate-500">
             Toque para assinar em tela cheia
@@ -541,7 +542,7 @@ function ResumoBloco({ titulo, texto, imagem }: { titulo: string; texto?: string
     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
       <p className="mb-2 font-semibold text-slate-800">{titulo}</p>
       {imagem ? (
-        <img src={imagem} alt={titulo} className="h-32 w-full rounded-lg object-contain bg-white" />
+        <img src={imagem} alt={titulo} className="h-32 w-full rounded-lg object-contain bg-white" style={{ transform: "scaleX(1)" }} />
       ) : (
         <p className="whitespace-pre-line">{texto || "-"}</p>
       )}

@@ -700,6 +700,9 @@ function dedupeClientes(lista: ClienteSugestao[]) {
       String(item.subcliente || "").trim().toLowerCase(),
       String(item.unidade || "").trim().toLowerCase(),
       String(item.marca || "").trim().toLowerCase(),
+      String(item.endereco || item.address_full || "").trim().toLowerCase(),
+      String(item.phone_e164 || item.telefone || "").trim().toLowerCase(),
+      String(item.email || "").trim().toLowerCase(),
     ].join("|");
 
     if (!chave.replace(/\|/g, "")) continue;
@@ -731,10 +734,10 @@ function formatClienteSecondary(item: ClienteSugestao) {
 }
 
 function formatClienteLabel(item: ClienteSugestao) {
-  const identificador =
-    String(item.cliente || "").trim().toLowerCase() === "dasa"
-      ? [item.cliente || "", item.marca || "", item.unidade || ""]
-      : [item.cliente || "", item.subcliente || ""];
+  const ehDasa = String(item.cliente || "").trim().toLowerCase() === "dasa";
+  const identificador = ehDasa
+    ? [item.cliente || "", item.marca || "", item.unidade || "", item.endereco || item.address_full || ""]
+    : [item.cliente || "", item.subcliente || "", item.endereco || item.address_full || ""];
 
   return identificador.filter(Boolean).join(" - ").trim();
 }
@@ -761,6 +764,12 @@ function resolveSmartCliente(query: string, options: ClienteSugestao[]) {
 
   const exact = matches.find((item) => normalizeText(formatClienteLabel(item)) === q);
   if (exact) return exact;
+
+  const exactByAddress = matches.find((item) => {
+    const endereco = normalizeText(item.endereco || item.address_full || "");
+    return Boolean(endereco) && `${normalizeText(item.cliente || "")} ${endereco}`.includes(q);
+  });
+  if (exactByAddress) return exactByAddress;
 
   return null;
 }

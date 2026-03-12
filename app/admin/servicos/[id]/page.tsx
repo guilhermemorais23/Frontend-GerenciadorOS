@@ -423,10 +423,20 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
 }
 
 function Info({ label, value }: { label: string; value?: string | null }) {
+  const isImage = Boolean(value && String(value).startsWith("data:image/"));
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="font-semibold text-slate-800">{value || "-"}</p>
+      {isImage ? (
+        <img
+          src={String(value)}
+          alt={label}
+          className="mt-2 h-28 w-full rounded-lg border border-slate-200 bg-white object-contain"
+          style={{ transform: "scaleX(1)" }}
+        />
+      ) : (
+        <p className="font-semibold text-slate-800">{value || "-"}</p>
+      )}
     </div>
   );
 }
