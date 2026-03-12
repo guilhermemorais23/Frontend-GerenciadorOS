@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Bell, ClipboardList, LayoutDashboard, Menu, Plus, Users, Wrench, X } from "lucide-react";
+import { BarChart3, Bell, ClipboardList, LayoutDashboard, Menu, MessageCircle, Plus, Users, Wrench, X } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 
 const LINKS = [
@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/admin/terceiros", label: "Terceiros", icon: Users },
   { href: "/admin/catalogo", label: "Catalogo", icon: ClipboardList },
   { href: "/admin/graficos", label: "Graficos", icon: BarChart3 },
+  { href: "/admin/whatsapp", label: "WhatsApp", icon: MessageCircle },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -44,6 +45,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     if (pathname.startsWith("/admin/terceiros")) return "Terceiros";
     if (pathname.startsWith("/admin/catalogo")) return "Catalogo";
     if (pathname.startsWith("/admin/graficos")) return "Graficos";
+    if (pathname.startsWith("/admin/whatsapp")) return "WhatsApp";
     return "Dashboard";
   }, [pathname]);
 
