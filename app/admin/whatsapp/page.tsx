@@ -23,6 +23,7 @@ export default function AdminWhatsappPage() {
   const [status, setStatus] = useState<WhatsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [restarting, setRestarting] = useState(false);
+  const [forcingQr, setForcingQr] = useState(false);
 
   async function carregarStatus() {
     try {
@@ -51,6 +52,16 @@ export default function AdminWhatsappPage() {
     }
   }
 
+  async function forcarNovoQr() {
+    try {
+      setForcingQr(true);
+      await apiFetch("/admin/whatsapp/logout", { method: "POST" });
+      await carregarStatus();
+    } finally {
+      setForcingQr(false);
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -74,6 +85,14 @@ export default function AdminWhatsappPage() {
               className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:bg-slate-400"
             >
               {restarting ? "Reiniciando..." : "Reiniciar instancia"}
+            </button>
+            <button
+              type="button"
+              onClick={forcarNovoQr}
+              disabled={forcingQr}
+              className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-800 hover:bg-amber-100 disabled:bg-amber-100"
+            >
+              {forcingQr ? "Forcando..." : "Forcar novo QR"}
             </button>
           </div>
         </div>
