@@ -70,16 +70,6 @@ export default function AdminDashboard() {
     try {
       const lista = await apiFetch("/projects/admin/all");
       setOsList(Array.isArray(lista) ? lista : []);
-      const pendente = localStorage.getItem("whatsapp-pendente");
-      if (pendente) {
-        const { telefone, mensagem } = JSON.parse(pendente);
-        localStorage.removeItem("whatsapp-pendente");
-
-        if (telefone) {
-          const numero = telefone.replace(/\D/g, "");
-          window.location.href = `https://wa.me/55${numero}?text=${encodeURIComponent(mensagem)}`;
-        }
-      }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao carregar OS");
     } finally {

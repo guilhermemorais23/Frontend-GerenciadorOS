@@ -346,7 +346,6 @@ export default function NovaOSPage() {
     setLoading(true);
 
     try {
-      const tecnicoSelecionado = tecnicos.find((t) => t._id === tecnicoId);
       const formData = new FormData();
       formData.append("cliente", cliente);
       formData.append("subcliente", isDASA ? "" : subcliente);
@@ -370,20 +369,10 @@ export default function NovaOSPage() {
       formData.append("orcamento_previsto", tipoManutencao === "PREVENTIVA" ? orcamentoPrevisto : "");
       if (fotoProblema) formData.append("foto", fotoProblema);
 
-      const res = await apiFetch("/projects/admin/create", {
+      await apiFetch("/projects/admin/create", {
         method: "POST",
         body: formData,
       });
-
-      if (tecnicoSelecionado?.telefone && res?.osNumero) {
-        localStorage.setItem(
-          "whatsapp-pendente",
-          JSON.stringify({
-            telefone: tecnicoSelecionado.telefone,
-            mensagem: `Olá! Você recebeu uma nova OS ${res.osNumero} para o cliente ${cliente}.`,
-          })
-        );
-      }
 
       router.push("/admin");
     } catch (err: unknown) {

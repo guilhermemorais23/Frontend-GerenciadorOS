@@ -154,13 +154,7 @@ export default function DetalheOSPage() {
           delivery_phone_e164: deliveryPhone,
         }),
       });
-      const numero = String(deliveryPhone || "").replace(/\D/g, "");
-      if (numero) {
-        const texto = `OS ${os?.osNumero || id} validada. O relatório em PDF foi liberado no sistema.`;
-        window.location.href = `https://wa.me/55${numero}?text=${encodeURIComponent(texto)}`;
-      } else {
-        alert("OS validada pelo admin");
-      }
+      alert("OS validada pelo admin");
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
