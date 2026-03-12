@@ -6,6 +6,7 @@ import { apiFetch } from "@/app/lib/api";
 type WhatsStatus = {
   ready?: boolean;
   initializing?: boolean;
+  connection_state?: string;
   has_qr?: boolean;
   qr_code?: string | null;
   qr_ascii?: string | null;
@@ -33,7 +34,7 @@ export default function AdminWhatsappPage() {
 
   useEffect(() => {
     carregarStatus();
-    const interval = window.setInterval(carregarStatus, 10000);
+    const interval = window.setInterval(carregarStatus, 3000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -82,7 +83,7 @@ export default function AdminWhatsappPage() {
           <div className="grid gap-3 md:grid-cols-4">
             <StatusCard
               title="Estado"
-              value={status?.ready ? "Conectado" : status?.has_qr ? "Aguardando QR" : status?.initializing ? "Conectando" : "Offline"}
+              value={formatConnectionState(status)}
               tone={status?.ready ? "emerald" : status?.has_qr ? "amber" : "slate"}
             />
             <StatusCard title="Fila" value={String(status?.queue_size ?? 0)} tone="blue" />
@@ -124,6 +125,7 @@ export default function AdminWhatsappPage() {
               <div className="mt-4 space-y-3 text-sm text-slate-700">
                 <InfoLine label="Pronto" value={status?.ready ? "Sim" : "Nao"} />
                 <InfoLine label="Inicializando" value={status?.initializing ? "Sim" : "Nao"} />
+                <InfoLine label="Estado atual" value={formatConnectionState(status)} />
                 <InfoLine label="Tem QR" value={status?.has_qr ? "Sim" : "Nao"} />
                 <InfoLine label="Fila de envio" value={String(status?.queue_size ?? 0)} />
                 <InfoLine label="Ultimo erro" value={status?.last_error || "-"} />
@@ -182,4 +184,20 @@ function formatDateTime(value?: string | null) {
     minute: "2-digit",
     hour12: false,
   }).format(date);
+}
+
+function formatConnectionState(status: WhatsStatus | null) {
+  if (status?.ready) return "Conectado";
+
+  const state = String(status?.connection_state || "").trim().toLowerCase();
+  if (state === "aguardando_qr") return "Aguardando QR";
+  if (state === "autenticado") return "Autenticado";
+  if (state === "sincronizando") return "Sincronizando";
+  if (state === "reconectando") return "Reconectando";
+  if (state === "reiniciando") return "Reiniciando";
+  if (state === "falha_autenticacao") return "Falha autenticacao";
+  if (state === "iniciando") return "Iniciando";
+  if (status?.initializing) return "Conectando";
+  if (status?.has_qr) return "Aguardando QR";
+  return "Offline";
 }
