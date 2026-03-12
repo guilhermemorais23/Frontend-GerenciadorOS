@@ -146,15 +146,24 @@ export default function DetalheOSPage() {
 
   async function validarOS() {
     try {
-      await apiFetch(projectOsPath(`/${id}/validate`), {
+      const resposta = await apiFetch(projectOsPath(`/${id}/validate`), {
         method: "POST",
         body: JSON.stringify({
           channel: "WHATSAPP",
           delivery_email: "",
           delivery_phone_e164: deliveryPhone,
         }),
-      });
-      alert("OS validada pelo admin");
+      }) as { whatsapp_cliente?: { queued?: boolean; reason?: string; error?: string; status?: string } } | null;
+
+      const whatsappCliente = resposta?.whatsapp_cliente;
+      if (whatsappCliente?.queued) {
+        alert("OS validada pelo admin e WhatsApp do cliente enviado com sucesso.");
+      } else if (whatsappCliente) {
+        const motivo = whatsappCliente.reason || whatsappCliente.error || whatsappCliente.status || "Falha ao enviar WhatsApp do cliente";
+        alert(`OS validada, mas o WhatsApp do cliente nao foi enviado: ${motivo}`);
+      } else {
+        alert("OS validada pelo admin");
+      }
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
