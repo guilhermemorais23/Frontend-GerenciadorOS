@@ -17,7 +17,9 @@ const LEGACY_TO_CURRENT: Record<string, string> = {
   concluida: STATUS.VALIDADA_PELO_ADMIN,
   finalizado: STATUS.VALIDADA_PELO_ADMIN,
   finalizada: STATUS.VALIDADA_PELO_ADMIN,
+  finalizado_pelo_tecnico: STATUS.FINALIZADA_PELO_TECNICO,
   finalizada_pelo_tecnico: STATUS.FINALIZADA_PELO_TECNICO,
+  validado_pelo_admin: STATUS.VALIDADA_PELO_ADMIN,
   devolvida_para_ajuste: STATUS.DEVOLVIDA_PARA_AJUSTE,
   validada_pelo_admin: STATUS.VALIDADA_PELO_ADMIN,
   fechado: STATUS.VALIDADA_PELO_ADMIN,
@@ -77,6 +79,12 @@ export function isOpenStatus(rawStatus?: string | null) {
   const status = normalizeStatus(rawStatus);
   const openStatuses: string[] = [STATUS.ABERTA, STATUS.EM_ATENDIMENTO, STATUS.PAUSADA, STATUS.DEVOLVIDA_PARA_AJUSTE];
   return openStatuses.includes(status);
+}
+
+export function isFinishedStatus(rawStatus?: string | null) {
+  const status = normalizeStatus(rawStatus);
+  const finishedStatuses: string[] = [STATUS.FINALIZADA_PELO_TECNICO, STATUS.VALIDADA_PELO_ADMIN];
+  return finishedStatuses.includes(status);
 }
 
 export function formatDate(date?: string | null) {

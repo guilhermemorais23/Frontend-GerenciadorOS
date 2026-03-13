@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, MapPinned, Pause, Play } from "lucide-react";
 import { apiFetch, projectOsPath } from "@/app/lib/api";
-import { formatDate, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
+import { formatDate, isFinishedStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type Servico = {
   _id: string;
@@ -103,7 +103,7 @@ export default function TecnicoPage() {
 
     return servicos.filter((s) => {
       const status = normalizeStatus(s.status);
-      const concluida = status === STATUS.FINALIZADA_PELO_TECNICO || status === STATUS.VALIDADA_PELO_ADMIN;
+      const concluida = isFinishedStatus(s.status);
       const termo = busca.trim().toLowerCase();
 
       if (filtro === FILTRO_FINALIZADAS) {
