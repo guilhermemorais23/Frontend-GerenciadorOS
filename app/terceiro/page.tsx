@@ -29,9 +29,7 @@ export default function TerceiroPage() {
 
     setEnviando(true);
     try {
-      const nomeTerceiro = localStorage.getItem("nome") || "TERCEIRO";
       const formData = new FormData();
-      formData.append("cliente", `TERCEIRO - ${nomeTerceiro}`);
       formData.append("solicitante_nome", solicitanteNome.trim());
       formData.append("detalhamento", detalhamento.trim());
       if (foto) formData.append("foto", foto);

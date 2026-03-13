@@ -9,30 +9,34 @@ const API_URL = API_URL_RAW.replace("://localhost", "://127.0.0.1");
 
 type ProxyContext = {
   params: Promise<{
-    path: string[];
+    path?: string[];
   }>;
 };
 
 export async function GET(req: NextRequest, { params }: ProxyContext) {
-  return forward(req, await params);
+  return forward(req, params);
 }
 
 export async function POST(req: NextRequest, { params }: ProxyContext) {
-  return forward(req, await params);
+  return forward(req, params);
 }
 
 export async function PUT(req: NextRequest, { params }: ProxyContext) {
-  return forward(req, await params);
+  return forward(req, params);
 }
 
 export async function DELETE(req: NextRequest, { params }: ProxyContext) {
-  return forward(req, await params);
+  return forward(req, params);
 }
 
-async function forward(req: NextRequest, params: { path: string[] }) {
+async function forward(
+  req: NextRequest,
+  paramsPromise: ProxyContext["params"]
+) {
   try {
     const token = req.headers.get("authorization");
-    const path = params.path.join("/");
+    const { path: pathSegments } = await paramsPromise;
+    const path = Array.isArray(pathSegments) ? pathSegments.join("/") : "";
     const search = req.nextUrl.search || "";
 
     const body =
@@ -40,23 +44,29 @@ async function forward(req: NextRequest, params: { path: string[] }) {
         ? undefined
         : await req.arrayBuffer();
 
-    const contentType = req.headers.get("content-type");
+    const requestContentType = req.headers.get("content-type");
     const res = await fetch(`${API_URL}/${path}${search}`, {
       method: req.method,
       headers: {
-        ...(contentType ? { "Content-Type": contentType } : {}),
+        ...(requestContentType ? { "Content-Type": requestContentType } : {}),
         ...(token ? { Authorization: token } : {}),
       },
       body,
     });
 
     const text = await res.text();
+    const responseContentType = res.headers.get("content-type");
+
+    if (!text) {
+      return new NextResponse(null, {
+        status: res.status,
+        headers: responseContentType ? { "Content-Type": responseContentType } : undefined,
+      });
+    }
 
     return new NextResponse(text, {
       status: res.status,
-      headers: {
-        "Content-Type": res.headers.get("content-type") || "application/json",
-      },
+      headers: responseContentType ? { "Content-Type": responseContentType } : undefined,
     });
   } catch (err) {
     const message =
