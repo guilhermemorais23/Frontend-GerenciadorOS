@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
 type WhatsStatus = {
@@ -14,6 +15,7 @@ type WhatsStatus = {
 };
 
 export default function AdminWhatsappPage() {
+  const router = useRouter();
   const [status, setStatus] = useState<WhatsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [testPhone, setTestPhone] = useState("");
@@ -74,6 +76,13 @@ export default function AdminWhatsappPage() {
             <p className="text-sm text-slate-500">Canal de envio via 2Chat com o numero conectado fora do sistema.</p>
           </div>
           <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/admin")}
+              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+            >
+              Voltar
+            </button>
             <button
               type="button"
               onClick={carregarStatus}

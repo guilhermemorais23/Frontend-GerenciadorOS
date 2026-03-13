@@ -68,13 +68,21 @@ export default function TecnicosPage() {
             <h2 className="text-xl font-extrabold text-slate-900">Tecnicos</h2>
             <p className="text-sm text-slate-500">Cadastre e gerencie a equipe responsavel pelos atendimentos.</p>
           </div>
-          <button
-            onClick={() => router.push("/admin/tecnicos/novo")}
-            className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800"
-          >
-            <Plus size={16} />
-            Novo tecnico
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push("/admin")}
+              className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-700 hover:bg-blue-100"
+            >
+              Voltar
+            </button>
+            <button
+              onClick={() => router.push("/admin/tecnicos/novo")}
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800"
+            >
+              <Plus size={16} />
+              Novo tecnico
+            </button>
+          </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 rounded-2xl border border-slate-200 px-3 py-2.5">

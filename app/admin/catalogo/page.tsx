@@ -145,7 +145,7 @@ export default function CatalogoPage() {
           </h2>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => router.push("/admin")}
             className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
           >
             Voltar
@@ -207,7 +207,7 @@ export default function CatalogoPage() {
               <p className="mt-1 whitespace-pre-line text-sm text-slate-700">{item.especificacoes_tecnicas || "-"}</p>
               <div className="mt-2 flex gap-2">
                 <button onClick={() => editar(item)} className="rounded-xl bg-blue-700 px-3 py-2 text-xs font-bold text-white hover:bg-blue-800">Editar</button>
-                <button onClick={() => excluir(item._id)} className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-bold text-white hover:bg-rose-800">Excluir</button>
+                <button onClick={() => excluir(item._id)} className="rounded-xl bg-rose-700 px-3 py-2 text-xs font-bold text-white hover:bg-rose-800">Apagar do estoque</button>
               </div>
             </div>
           ))}

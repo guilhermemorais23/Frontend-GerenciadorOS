@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -21,6 +22,7 @@ type OSItem = {
 };
 
 export default function AdminGraficosPage() {
+  const router = useRouter();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,16 @@ export default function AdminGraficosPage() {
 
   return (
     <div className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <button
+          type="button"
+          onClick={() => router.push("/admin")}
+          className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
+        >
+          Voltar
+        </button>
+      </div>
+
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <label className="block text-sm font-semibold text-slate-700">Mes</label>
         <input
