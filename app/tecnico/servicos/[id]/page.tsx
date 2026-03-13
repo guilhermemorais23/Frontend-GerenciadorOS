@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
+import { ArrowLeft, CarFront, CircleStop, Eye, MapPinned, Pause, Phone, Play, X } from "lucide-react";
 import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -62,6 +62,7 @@ export default function ServicoPage() {
 
   const [os, setOs] = useState<ServicoDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
     carregarOS();
@@ -113,12 +114,19 @@ export default function ServicoPage() {
   const antesFeito = Boolean(os.antes?.relatorio?.trim() || os.antes?.observacao?.trim() || os.antes?.fotos?.length);
   const canGoDepois =
     antesFeito && (status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE);
-  const canEditar = canGoDepois || status === STATUS.ABERTA;
   const atendimentoIniciado = Boolean(os.data_inicio_atendimento);
   const podeIniciarDeslocamento =
     !atendimentoIniciado && !os.data_inicio_deslocamento && !os.data_fim_deslocamento && !os.deslocamento_concluido;
   const podeFinalizarDeslocamento =
     !atendimentoIniciado && Boolean(os.data_inicio_deslocamento) && !os.data_fim_deslocamento && !os.deslocamento_concluido;
+  const podeRegistrarAntes =
+    atendimentoIniciado && (status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE);
+  const temPreview = Boolean(
+    antesFeito ||
+      os.depois?.relatorio?.trim() ||
+      os.depois?.observacao?.trim() ||
+      os.depois?.fotos?.length
+  );
 
   return (
     <div className="min-h-screen p-4 text-slate-900 sm:p-6">
@@ -191,54 +199,59 @@ export default function ServicoPage() {
           {podeIniciarDeslocamento && (
             <button
               onClick={() => mudarDeslocamento("iniciar")}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-600"
+              title="Iniciar deslocamento"
+              aria-label="Iniciar deslocamento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500 text-white hover:bg-amber-600"
             >
               <CarFront size={16} />
-              Iniciar deslocamento
             </button>
           )}
 
           {podeFinalizarDeslocamento && (
             <button
               onClick={() => mudarDeslocamento("finalizar")}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-700"
+              title="Finalizar deslocamento"
+              aria-label="Finalizar deslocamento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-amber-600 text-white hover:bg-amber-700"
             >
               <CircleStop size={16} />
-              Finalizar deslocamento
             </button>
           )}
 
           {status === STATUS.ABERTA && (
             <button
               onClick={() => mudarStatus("iniciar")}
-              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+              title="Iniciar atendimento"
+              aria-label="Iniciar atendimento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-600 text-white hover:bg-sky-700"
             >
               <Play size={16} />
-              Iniciar atendimento
             </button>
           )}
 
           {status === STATUS.EM_ATENDIMENTO && (
             <button
               onClick={() => mudarStatus("pausar")}
-              className="inline-flex items-center gap-2 rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-fuchsia-700"
+              title="Pausar"
+              aria-label="Pausar"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-600 text-white hover:bg-fuchsia-700"
             >
               <Pause size={16} />
-              Pausar
             </button>
           )}
 
           {status === STATUS.PAUSADA && (
             <button
               onClick={() => mudarStatus("retomar")}
-              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+              title="Retomar"
+              aria-label="Retomar"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-600 text-white hover:bg-sky-700"
             >
               <Play size={16} />
-              Retomar
             </button>
           )}
 
-          {(status === STATUS.ABERTA || status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE) && (
+          {podeRegistrarAntes && (
             <button
               onClick={() => router.push(`/tecnico/servicos/${id}/antes`)}
               className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
@@ -254,6 +267,17 @@ export default function ServicoPage() {
               disabled={!canGoDepois}
             >
               Revisar DEPOIS e Enviar
+            </button>
+          )}
+
+          {temPreview && (
+            <button
+              onClick={() => setPreviewOpen(true)}
+              title="Preview"
+              aria-label="Preview"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+            >
+              <Eye size={18} />
             </button>
           )}
 
@@ -280,6 +304,12 @@ export default function ServicoPage() {
         {!antesFeito && (status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA || status === STATUS.DEVOLVIDA_PARA_AJUSTE) && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             Registre o ANTES primeiro. Depois disso, você pode sair e voltar que o progresso continua salvo.
+          </div>
+        )}
+
+        {!atendimentoIniciado && status === STATUS.ABERTA && (
+          <div className="mt-4 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800">
+            Inicie o atendimento primeiro. Depois disso, o botão para registrar o ANTES será liberado.
           </div>
         )}
 
@@ -343,6 +373,33 @@ export default function ServicoPage() {
           </div>
         )}
       </div>
+
+      {previewOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 p-3 sm:p-6">
+          <div className="mx-auto flex h-full w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-extrabold text-slate-900">Preview da OS {os.osNumero}</p>
+                <p className="text-xs text-slate-500">Conferência do ANTES e do DEPOIS durante o atendimento</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(false)}
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+              >
+                <X size={14} />
+                Fechar
+              </button>
+            </div>
+            <div className="overflow-auto p-4">
+              <div className="grid gap-5 lg:grid-cols-2">
+                <SectionHistorico titulo="ANTES" bloco={os.antes} />
+                <SectionHistorico titulo="DEPOIS" bloco={os.depois} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
