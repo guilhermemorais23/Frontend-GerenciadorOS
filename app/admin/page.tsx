@@ -444,6 +444,12 @@ function renderOsCard(
     getTecnicoNome(os) || "Não definido";
   const osId = os._id || os.id;
   const clienteLinha = getClienteLinha(os);
+  const statusAtual = normalizeStatus(os.status);
+  const semTecnico = !getTecnicoNome(os);
+  const detalhesHref =
+    semTecnico && statusAtual === STATUS.ABERTA
+      ? `/admin/servicos/${osId}/editar`
+      : `/admin/servicos/${osId}`;
 
   if (!osId) return null;
 
@@ -489,7 +495,7 @@ function renderOsCard(
         <div className="flex flex-wrap justify-end gap-2">
           <ActionButton label="Preview" icon={<Eye size={14} />} onClick={() => onPreview(os)} iconOnly />
           <ActionButton label="Baixar OS" icon={<Printer size={14} />} onClick={() => onDownload(os)} variant="primary" iconOnly />
-          <ActionButton label="Ver detalhes" icon={<ArrowRight size={14} />} onClick={() => router.push(`/admin/servicos/${osId}`)} variant="dark" iconOnly />
+          <ActionButton label="Ver detalhes" icon={<ArrowRight size={14} />} onClick={() => router.push(detalhesHref)} variant="dark" iconOnly />
         </div>
       </div>
     </div>

@@ -46,6 +46,8 @@ type OSDetalhe = {
   feedback_admin?: string;
   detalhamento?: string;
   prioridade?: string;
+  foto_cliente?: string;
+  problem_photo_url?: string;
   started_at?: string;
   finished_at?: string;
   created_at?: string;
@@ -381,6 +383,17 @@ export default function DetalheOSPage() {
           <p className="mb-1 text-sm font-semibold text-slate-700">Detalhamento</p>
           <p className="whitespace-pre-line text-sm text-slate-700">{os.detalhamento || "-"}</p>
         </div>
+
+        {(os.problem_photo_url || os.foto_cliente) && (
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="mb-2 text-sm font-semibold text-slate-700">Foto do cliente</p>
+            <img
+              src={`data:image/jpeg;base64,${os.problem_photo_url || os.foto_cliente}`}
+              alt="Foto do cliente"
+              className="h-40 w-full max-w-sm rounded-xl object-cover"
+            />
+          </div>
+        )}
 
         {os.equipamento_especificacoes && (
           <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">

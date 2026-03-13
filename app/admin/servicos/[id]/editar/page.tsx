@@ -47,6 +47,8 @@ type OSDetalhe = {
   tecnico?: { _id?: string };
   antes?: { relatorio?: string; observacao?: string; fotos?: string[] };
   depois?: { relatorio?: string; observacao?: string; fotos?: string[] };
+  problem_photo_url?: string;
+  foto_cliente?: string;
 };
 
 function UploadFotos({ fotosExistentes, setFotosExistentes, novasFotos, onChange }: UploadFotosProps) {
@@ -163,7 +165,12 @@ export default function EditarOSPage() {
       setDepoisRelatorio(data.depois?.relatorio || "");
       setDepoisObs(data.depois?.observacao || "");
       setDepoisFotos(data.depois?.fotos || []);
-      setFotoProblema((data as OSDetalhe & { foto_abertura?: string; problem_photo_url?: string }).problem_photo_url || (data as OSDetalhe & { foto_abertura?: string }).foto_abertura || "");
+      setFotoProblema(
+        data.problem_photo_url ||
+        data.foto_cliente ||
+        (data as OSDetalhe & { foto_abertura?: string }).foto_abertura ||
+        ""
+      );
     } catch (err: unknown) {
       alert("Erro ao carregar OS: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
@@ -320,9 +327,9 @@ export default function EditarOSPage() {
 
         {fotoProblema && (
           <>
-            <h2 className="pt-2 text-lg font-extrabold">Foto enviada na solicitação</h2>
+            <h2 className="pt-2 text-lg font-extrabold">Foto do cliente</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <img src={`data:image/jpeg;base64,${fotoProblema}`} alt="Foto da solicitacao" className="h-32 w-full rounded-lg object-cover" />
+              <img src={`data:image/jpeg;base64,${fotoProblema}`} alt="Foto do cliente" className="h-32 w-full rounded-lg object-cover" />
             </div>
           </>
         )}
