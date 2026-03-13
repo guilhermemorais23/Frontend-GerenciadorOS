@@ -193,8 +193,17 @@ export default function AdminTerceirosPage() {
       alert("Nome e email sao obrigatorios");
       return;
     }
+    if (!clienteVinculado.trim()) {
+      alert("Cliente vinculado obrigatorio para o terceiro abrir OS");
+      return;
+    }
     if (!editingId && !senha.trim()) {
       alert("Senha inicial obrigatoria para novo terceiro");
+      return;
+    }
+
+    if (!isDasaVinculado && !subclienteVinculado.trim()) {
+      alert("Subcliente vinculado obrigatorio para cliente normal");
       return;
     }
 
@@ -294,7 +303,7 @@ export default function AdminTerceirosPage() {
           </button>
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          Cliente normal usa subcliente. Cliente DASA usa marca e unidade.
+          Cliente vinculado e obrigatorio. Cliente normal usa subcliente. Cliente DASA usa marca e unidade.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -329,7 +338,7 @@ export default function AdminTerceirosPage() {
           <input
             list="clientes-vinculo-options"
             className="rounded-xl border border-slate-200 px-3 py-2.5"
-            placeholder="Sem cliente vinculado"
+            placeholder="Cliente vinculado obrigatorio"
             value={clienteBusca}
             onChange={(e) => {
               const valor = e.target.value;
@@ -355,7 +364,7 @@ export default function AdminTerceirosPage() {
               <input
                 list="subclientes-vinculo-options"
                 className="rounded-xl border border-slate-200 px-3 py-2.5"
-                placeholder="Sem subcliente vinculado"
+                placeholder="Subcliente vinculado obrigatorio"
                 value={subclienteBusca}
                 onChange={(e) => {
                   const valor = e.target.value;
