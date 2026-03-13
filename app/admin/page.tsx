@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight, Download, Eye, X } from "lucide-react";
 import { API_URL, apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, isOpenStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS, STATUS_OPTIONS } from "@/app/lib/os";
 
@@ -367,8 +368,9 @@ export default function AdminDashboard() {
                   setPreviewUrl("");
                   setPreviewOpen(false);
                 }}
-                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
+                className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
               >
+                <X size={14} />
                 Fechar
               </button>
             </div>
@@ -394,6 +396,35 @@ function Card({ titulo, valor, cor, onClick }: { titulo: string; valor: number; 
     <button type="button" onClick={onClick} className={`${cor} rounded-2xl p-4 text-left text-white shadow`}>
       <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{titulo}</p>
       <p className="mt-1 text-3xl font-extrabold">{valor}</p>
+    </button>
+  );
+}
+
+function ActionButton({
+  label,
+  onClick,
+  icon,
+  variant = "secondary",
+}: {
+  label: string;
+  onClick: () => void;
+  icon: ReactNode;
+  variant?: "secondary" | "primary" | "dark";
+}) {
+  const styles = {
+    secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+    primary: "border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+    dark: "border border-slate-900 bg-slate-900 text-white hover:bg-slate-800",
+  } as const;
+
+  return (
+    <button
+      type="button"
+      className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${styles[variant]}`}
+      onClick={onClick}
+    >
+      {icon}
+      {label}
     </button>
   );
 }
@@ -451,27 +482,11 @@ function renderOsCard(
       )}
 
       <div className="mt-3 flex justify-end">
-        <button
-          type="button"
-          className="mr-2 rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
-          onClick={() => onPreview(os)}
-        >
-          Preview
-        </button>
-        <button
-          type="button"
-          className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
-          onClick={() => onDownload(os)}
-        >
-          Baixar OS
-        </button>
-        <button
-          type="button"
-          className="ml-2 rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800"
-          onClick={() => router.push(`/admin/servicos/${osId}`)}
-        >
-          Ver detalhes
-        </button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <ActionButton label="Preview" icon={<Eye size={14} />} onClick={() => onPreview(os)} />
+          <ActionButton label="Baixar OS" icon={<Download size={14} />} onClick={() => onDownload(os)} variant="primary" />
+          <ActionButton label="Ver detalhes" icon={<ArrowRight size={14} />} onClick={() => router.push(`/admin/servicos/${osId}`)} variant="dark" />
+        </div>
       </div>
     </div>
   );

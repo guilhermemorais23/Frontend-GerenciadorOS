@@ -1,7 +1,8 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Download, FilePenLine, MapPinned, Phone, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -261,7 +262,9 @@ export default function DetalheOSPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
-          <button onClick={gerarPDF} className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-800">Gerar PDF</button>
+          <ActionButton onClick={gerarPDF} icon={<Download size={16} />} variant="primary">
+            Gerar PDF
+          </ActionButton>
 
           {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
             <div className="flex flex-wrap items-center gap-2">
@@ -271,23 +274,37 @@ export default function DetalheOSPage() {
                 value={deliveryPhone}
                 onChange={(e) => setDeliveryPhone(e.target.value)}
               />
-              <button onClick={validarOS} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Validar e Enviar no WhatsApp</button>
-              <button onClick={devolverParaAjuste} className="rounded-xl bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800">Devolver para ajuste</button>
+              <ActionButton onClick={validarOS} icon={<Send size={16} />} variant="success">
+                Validar e Enviar no WhatsApp
+              </ActionButton>
+              <ActionButton onClick={devolverParaAjuste} icon={<XCircle size={16} />} variant="warning">
+                Devolver para ajuste
+              </ActionButton>
             </div>
           )}
           {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.VALIDADA_PELO_ADMIN, STATUS.CANCELADA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.VALIDADA_PELO_ADMIN | typeof STATUS.CANCELADA) && (
-            <button onClick={reabrirOS} className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-800">Reabrir OS</button>
+            <ActionButton onClick={reabrirOS} icon={<RotateCcw size={16} />} variant="dark">
+              Reabrir OS
+            </ActionButton>
           )}
 
           {userRole === "admin" && (
             <>
-              <button onClick={() => router.push(`/admin/servicos/${id}/editar`)} className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600">Editar</button>
-              <button onClick={cancelarOS} className="rounded-xl bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-700">Cancelar</button>
-              <button onClick={excluirOS} className="rounded-xl bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800">Excluir</button>
+              <ActionButton onClick={() => router.push(`/admin/servicos/${id}/editar`)} icon={<FilePenLine size={16} />} variant="secondary">
+                Editar
+              </ActionButton>
+              <ActionButton onClick={cancelarOS} icon={<XCircle size={16} />} variant="warning">
+                Cancelar
+              </ActionButton>
+              <ActionButton onClick={excluirOS} icon={<Trash2 size={16} />} variant="danger">
+                Excluir
+              </ActionButton>
             </>
           )}
 
-          <button onClick={() => router.back()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">Voltar</button>
+          <ActionButton onClick={() => router.back()} icon={<ArrowLeft size={16} />} variant="secondary">
+            Voltar
+          </ActionButton>
         </div>
 
         <div className="grid gap-4 text-sm text-slate-700 sm:grid-cols-2">
@@ -327,14 +344,14 @@ export default function DetalheOSPage() {
         {(os.botao_gps_endereco || os.botao_ligar_telefone) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {os.botao_gps_endereco && (
-              <a href={os.botao_gps_endereco} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
+              <ActionLink href={os.botao_gps_endereco} icon={<MapPinned size={16} />} target="_blank" rel="noreferrer">
                 Abrir GPS
-              </a>
+              </ActionLink>
             )}
             {os.botao_ligar_telefone && (
-              <a href={os.botao_ligar_telefone} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
+              <ActionLink href={os.botao_ligar_telefone} icon={<Phone size={16} />}>
                 Ligar
-              </a>
+              </ActionLink>
             )}
           </div>
         )}
@@ -395,6 +412,63 @@ export default function DetalheOSPage() {
         <PreviewBloco title="Preview DEPOIS" bloco={os.depois} />
       </div>
     </div>
+  );
+}
+
+function ActionButton({
+  children,
+  onClick,
+  icon,
+  variant = "secondary",
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  icon: ReactNode;
+  variant?: "primary" | "secondary" | "success" | "warning" | "danger" | "dark";
+}) {
+  const styles = {
+    primary: "border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+    secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+    success: "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+    warning: "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    danger: "border border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100",
+    dark: "border border-slate-900 bg-slate-900 text-white hover:bg-slate-800",
+  } as const;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${styles[variant]}`}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function ActionLink({
+  children,
+  href,
+  icon,
+  target,
+  rel,
+}: {
+  children: ReactNode;
+  href: string;
+  icon: ReactNode;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+    >
+      {icon}
+      {children}
+    </a>
   );
 }
 
