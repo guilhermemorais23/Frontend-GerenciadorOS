@@ -108,6 +108,8 @@ export default function DetalheOSPage() {
   const [timer, setTimer] = useState<TimerData | null>(null);
   const [events, setEvents] = useState<Array<{ _id: string; old_status?: string; new_status?: string; createdAt?: string }>>([]);
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryEmail, setDeliveryEmail] = useState("");
+  const [deliveryMode, setDeliveryMode] = useState<"WHATSAPP" | "EMAIL" | "AMBOS">("WHATSAPP");
 
   useEffect(() => {
     carregarOS();
@@ -120,6 +122,7 @@ export default function DetalheOSPage() {
       const data = await apiFetch(`/projects/admin/view/${id}`);
       setOs(data as OSDetalhe);
       setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
+      setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
       try {
         const timerData = await apiFetch(projectOsPath(`/${id}/timer`));
         setTimer(timerData as TimerData);
@@ -165,25 +168,40 @@ export default function DetalheOSPage() {
 
   async function validarOS() {
     try {
+      const clienteLabel = buildClientLabel(os);
       const resposta = await apiFetch(projectOsPath(`/${id}/validate`), {
         method: "POST",
         body: JSON.stringify({
-          channel: "WHATSAPP",
-          delivery_email: "",
+          channel: deliveryMode,
+          delivery_email: deliveryEmail,
           delivery_phone_e164: deliveryPhone,
         }),
-      }) as { whatsapp_cliente?: { queued?: boolean; reason?: string; error?: string; status?: string; to?: string | null; raw?: unknown } } | null;
+      }) as {
+        whatsapp_cliente?: { queued?: boolean; reason?: string; error?: string; status?: string; to?: string | null; raw?: unknown };
+        email_cliente?: { queued?: boolean; reason?: string; error?: string; status?: string; to?: string | null; raw?: unknown };
+      } | null;
 
       const whatsappCliente = resposta?.whatsapp_cliente;
-      if (whatsappCliente?.queued) {
-        alert(`OS validada pelo admin e WhatsApp do cliente enviado com sucesso para ${whatsappCliente.to || "numero informado"}.`);
-      } else if (whatsappCliente) {
-        const motivo = whatsappCliente.reason || whatsappCliente.error || whatsappCliente.status || "Falha ao enviar WhatsApp do cliente";
-        const extra = whatsappCliente.raw ? `\nDetalhe: ${JSON.stringify(whatsappCliente.raw)}` : "";
-        alert(`OS validada, mas o WhatsApp do cliente nao foi enviado para ${whatsappCliente.to || "numero informado"}: ${motivo}${extra}`);
-      } else {
-        alert("OS validada pelo admin");
+      const emailCliente = resposta?.email_cliente;
+      const mensagens: string[] = ["OS validada pelo admin."];
+
+      if (deliveryMode === "WHATSAPP" || deliveryMode === "AMBOS") {
+        if (whatsappCliente?.queued) {
+          mensagens.push(`WhatsApp enviado para ${clienteLabel}.`);
+        } else if (whatsappCliente) {
+          mensagens.push(`WhatsApp nao enviado para ${clienteLabel}: ${whatsappCliente.reason || whatsappCliente.error || whatsappCliente.status || "falha desconhecida"}.`);
+        }
       }
+
+      if (deliveryMode === "EMAIL" || deliveryMode === "AMBOS") {
+        if (emailCliente?.queued) {
+          mensagens.push(`Email enviado para ${clienteLabel}.`);
+        } else if (emailCliente) {
+          mensagens.push(`Email nao enviado para ${clienteLabel}: ${emailCliente.reason || emailCliente.error || emailCliente.status || "falha desconhecida"}.`);
+        }
+      }
+
+      alert(mensagens.join("\n"));
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
@@ -270,14 +288,29 @@ export default function DetalheOSPage() {
 
           {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
             <div className="flex flex-wrap items-center gap-2">
+              <select
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                value={deliveryMode}
+                onChange={(e) => setDeliveryMode(e.target.value as "WHATSAPP" | "EMAIL" | "AMBOS")}
+              >
+                <option value="WHATSAPP">Enviar WhatsApp</option>
+                <option value="EMAIL">Enviar email</option>
+                <option value="AMBOS">Enviar ambos</option>
+              </select>
               <input
                 className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
                 placeholder="Telefone com DDD"
                 value={deliveryPhone}
                 onChange={(e) => setDeliveryPhone(e.target.value)}
               />
+              <input
+                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                placeholder="Email do cliente"
+                value={deliveryEmail}
+                onChange={(e) => setDeliveryEmail(e.target.value)}
+              />
               <ActionButton onClick={validarOS} icon={<Send size={16} />} variant="success">
-                Validar e Enviar no WhatsApp
+                Validar e enviar
               </ActionButton>
               <ActionButton onClick={devolverParaAjuste} icon={<XCircle size={16} />} variant="warning">
                 Devolver para ajuste
@@ -540,4 +573,11 @@ function Info({ label, value }: { label: string; value?: string | null }) {
       )}
     </div>
   );
+}
+
+function buildClientLabel(os: OSDetalhe | null) {
+  if (!os) return "cliente";
+  const cliente = String(os.cliente || "").trim();
+  const subcliente = String(os.subcliente || os.Subcliente || os.subgrupo || "").trim();
+  return [cliente, subcliente].filter(Boolean).join(" - ") || cliente || "cliente";
 }

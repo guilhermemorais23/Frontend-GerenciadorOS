@@ -8,6 +8,12 @@ import { normalizeStatus, STATUS } from "@/app/lib/os";
 type OSTecnico = {
   osNumero?: string;
   status?: string;
+  antes?: {
+    relatorio?: string;
+    observacao?: string;
+    fotos?: string[];
+  };
+  materiais_solicitados?: MaterialSolicitado[];
 };
 
 type EquipamentoCatalogo = {
@@ -37,6 +43,7 @@ export default function AntesPage() {
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  const [fotosExistentes, setFotosExistentes] = useState<string[]>([]);
   const [catalogo, setCatalogo] = useState<EquipamentoCatalogo[]>([]);
   const [materialId, setMaterialId] = useState("");
   const [materialNomeLivre, setMaterialNomeLivre] = useState("");
@@ -72,6 +79,9 @@ export default function AntesPage() {
       }
 
       setOs(data);
+      setRelatorio(data.antes?.relatorio || "");
+      setObservacao(data.antes?.observacao || "");
+      setFotosExistentes(Array.isArray(data.antes?.fotos) ? data.antes.fotos : []);
       setMateriais(Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : []);
       setCatalogo(Array.isArray(catalogoData) ? (catalogoData as EquipamentoCatalogo[]) : []);
     } catch {
@@ -121,6 +131,10 @@ export default function AntesPage() {
     setFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function removerFotoExistente(index: number) {
+    setFotosExistentes((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function adicionarMaterial() {
     const selecionado = catalogo.find((item) => item._id === materialId);
     const nome = (selecionado?.nome || materialNomeLivre).trim();
@@ -161,6 +175,7 @@ export default function AntesPage() {
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
+      formData.append("fotos_existentes", JSON.stringify(fotosExistentes));
       formData.append("materiais_solicitados", JSON.stringify(materiais));
       fotos.forEach((f) => formData.append("fotos", f));
 
@@ -205,14 +220,26 @@ export default function AntesPage() {
           <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
         </label>
 
-        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
-          {fotos.length} / 4 foto{fotos.length !== 1 && "s"}
+        <p className={`mt-2 text-sm ${fotosExistentes.length + fotos.length >= 1 && fotosExistentes.length + fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
+          {fotosExistentes.length + fotos.length} / 4 foto{fotosExistentes.length + fotos.length !== 1 && "s"}
         </p>
 
-        {fotos.length > 0 && (
+        {(fotosExistentes.length > 0 || fotos.length > 0) && (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {fotosExistentes.map((foto, i) => (
+              <div key={`existente-${i}`} className="relative">
+                <img src={`data:image/jpeg;base64,${foto}`} alt={`Preview ANTES ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
+                <button
+                  type="button"
+                  onClick={() => removerFotoExistente(i)}
+                  className="absolute right-1 top-1 rounded bg-rose-600 px-2 text-xs font-bold text-white"
+                >
+                  X
+                </button>
+              </div>
+            ))}
             {fotos.map((f, i) => (
-              <div key={i} className="relative">
+              <div key={`nova-${i}`} className="relative">
                 <img src={URL.createObjectURL(f)} alt={`Preview ANTES ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
                 <button
                   type="button"
@@ -278,7 +305,7 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          disabled={salvando || fotos.length < 1 || fotos.length > 4}
+          disabled={salvando || fotosExistentes.length + fotos.length < 1 || fotosExistentes.length + fotos.length > 4}
           className="mt-6 w-full rounded-xl bg-sky-700 px-4 py-3 font-bold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Salvando..." : "Salvar ANTES e ir para DEPOIS"}
