@@ -27,6 +27,22 @@ type OSItem = {
 
 const STATUS_CONCLUIDAS = "CONCLUIDAS";
 
+async function readPdfError(res: Response, fallback: string) {
+  let message = fallback;
+  const raw = await res.text();
+  if (!raw) return message;
+
+  try {
+    const data = JSON.parse(raw) as { error?: string; message?: string };
+    return data.error || data.message || message;
+  } catch {
+    if (raw.includes("<!DOCTYPE html") || raw.includes("<html")) {
+      return "O backend do PDF respondeu com erro de servidor. Verifique o deploy do backend.";
+    }
+    return raw;
+  }
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const useLegacyDashboard = process.env.NEXT_PUBLIC_USE_LEGACY_DASHBOARD === "true";
@@ -83,24 +99,14 @@ export default function AdminDashboard() {
       if (!osId) throw new Error("OS sem identificador");
 
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client&force=true`)}`, {
+      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client`)}`, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
       });
 
       if (!res.ok) {
-        let message = "Erro ao baixar OS";
-        const raw = await res.text();
-        if (raw) {
-          try {
-            const data = JSON.parse(raw) as { error?: string; message?: string };
-            message = data.error || data.message || message;
-          } catch {
-            message = raw;
-          }
-        }
-        throw new Error(message);
+        throw new Error(await readPdfError(res, "Erro ao baixar OS"));
       }
 
       const blob = await res.blob();
@@ -132,14 +138,14 @@ export default function AdminDashboard() {
       }
 
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client&force=true`)}`, {
+      const res = await fetch(`${API_URL}${projectOsPath(`/${osId}/report?variant=client`)}`, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
       });
 
       if (!res.ok) {
-        throw new Error("Erro ao carregar preview da OS");
+        throw new Error(await readPdfError(res, "Erro ao carregar preview da OS"));
       }
 
       const blob = await res.blob();

@@ -78,6 +78,22 @@ type MaterialSolicitado = {
   observacao?: string;
 };
 
+async function readPdfError(res: Response, fallback: string) {
+  let message = fallback;
+  const raw = await res.text();
+  if (!raw) return message;
+
+  try {
+    const data = JSON.parse(raw) as { error?: string; message?: string };
+    return data.error || data.message || message;
+  } catch {
+    if (raw.includes("<!DOCTYPE html") || raw.includes("<html")) {
+      return "O backend do PDF respondeu com erro de servidor. Verifique o deploy do backend.";
+    }
+    return raw;
+  }
+}
+
 export default function DetalheOSPage() {
   const router = useRouter();
   const params = useParams();
@@ -202,24 +218,14 @@ export default function DetalheOSPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}${projectOsPath(`/${id}/report?variant=client&force=true`)}`, {
+      const res = await fetch(`${API_URL}${projectOsPath(`/${id}/report?variant=admin`)}`, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",
       });
 
       if (!res.ok) {
-        let message = "Erro ao gerar PDF";
-        const raw = await res.text();
-        if (raw) {
-          try {
-            const data = JSON.parse(raw) as { error?: string; message?: string };
-            message = data.error || data.message || message;
-          } catch {
-            message = raw;
-          }
-        }
-        throw new Error(message);
+        throw new Error(await readPdfError(res, "Erro ao gerar PDF"));
       }
 
       const blob = await res.blob();
