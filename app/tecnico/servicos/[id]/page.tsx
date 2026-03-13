@@ -127,6 +127,7 @@ export default function ServicoPage() {
       os.depois?.observacao?.trim() ||
       os.depois?.fotos?.length
   );
+  const telefoneCliente = formatPhoneLabel(os.botao_ligar_telefone);
 
   return (
     <div className="min-h-screen p-4 text-slate-900 sm:p-6">
@@ -156,6 +157,18 @@ export default function ServicoPage() {
           <p><b>Início:</b> {formatDate(os.data_inicio_atendimento)}</p>
           <p><b>Pausa:</b> {formatDate(os.data_pausa_atendimento)}</p>
           <p><b>Retomada:</b> {formatDate(os.data_retomada_atendimento)}</p>
+          {os.botao_ligar_telefone && (
+            <p>
+              <b>Telefone:</b>{" "}
+              <a
+                href={os.botao_ligar_telefone}
+                className="inline-flex items-center gap-2 font-semibold text-emerald-700 hover:text-emerald-800"
+              >
+                <Phone size={15} />
+                {telefoneCliente}
+              </a>
+            </p>
+          )}
           {os.botao_gps_endereco && (
             <p className="sm:col-span-2 lg:col-span-3">
               <b>Local:</b>{" "}
@@ -343,7 +356,7 @@ export default function ServicoPage() {
             {os.botao_ligar_telefone && (
               <a href={os.botao_ligar_telefone} className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100">
                 <Phone size={16} />
-                Ligar
+                {telefoneCliente}
               </a>
             )}
           </div>
@@ -420,4 +433,10 @@ function SectionHistorico({ titulo, bloco }: { titulo: string; bloco?: Historico
       )}
     </div>
   );
+}
+
+function formatPhoneLabel(phoneHref?: string) {
+  const raw = String(phoneHref || "").replace(/^tel:/i, "").trim();
+  if (!raw) return "Ligar";
+  return raw.startsWith("+") ? raw : `+${raw}`;
 }
