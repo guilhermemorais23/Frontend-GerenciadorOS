@@ -239,7 +239,7 @@ export default function DetalheOSPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}${projectOsPath(`/${id}/report?variant=admin`)}`, {
+      const res = await fetch(`${API_URL}${projectOsPath(`/${id}/report?variant=client`)}`, {
         method: "GET",
         headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         cache: "no-store",

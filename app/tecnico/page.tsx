@@ -19,6 +19,8 @@ type Servico = {
   telefone?: string;
   status?: string;
   data_abertura?: string;
+  data_finalizacao_tecnico?: string;
+  data_validacao_admin?: string;
   data_inicio_atendimento?: string;
   data_pausa_atendimento?: string;
   tipo_manutencao?: string;
@@ -130,6 +132,12 @@ export default function TecnicoPage() {
 
       return texto.includes(termo);
     }).sort((a, b) => {
+      if (filtro === FILTRO_FINALIZADAS) {
+        const fa = new Date(a.data_validacao_admin || a.data_finalizacao_tecnico || a.data_abertura || 0).getTime();
+        const fb = new Date(b.data_validacao_admin || b.data_finalizacao_tecnico || b.data_abertura || 0).getTime();
+        if (fa !== fb) return fb - fa;
+      }
+
       const pa = prioridadePeso[String(a.prioridade || "MEDIA").toUpperCase()] ?? 1;
       const pb = prioridadePeso[String(b.prioridade || "MEDIA").toUpperCase()] ?? 1;
       if (pa !== pb) return pa - pb;
