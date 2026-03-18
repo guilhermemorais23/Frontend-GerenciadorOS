@@ -237,8 +237,8 @@ export default function ServicoPage() {
           {status === STATUS.ABERTA && (
             <button
               onClick={() => mudarStatus("iniciar")}
-              title="Iniciar atendimento"
-              aria-label="Iniciar atendimento"
+              title="Iniciar chamado"
+              aria-label="Iniciar chamado"
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-sky-600 text-white hover:bg-sky-700"
             >
               <Play size={16} />

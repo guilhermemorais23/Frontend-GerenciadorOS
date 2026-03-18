@@ -88,11 +88,12 @@ export default function AdminGraficosPage() {
       new Set(
         osList
           .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .filter((item) => !unidadeFiltro || String(item.unidade || "").trim() === unidadeFiltro)
           .map((item) => String(item.marca || "").trim())
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [osList, clienteFiltro, clienteEhDasa]);
+  }, [osList, clienteFiltro, clienteEhDasa, unidadeFiltro]);
 
   const unidades = useMemo(() => {
     if (!clienteEhDasa) return [];
@@ -100,25 +101,18 @@ export default function AdminGraficosPage() {
       new Set(
         osList
           .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .filter((item) => !marcaFiltro || String(item.marca || "").trim() === marcaFiltro)
           .map((item) => String(item.unidade || "").trim())
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [osList, clienteFiltro, clienteEhDasa]);
+  }, [osList, clienteFiltro, clienteEhDasa, marcaFiltro]);
 
   const slices = useMemo(
     () => [
       { key: "Abertas", value: Number(metrics?.total_abertas || 0), color: "#f59e0b" },
       { key: "Em andamento", value: Number(metrics?.total_em_atendimento || 0), color: "#0284c7" },
       { key: "Pausadas", value: Number(metrics?.total_pausadas || 0), color: "#9333ea" },
-      {
-        key: "Pendentes",
-        value:
-          Number(metrics?.total_abertas || 0) +
-          Number(metrics?.total_em_atendimento || 0) +
-          Number(metrics?.total_pausadas || 0),
-        color: "#4f46e5",
-      },
       {
         key: "Finalizadas",
         value: Number(metrics?.total_finalizadas_tecnico || 0) + Number(metrics?.total_fechadas || 0),
@@ -175,7 +169,7 @@ export default function AdminGraficosPage() {
               ))}
             </select>
           </div>
-          {!clienteEhDasa && (
+          {Boolean(clienteFiltro) && !clienteEhDasa && (
             <div>
               <label className="block text-sm font-semibold text-slate-700">Subcliente</label>
               <select
@@ -190,13 +184,16 @@ export default function AdminGraficosPage() {
               </select>
             </div>
           )}
-          {clienteEhDasa && (
+          {Boolean(clienteFiltro) && clienteEhDasa && (
             <>
               <div>
                 <label className="block text-sm font-semibold text-slate-700">Marca</label>
                 <select
                   value={marcaFiltro}
-                  onChange={(e) => setMarcaFiltro(e.target.value)}
+                  onChange={(e) => {
+                    setMarcaFiltro(e.target.value);
+                    setUnidadeFiltro("");
+                  }}
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 >
                   <option value="">Todas</option>

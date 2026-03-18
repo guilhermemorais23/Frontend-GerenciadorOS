@@ -201,7 +201,7 @@ export default function DepoisPage() {
         }),
       });
 
-      alert("OS finalizada e enviada para validacao do admin!");
+      alert("OS finalizada e enviada para validação do admin. Agora o admin já pode atuar nela.");
       router.push("/tecnico");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao finalizar OS");
@@ -418,41 +418,59 @@ function SignaturePad({
   onChange: (value: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const drawingRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    let cancelled = false;
+    const modalElement = modalRef.current;
 
-    const width = Math.max((canvas.parentElement?.clientWidth || 520) - 8, 520);
-    const height = Math.max(Math.min(window.innerHeight - 180, 360), 220);
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    canvas.width = Math.floor(width * ratio);
-    canvas.height = Math.floor(height * ratio);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
+    const prepararAssinatura = async () => {
+      await abrirEmTelaCheiaPaisagem(modalElement);
+      if (cancelled) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#0f172a";
+      const container = canvas.parentElement;
+      const width = Math.max((container?.clientWidth || window.innerWidth) - 8, 320);
+      const height = Math.max((container?.clientHeight || window.innerHeight) - 8, 220);
+      const ratio = Math.max(window.devicePixelRatio || 1, 1);
 
-    if (!value) return;
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
 
-    const image = new Image();
-    image.onload = () => {
-      ctx.drawImage(image, 0, 0, width, height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, width, height);
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = "#0f172a";
+
+      if (!value) return;
+
+      const image = new Image();
+      image.onload = () => {
+        if (!cancelled) ctx.drawImage(image, 0, 0, width, height);
+      };
+      image.src = value;
     };
-    image.src = value;
+
+    void prepararAssinatura();
+
+    return () => {
+      cancelled = true;
+      void sairDaTelaCheiaPaisagem(modalElement);
+    };
   }, [isOpen, value]);
 
   function getPoint(event: React.PointerEvent<HTMLCanvasElement>) {
@@ -514,12 +532,12 @@ function SignaturePad({
       <p className="text-xs text-slate-500">Toque no quadro para abrir a assinatura em tela cheia.</p>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 p-3 sm:p-6">
-          <div className="mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl">
+        <div ref={modalRef} className="fixed inset-0 z-50 bg-slate-950/80 p-0 sm:p-0">
+          <div className="flex h-full w-full flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
               <div>
                 <p className="text-sm font-extrabold text-slate-900 sm:text-base">{label}</p>
-                <p className="text-xs text-slate-500">Se estiver no celular, vire na horizontal para ter mais espaço.</p>
+                <p className="text-xs text-slate-500">A assinatura abre em tela cheia e tenta girar para paisagem automaticamente.</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -539,7 +557,7 @@ function SignaturePad({
               </div>
             </div>
 
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-3 sm:p-4">
               <div className="h-full rounded-2xl border border-slate-300 bg-white p-1">
                 <canvas
                   ref={canvasRef}
@@ -551,13 +569,51 @@ function SignaturePad({
                   className="h-full w-full touch-none rounded-xl bg-white"
                 />
               </div>
-              <p className="mt-3 text-center text-xs text-slate-500">Assine com o dedo por toda a área acima. O desenho será mantido na posição correta ao salvar.</p>
+              <p className="mt-3 text-center text-xs text-slate-500">Assine por toda a área acima. Ao salvar, a assinatura volta para a visualização normal do relatório.</p>
             </div>
           </div>
         </div>
       )}
     </div>
   );
+}
+
+async function abrirEmTelaCheiaPaisagem(element: HTMLDivElement | null) {
+  if (!element || typeof document === "undefined") return;
+
+  try {
+    if (document.fullscreenElement !== element && element.requestFullscreen) {
+      await element.requestFullscreen();
+    }
+  } catch {
+    // Alguns navegadores bloqueiam fullscreen sem interação adicional.
+  }
+
+  try {
+    if (screen.orientation?.lock) {
+      await screen.orientation.lock("landscape");
+    }
+  } catch {
+    // A rotação automática não é suportada em todos os dispositivos.
+  }
+}
+
+async function sairDaTelaCheiaPaisagem(element: HTMLDivElement | null) {
+  try {
+    if (screen.orientation?.unlock) {
+      screen.orientation.unlock();
+    }
+  } catch {
+    // noop
+  }
+
+  try {
+    if (typeof document !== "undefined" && document.fullscreenElement === element) {
+      await document.exitFullscreen();
+    }
+  } catch {
+    // noop
+  }
 }
 
 function ResumoBloco({ titulo, texto, imagem }: { titulo: string; texto?: string; imagem?: string }) {

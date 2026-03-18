@@ -3,9 +3,9 @@ export function buildClienteEmailConclusao(osNumero: string, tituloServico: stri
 }
 
 export function buildClienteWhatsappConclusao(osNumero: string, tituloServico: string) {
-  return `Noticia boa, finalizamos a Ordem de Serviço ${osNumero} - ${tituloServico}. Parabéns para todos nós.\nSertech Soluções`;
+  return `Notícia boa, finalizamos a Ordem de Serviço ${osNumero} - ${tituloServico}. Parabéns para todos nós.\nSertech Soluções`;
 }
 
 export function buildTecnicoWhatsappNovaOs() {
-  return "Vamos produzir ?? Têm uma OS esperando pela sua atuação centroavante matador!!!!";
+  return "Vamos produzir? Tem uma OS esperando pela sua atuação, centroavante matador!!!!";
 }

@@ -11,6 +11,7 @@ type Servico = {
   cliente?: string;
   status?: string;
   data_abertura?: string;
+  detalhamento?: string;
 };
 
 export default function AdminServicosPage() {
@@ -64,6 +65,9 @@ export default function AdminServicosPage() {
               <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
               <p className="text-sm text-slate-700">{s.cliente}</p>
               <p className="text-xs text-slate-500">Abertura: {formatDate(s.data_abertura)}</p>
+              <p className="mt-2 text-sm text-slate-600">
+                <b>Descrição:</b> {s.detalhamento || "-"}
+              </p>
             </div>
 
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(s.status)}`}>

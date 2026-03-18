@@ -29,7 +29,7 @@ type OSItem = {
 const STATUS_CONCLUIDAS = "CONCLUIDAS";
 
 async function readPdfError(res: Response, fallback: string) {
-  let message = fallback;
+  const message = fallback;
   const raw = await res.text();
   if (!raw) return message;
 
@@ -479,6 +479,9 @@ function renderOsCard(
         </p>
         <p>
           <b>Abertura:</b> {formatDate(os.data_abertura || os.createdAt)}
+        </p>
+        <p className="sm:col-span-2 lg:col-span-4">
+          <b>Descrição:</b> {os.detalhamento || "-"}
         </p>
       </div>
 

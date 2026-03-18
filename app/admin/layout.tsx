@@ -95,7 +95,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       JSON.parse(window.sessionStorage.getItem(storageKey) || "[]") as string[]
     );
     const novas = notifs.filter(
-      (n) => n.type === "STATUS_CHANGED" && /aguardando valid/i.test(String(n.title || "")) && !seen.has(n._id)
+      (n) =>
+        n.type === "STATUS_CHANGED" &&
+        !seen.has(n._id) &&
+        /aguardando valid|finaliz/i.test(`${String(n.title || "")} ${String(n.message || "")}`)
     );
 
     if (novas.length === 0) return;
@@ -104,7 +107,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     window.sessionStorage.setItem(storageKey, JSON.stringify(Array.from(seen)));
 
     const ultima = novas[novas.length - 1];
-    window.alert(`${ultima.title}\n${ultima.message}`);
+    window.alert(`O técnico finalizou uma OS e ela já pode ser validada no admin.\n\n${ultima.title}\n${ultima.message}`);
   }, [notifs]);
 
   async function marcarLida(id: string) {

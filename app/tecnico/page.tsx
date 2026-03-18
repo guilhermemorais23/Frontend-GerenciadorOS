@@ -317,7 +317,7 @@ export default function TecnicoPage() {
                       className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800"
                     >
                       <Play size={16} />
-                      Iniciar atendimento
+                      Iniciar chamado
                     </button>
                   )}
 
