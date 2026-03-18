@@ -427,8 +427,8 @@ function SignaturePad({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const width = Math.max((canvas.parentElement?.clientWidth || 320) - 8, 320);
-    const height = Math.max(Math.min(window.innerHeight - 140, 560), 260);
+    const width = Math.max((canvas.parentElement?.clientWidth || 520) - 8, 520);
+    const height = Math.max(Math.min(window.innerHeight - 180, 360), 220);
     const ratio = Math.max(window.devicePixelRatio || 1, 1);
     canvas.width = Math.floor(width * ratio);
     canvas.height = Math.floor(height * ratio);
@@ -515,9 +515,12 @@ function SignaturePad({
 
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 p-3 sm:p-6">
-          <div className="mx-auto flex h-full w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl">
+          <div className="mx-auto flex h-full w-full max-w-6xl flex-col rounded-2xl bg-white shadow-2xl">
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
-              <p className="text-sm font-extrabold text-slate-900 sm:text-base">{label}</p>
+              <div>
+                <p className="text-sm font-extrabold text-slate-900 sm:text-base">{label}</p>
+                <p className="text-xs text-slate-500">Se estiver no celular, vire na horizontal para ter mais espaço.</p>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -531,7 +534,7 @@ function SignaturePad({
                   onClick={() => setIsOpen(false)}
                   className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
                 >
-                  Fechar
+                  Salvar
                 </button>
               </div>
             </div>
@@ -548,7 +551,7 @@ function SignaturePad({
                   className="h-full w-full touch-none rounded-xl bg-white"
                 />
               </div>
-              <p className="mt-3 text-center text-xs text-slate-500">Assine com o dedo por toda a área acima.</p>
+              <p className="mt-3 text-center text-xs text-slate-500">Assine com o dedo por toda a área acima. O desenho será mantido na posição correta ao salvar.</p>
             </div>
           </div>
         </div>

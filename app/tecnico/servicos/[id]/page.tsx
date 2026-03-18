@@ -408,6 +408,10 @@ export default function ServicoPage() {
               </button>
             </div>
             <div className="overflow-auto p-4">
+              <div className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-1 text-sm font-extrabold text-slate-800">Detalhamento da OS</p>
+                <p className="whitespace-pre-line text-sm text-slate-700">{os.detalhamento || "-"}</p>
+              </div>
               <div className="grid gap-5 lg:grid-cols-2">
                 <SectionHistorico titulo="ANTES" bloco={os.antes} />
                 <SectionHistorico titulo="DEPOIS" bloco={os.depois} />

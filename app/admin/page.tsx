@@ -197,10 +197,6 @@ export default function AdminDashboard() {
       abertas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.ABERTA).length,
       atendimento: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.EM_ATENDIMENTO).length,
       pausadas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.PAUSADA).length,
-      pendentes: listaBaseDashboard.filter((o) => {
-        const s = normalizeStatus(o.status);
-        return s === STATUS.ABERTA || s === STATUS.EM_ATENDIMENTO || s === STATUS.PAUSADA || s === STATUS.DEVOLVIDA_PARA_AJUSTE;
-      }).length,
       aguardandoValidacao: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.FINALIZADA_PELO_TECNICO).length,
       finalizadas: listaBaseDashboard.filter((o) => normalizeStatus(o.status) === STATUS.VALIDADA_PELO_ADMIN).length,
     };
@@ -280,7 +276,6 @@ export default function AdminDashboard() {
             <Card titulo="Abertas" valor={contadores.abertas ?? 0} cor="bg-amber-500" onClick={() => setStatusFiltro(STATUS.ABERTA)} />
             <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" onClick={() => setStatusFiltro(STATUS.EM_ATENDIMENTO)} />
             <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" onClick={() => setStatusFiltro(STATUS.PAUSADA)} />
-            <Card titulo="Pendentes" valor={contadores.pendentes ?? 0} cor="bg-indigo-600" onClick={() => setStatusFiltro("")} />
             <Card titulo="Aguardando validacao" valor={contadores.aguardandoValidacao ?? 0} cor="bg-emerald-600" onClick={() => setStatusFiltro(STATUS.FINALIZADA_PELO_TECNICO)} />
             <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" onClick={() => setStatusFiltro(STATUS.VALIDADA_PELO_ADMIN)} />
           </>

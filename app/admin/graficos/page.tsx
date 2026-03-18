@@ -16,6 +16,10 @@ type Metrics = {
 };
 
 type OSItem = {
+  cliente?: string;
+  subcliente?: string;
+  unidade?: string;
+  marca?: string;
   status?: string;
   createdAt?: string;
   data_abertura?: string;
@@ -25,40 +29,82 @@ export default function AdminGraficosPage() {
   const router = useRouter();
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [subclienteFiltro, setSubclienteFiltro] = useState("");
+  const [marcaFiltro, setMarcaFiltro] = useState("");
+  const [unidadeFiltro, setUnidadeFiltro] = useState("");
 
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month]);
+  }, []);
+
+  useEffect(() => {
+    setMetrics(buildMetricsFromList(osList, month, {
+      cliente: clienteFiltro,
+      subcliente: subclienteFiltro,
+      marca: marcaFiltro,
+      unidade: unidadeFiltro,
+    }));
+  }, [osList, month, clienteFiltro, subclienteFiltro, marcaFiltro, unidadeFiltro]);
 
   async function carregar() {
     try {
       setLoading(true);
-      try {
-        const data = (await apiFetch(`/dashboard/metrics?month=${month}`)) as Metrics;
-        setMetrics(data);
-        return;
-      } catch {
-        // fallback: backend sem endpoint /dashboard/metrics
-      }
-
       const list = await apiFetch("/projects/admin/all");
-      setMetrics(buildMetricsFromList(Array.isArray(list) ? list : [], month));
+      setOsList(Array.isArray(list) ? list : []);
     } catch {
-      setMetrics({
-        month,
-        total_abertas: 0,
-        total_em_atendimento: 0,
-        total_pausadas: 0,
-        total_finalizadas_tecnico: 0,
-        total_fechadas: 0,
-        total_pendentes: 0,
-      });
+      setOsList([]);
     } finally {
       setLoading(false);
     }
   }
+
+  const clientes = useMemo(() => {
+    return Array.from(new Set(osList.map((item) => String(item.cliente || "").trim()).filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b, "pt-BR")
+    );
+  }, [osList]);
+
+  const clienteEhDasa = /dasa/i.test(clienteFiltro);
+
+  const subclientes = useMemo(() => {
+    if (!clienteFiltro || clienteEhDasa) return [];
+    return Array.from(
+      new Set(
+        osList
+          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .map((item) => String(item.subcliente || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [osList, clienteFiltro, clienteEhDasa]);
+
+  const marcas = useMemo(() => {
+    if (!clienteEhDasa) return [];
+    return Array.from(
+      new Set(
+        osList
+          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .map((item) => String(item.marca || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [osList, clienteFiltro, clienteEhDasa]);
+
+  const unidades = useMemo(() => {
+    if (!clienteEhDasa) return [];
+    return Array.from(
+      new Set(
+        osList
+          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .map((item) => String(item.unidade || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [osList, clienteFiltro, clienteEhDasa]);
 
   const slices = useMemo(
     () => [
@@ -101,13 +147,80 @@ export default function AdminGraficosPage() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="block text-sm font-semibold text-slate-700">Mes</label>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="mt-2 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-        />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700">Mes</label>
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700">Cliente</label>
+            <select
+              value={clienteFiltro}
+              onChange={(e) => {
+                setClienteFiltro(e.target.value);
+                setSubclienteFiltro("");
+                setMarcaFiltro("");
+                setUnidadeFiltro("");
+              }}
+              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+            >
+              <option value="">Todos</option>
+              {clientes.map((cliente) => (
+                <option key={cliente} value={cliente}>{cliente}</option>
+              ))}
+            </select>
+          </div>
+          {!clienteEhDasa && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700">Subcliente</label>
+              <select
+                value={subclienteFiltro}
+                onChange={(e) => setSubclienteFiltro(e.target.value)}
+                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+              >
+                <option value="">Todos</option>
+                {subclientes.map((subcliente) => (
+                  <option key={subcliente} value={subcliente}>{subcliente}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {clienteEhDasa && (
+            <>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Marca</label>
+                <select
+                  value={marcaFiltro}
+                  onChange={(e) => setMarcaFiltro(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="">Todas</option>
+                  {marcas.map((marca) => (
+                    <option key={marca} value={marca}>{marca}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700">Unidade</label>
+                <select
+                  value={unidadeFiltro}
+                  onChange={(e) => setUnidadeFiltro(e.target.value)}
+                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+                >
+                  <option value="">Todas</option>
+                  {unidades.map((unidade) => (
+                    <option key={unidade} value={unidade}>{unidade}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -173,8 +286,22 @@ export default function AdminGraficosPage() {
   );
 }
 
-function buildMetricsFromList(list: OSItem[], month: string): Metrics {
+function buildMetricsFromList(
+  list: OSItem[],
+  month: string,
+  filtros?: { cliente?: string; subcliente?: string; marca?: string; unidade?: string }
+): Metrics {
   const filtered = list.filter((item) => {
+    const cliente = String(item.cliente || "").trim();
+    const subcliente = String(item.subcliente || "").trim();
+    const marca = String(item.marca || "").trim();
+    const unidade = String(item.unidade || "").trim();
+
+    if (filtros?.cliente && cliente !== filtros.cliente) return false;
+    if (filtros?.subcliente && subcliente !== filtros.subcliente) return false;
+    if (filtros?.marca && marca !== filtros.marca) return false;
+    if (filtros?.unidade && unidade !== filtros.unidade) return false;
+
     const rawDate = item.data_abertura || item.createdAt;
     if (!rawDate) return false;
     const date = new Date(rawDate);

@@ -87,6 +87,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const storageKey = "admin-status-notifications-seen";
+    const seen = new Set<string>(
+      JSON.parse(window.sessionStorage.getItem(storageKey) || "[]") as string[]
+    );
+    const novas = notifs.filter(
+      (n) => n.type === "STATUS_CHANGED" && /aguardando valid/i.test(String(n.title || "")) && !seen.has(n._id)
+    );
+
+    if (novas.length === 0) return;
+
+    novas.forEach((n) => seen.add(n._id));
+    window.sessionStorage.setItem(storageKey, JSON.stringify(Array.from(seen)));
+
+    const ultima = novas[novas.length - 1];
+    window.alert(`${ultima.title}\n${ultima.message}`);
+  }, [notifs]);
+
   async function marcarLida(id: string) {
     try {
       await apiFetch(`/admin/notifications/${id}/read`, { method: "POST" });

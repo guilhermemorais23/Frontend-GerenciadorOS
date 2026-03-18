@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, MapPinned, Pause, Play } from "lucide-react";
+import { CarFront, CircleStop, Eye, MapPinned, Pause, Play, X } from "lucide-react";
 import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, isFinishedStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
@@ -22,10 +22,14 @@ type Servico = {
   data_finalizacao_tecnico?: string;
   data_validacao_admin?: string;
   data_inicio_atendimento?: string;
+  data_inicio_deslocamento?: string;
+  data_fim_deslocamento?: string;
+  deslocamento_concluido?: boolean;
   data_pausa_atendimento?: string;
   tipo_manutencao?: string;
   solicitante_nome?: string;
   prioridade?: string;
+  detalhamento?: string;
 };
 
 export default function TecnicoPage() {
@@ -44,6 +48,7 @@ export default function TecnicoPage() {
   const [filtro, setFiltro] = useState<FiltroTecnico>(FILTRO_TODAS);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+  const [previewServico, setPreviewServico] = useState<Servico | null>(null);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -77,6 +82,19 @@ export default function TecnicoPage() {
       await carregarServicos();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");
+    }
+  }
+
+  async function mudarDeslocamento(id: string, acao: "iniciar" | "finalizar") {
+    try {
+      const endpoint =
+        acao === "iniciar"
+          ? `/projects/tecnico/deslocamento/iniciar/${id}`
+          : `/projects/tecnico/deslocamento/finalizar/${id}`;
+      await apiFetch(endpoint, { method: "PUT" });
+      await carregarServicos();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao atualizar deslocamento");
     }
   }
 
@@ -202,6 +220,11 @@ export default function TecnicoPage() {
         <div className="space-y-3">
           {listaFiltrada.map((s) => {
             const status = normalizeStatus(s.status);
+            const atendimentoIniciado = Boolean(s.data_inicio_atendimento);
+            const podeIniciarDeslocamento =
+              !atendimentoIniciado && !s.data_inicio_deslocamento && !s.data_fim_deslocamento && !s.deslocamento_concluido;
+            const podeFinalizarDeslocamento =
+              !atendimentoIniciado && Boolean(s.data_inicio_deslocamento) && !s.data_fim_deslocamento && !s.deslocamento_concluido;
             return (
               <div key={s._id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -236,11 +259,58 @@ export default function TecnicoPage() {
                     <b>Início:</b> {formatDate(s.data_inicio_atendimento)}
                   </p>
                   <p className="sm:col-span-2 lg:col-span-4">
+                    <b>Descrição:</b> {s.detalhamento || "-"}
+                  </p>
+                  <p className="sm:col-span-2 lg:col-span-4">
                     <b>Endereço:</b> {s.endereco || "-"}
                   </p>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setPreviewServico(s)}
+                    title="Preview"
+                    aria-label="Preview"
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
+                  >
+                    <Eye size={16} />
+                  </button>
+
+                  {s.endereco && (
+                    <a
+                      href={buildGpsHref(s.endereco)}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Abrir GPS"
+                      aria-label="Abrir GPS"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
+                    >
+                      <MapPinned size={16} />
+                    </a>
+                  )}
+
+                  {podeIniciarDeslocamento && (
+                    <button
+                      onClick={() => mudarDeslocamento(s._id, "iniciar")}
+                      title="Iniciar deslocamento"
+                      aria-label="Iniciar deslocamento"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white hover:bg-amber-600"
+                    >
+                      <CarFront size={16} />
+                    </button>
+                  )}
+
+                  {podeFinalizarDeslocamento && (
+                    <button
+                      onClick={() => mudarDeslocamento(s._id, "finalizar")}
+                      title="Finalizar deslocamento"
+                      aria-label="Finalizar deslocamento"
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-amber-600 text-white hover:bg-amber-700"
+                    >
+                      <CircleStop size={16} />
+                    </button>
+                  )}
+
                   {status === STATUS.ABERTA && (
                     <button
                       onClick={() => mudarStatus(s._id, "iniciar")}
@@ -271,19 +341,6 @@ export default function TecnicoPage() {
                     </button>
                   )}
 
-                  {s.endereco && (
-                    <a
-                      href={buildGpsHref(s.endereco)}
-                      target="_blank"
-                      rel="noreferrer"
-                      title="Abrir GPS"
-                      aria-label="Abrir GPS"
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100"
-                    >
-                      <MapPinned size={16} />
-                    </a>
-                  )}
-
                   <button
                     onClick={() => router.push(`/tecnico/servicos/${s._id}`)}
                     title="Ver detalhes"
@@ -298,6 +355,42 @@ export default function TecnicoPage() {
           })}
         </div>
       </div>
+
+      {previewServico && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 p-3 sm:p-6">
+          <div className="mx-auto flex h-full w-full max-w-3xl flex-col rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+              <div>
+                <p className="text-sm font-extrabold text-slate-900">Preview da OS {previewServico.osNumero}</p>
+                <p className="text-xs text-slate-500">Conferência rápida antes de abrir o detalhe completo</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewServico(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-4 overflow-auto p-4 text-sm text-slate-700">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <p><b>Cliente:</b> {previewServico.cliente || "-"}</p>
+                <p><b>Solicitante:</b> {previewServico.solicitante_nome || "-"}</p>
+                <p><b>Tipo:</b> {previewServico.tipo_manutencao || "-"}</p>
+                <p><b>Status:</b> {statusLabel(previewServico.status)}</p>
+                <p><b>Abertura:</b> {formatDate(previewServico.data_abertura)}</p>
+                <p><b>Início:</b> {formatDate(previewServico.data_inicio_atendimento)}</p>
+                <p className="sm:col-span-2"><b>Endereço:</b> {previewServico.endereco || "-"}</p>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <p className="mb-1 font-semibold text-slate-800">Detalhamento</p>
+                <p className="whitespace-pre-line">{previewServico.detalhamento || "-"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
