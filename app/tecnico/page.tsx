@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CarFront, CircleStop, Eye, MapPinned, Pause, Play, X } from "lucide-react";
+import { CarFront, CircleStop, Eye, FileText, MapPinned, Pause, Play, X } from "lucide-react";
 import { apiFetch, projectOsPath } from "@/app/lib/api";
 import { formatDate, isFinishedStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
@@ -347,7 +347,7 @@ export default function TecnicoPage() {
                     aria-label="Ver detalhes"
                     className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                   >
-                    <Eye size={16} />
+                    <FileText size={16} />
                   </button>
                 </div>
               </div>

@@ -240,7 +240,7 @@ export default function DepoisPage() {
                 <p className="font-semibold text-slate-800">Cliente não assinou</p>
                 <p>Nome: {clienteNome || "-"}</p>
                 <p>Função: {clienteFuncao || "-"}</p>
-                <p>Motivo: {motivoNaoAssinou || "-"}</p>
+                <p>Motivo: {formatMotivoNaoAssinou(motivoNaoAssinou) || "-"}</p>
               </div>
             )}
             {fotos.length > 0 || fotosExistentes.length > 0 ? (
@@ -378,7 +378,7 @@ export default function DepoisPage() {
                 <option value="">Selecione o motivo</option>
                 {MOTIVOS_NAO_ASSINOU.map((motivo) => (
                   <option key={motivo} value={motivo}>
-                    {motivo}
+                    {formatMotivoNaoAssinou(motivo)}
                   </option>
                 ))}
               </select>
@@ -645,4 +645,11 @@ function ResumoFotos({ titulo, fotos }: { titulo: string; fotos: string[] }) {
       </div>
     </div>
   );
+}
+
+function formatMotivoNaoAssinou(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .replace(/_/g, " ")
+    .toLowerCase();
 }

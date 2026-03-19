@@ -82,7 +82,7 @@ type MaterialSolicitado = {
 };
 
 async function readPdfError(res: Response, fallback: string) {
-  let message = fallback;
+  const message = fallback;
   const raw = await res.text();
   if (!raw) return message;
 
@@ -372,7 +372,7 @@ export default function DetalheOSPage() {
           <Info label="Cliente nome" value={os.cliente_nome} />
           <Info label="Cliente função" value={os.cliente_funcao} />
           <Info label="Cliente não assinou" value={os.cliente_nao_assinou ? "Sim" : "Não"} />
-          <Info label="Motivo não assinou" value={os.motivo_nao_assinou} />
+          <Info label="Motivo não assinou" value={formatMotivoNaoAssinou(os.motivo_nao_assinou)} />
           <Info label="Feedback admin" value={os.feedback_admin} />
         </div>
 
@@ -580,4 +580,11 @@ function buildClientLabel(os: OSDetalhe | null) {
   const cliente = String(os.cliente || "").trim();
   const subcliente = String(os.subcliente || os.Subcliente || os.subgrupo || "").trim();
   return [cliente, subcliente].filter(Boolean).join(" - ") || cliente || "cliente";
+}
+
+function formatMotivoNaoAssinou(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .replace(/_/g, " ")
+    .toLowerCase();
 }
