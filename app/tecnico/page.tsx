@@ -71,7 +71,7 @@ export default function TecnicoPage() {
     }
   }
 
-  async function mudarStatus(id: string, acao: "iniciar" | "pausar" | "retomar") {
+  async function mudarStatus(id: string, acao: "iniciar" | "pausar" | "retomar", redirecionarParaAntes = false) {
     try {
       const map: Record<"iniciar" | "pausar" | "retomar", string> = {
         iniciar: "start",
@@ -79,6 +79,10 @@ export default function TecnicoPage() {
         retomar: "resume",
       };
       await apiFetch(projectOsPath(`/${id}/${map[acao]}`), { method: "POST" });
+      if (acao === "iniciar" && redirecionarParaAntes) {
+        router.push(`/tecnico/servicos/${id}/antes`);
+        return;
+      }
       await carregarServicos();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");
@@ -313,7 +317,7 @@ export default function TecnicoPage() {
 
                   {status === STATUS.ABERTA && (
                     <button
-                      onClick={() => mudarStatus(s._id, "iniciar")}
+                      onClick={() => mudarStatus(s._id, "iniciar", true)}
                       className="inline-flex items-center gap-2 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800"
                     >
                       <Play size={16} />

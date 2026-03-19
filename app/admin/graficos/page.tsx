@@ -68,45 +68,46 @@ export default function AdminGraficosPage() {
     );
   }, [osList]);
 
-  const clienteEhDasa = /dasa/i.test(clienteFiltro);
+  const clienteFiltroNormalizado = normalizeFilterText(clienteFiltro);
+  const clienteEhDasa = clienteFiltroNormalizado.includes("dasa");
 
   const subclientes = useMemo(() => {
     if (!clienteFiltro || clienteEhDasa) return [];
     return Array.from(
       new Set(
         osList
-          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
+          .filter((item) => normalizeFilterText(item.cliente).includes(clienteFiltroNormalizado))
           .map((item) => String(item.subcliente || "").trim())
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [osList, clienteFiltro, clienteEhDasa]);
+  }, [osList, clienteFiltro, clienteEhDasa, clienteFiltroNormalizado]);
 
   const marcas = useMemo(() => {
     if (!clienteEhDasa) return [];
     return Array.from(
       new Set(
         osList
-          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
-          .filter((item) => !unidadeFiltro || String(item.unidade || "").trim() === unidadeFiltro)
+          .filter((item) => normalizeFilterText(item.cliente).includes(clienteFiltroNormalizado))
+          .filter((item) => !unidadeFiltro || normalizeFilterText(item.unidade) === normalizeFilterText(unidadeFiltro))
           .map((item) => String(item.marca || "").trim())
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [osList, clienteFiltro, clienteEhDasa, unidadeFiltro]);
+  }, [osList, clienteEhDasa, clienteFiltroNormalizado, unidadeFiltro]);
 
   const unidades = useMemo(() => {
     if (!clienteEhDasa) return [];
     return Array.from(
       new Set(
         osList
-          .filter((item) => String(item.cliente || "").trim() === clienteFiltro)
-          .filter((item) => !marcaFiltro || String(item.marca || "").trim() === marcaFiltro)
+          .filter((item) => normalizeFilterText(item.cliente).includes(clienteFiltroNormalizado))
+          .filter((item) => !marcaFiltro || normalizeFilterText(item.marca) === normalizeFilterText(marcaFiltro))
           .map((item) => String(item.unidade || "").trim())
           .filter(Boolean)
       )
     ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-  }, [osList, clienteFiltro, clienteEhDasa, marcaFiltro]);
+  }, [osList, clienteEhDasa, clienteFiltroNormalizado, marcaFiltro]);
 
   const slices = useMemo(
     () => [
@@ -153,7 +154,8 @@ export default function AdminGraficosPage() {
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700">Cliente</label>
-            <select
+            <input
+              list="clientes-grafico"
               value={clienteFiltro}
               onChange={(e) => {
                 setClienteFiltro(e.target.value);
@@ -161,59 +163,66 @@ export default function AdminGraficosPage() {
                 setMarcaFiltro("");
                 setUnidadeFiltro("");
               }}
+              placeholder="Pesquise ou selecione o cliente"
               className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-            >
-              <option value="">Todos</option>
+            />
+            <datalist id="clientes-grafico">
               {clientes.map((cliente) => (
-                <option key={cliente} value={cliente}>{cliente}</option>
+                <option key={cliente} value={cliente} />
               ))}
-            </select>
+            </datalist>
           </div>
           {Boolean(clienteFiltro) && !clienteEhDasa && (
             <div>
               <label className="block text-sm font-semibold text-slate-700">Subcliente</label>
-              <select
+              <input
+                list="subclientes-grafico"
                 value={subclienteFiltro}
                 onChange={(e) => setSubclienteFiltro(e.target.value)}
+                placeholder="Pesquise ou selecione o subcliente"
                 className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-              >
-                <option value="">Todos</option>
+              />
+              <datalist id="subclientes-grafico">
                 {subclientes.map((subcliente) => (
-                  <option key={subcliente} value={subcliente}>{subcliente}</option>
+                  <option key={subcliente} value={subcliente} />
                 ))}
-              </select>
+              </datalist>
             </div>
           )}
           {Boolean(clienteFiltro) && clienteEhDasa && (
             <>
               <div>
                 <label className="block text-sm font-semibold text-slate-700">Marca</label>
-                <select
+                <input
+                  list="marcas-grafico"
                   value={marcaFiltro}
                   onChange={(e) => {
                     setMarcaFiltro(e.target.value);
                     setUnidadeFiltro("");
                   }}
+                  placeholder="Pesquise ou selecione a marca"
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                >
-                  <option value="">Todas</option>
+                />
+                <datalist id="marcas-grafico">
                   {marcas.map((marca) => (
-                    <option key={marca} value={marca}>{marca}</option>
+                    <option key={marca} value={marca} />
                   ))}
-                </select>
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-slate-700">Unidade</label>
-                <select
+                <input
+                  list="unidades-grafico"
                   value={unidadeFiltro}
                   onChange={(e) => setUnidadeFiltro(e.target.value)}
+                  placeholder="Pesquise ou selecione a unidade"
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-                >
-                  <option value="">Todas</option>
+                />
+                <datalist id="unidades-grafico">
                   {unidades.map((unidade) => (
-                    <option key={unidade} value={unidade}>{unidade}</option>
+                    <option key={unidade} value={unidade} />
                   ))}
-                </select>
+                </datalist>
               </div>
             </>
           )}
@@ -289,15 +298,15 @@ function buildMetricsFromList(
   filtros?: { cliente?: string; subcliente?: string; marca?: string; unidade?: string }
 ): Metrics {
   const filtered = list.filter((item) => {
-    const cliente = String(item.cliente || "").trim();
-    const subcliente = String(item.subcliente || "").trim();
-    const marca = String(item.marca || "").trim();
-    const unidade = String(item.unidade || "").trim();
+    const cliente = normalizeFilterText(item.cliente);
+    const subcliente = normalizeFilterText(item.subcliente);
+    const marca = normalizeFilterText(item.marca);
+    const unidade = normalizeFilterText(item.unidade);
 
-    if (filtros?.cliente && cliente !== filtros.cliente) return false;
-    if (filtros?.subcliente && subcliente !== filtros.subcliente) return false;
-    if (filtros?.marca && marca !== filtros.marca) return false;
-    if (filtros?.unidade && unidade !== filtros.unidade) return false;
+    if (filtros?.cliente && !cliente.includes(normalizeFilterText(filtros.cliente))) return false;
+    if (filtros?.subcliente && subcliente !== normalizeFilterText(filtros.subcliente)) return false;
+    if (filtros?.marca && marca !== normalizeFilterText(filtros.marca)) return false;
+    if (filtros?.unidade && unidade !== normalizeFilterText(filtros.unidade)) return false;
 
     const rawDate = item.data_abertura || item.createdAt;
     if (!rawDate) return false;
@@ -323,4 +332,12 @@ function buildMetricsFromList(
     total_fechadas,
     total_pendentes: total_abertas + total_em_atendimento + total_pausadas,
   };
+}
+
+function normalizeFilterText(value?: string | null) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
 }

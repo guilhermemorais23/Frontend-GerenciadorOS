@@ -203,6 +203,12 @@ export default function AdminDashboard() {
   }, [useLegacyDashboard, listaBaseDashboard]);
 
   const listaFiltrada = useMemo(() => {
+    const filtroEhConcluida =
+      statusFiltro === STATUS_CONCLUIDAS ||
+      statusFiltro === STATUS.FINALIZADA_PELO_TECNICO ||
+      statusFiltro === STATUS.VALIDADA_PELO_ADMIN ||
+      statusFiltro === "concluido";
+
     return listaBaseDashboard.filter((os) => {
       const statusAtual = useLegacyDashboard ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
       const finalizadaOuValidada =
@@ -218,15 +224,14 @@ export default function AdminDashboard() {
         }
       }
 
-      const filtroEhConcluida =
-        statusFiltro === STATUS_CONCLUIDAS ||
-        statusFiltro === STATUS.FINALIZADA_PELO_TECNICO ||
-        statusFiltro === STATUS.VALIDADA_PELO_ADMIN ||
-        statusFiltro === "concluido";
       if (!busca.trim() && !filtroEhConcluida && finalizadaOuValidada) return false;
 
       return true;
     }).sort((a, b) => {
+      if (filtroEhConcluida) {
+        return compareOsNumeroDesc(a.osNumero, b.osNumero);
+      }
+
       const da = new Date(a.data_abertura || a.createdAt || 0).getTime();
       const db = new Date(b.data_abertura || b.createdAt || 0).getTime();
       return da - db;
@@ -247,6 +252,8 @@ export default function AdminDashboard() {
       if (finalizadaOuValidada) concluidas.push(os);
       else ativas.push(os);
     }
+
+    concluidas.sort((a, b) => compareOsNumeroDesc(a.osNumero, b.osNumero));
 
     return { ativas, concluidas };
   }, [useLegacyDashboard, listaFiltrada]);
@@ -523,8 +530,32 @@ function buildOsSearchText(os: OSItem) {
       getTecnicoNome(os),
       os.solicitante_nome || "",
       os.tipo_manutencao || "",
+      buildStatusSearchTerms(os.status),
     ].join(" ")
   );
+}
+
+function buildStatusSearchTerms(status?: string) {
+  const atual = normalizeStatus(status);
+
+  if (atual === STATUS.VALIDADA_PELO_ADMIN) {
+    return "finalizada finalizadas concluida concluidas encerrada encerradas";
+  }
+
+  if (atual === STATUS.FINALIZADA_PELO_TECNICO) {
+    return "aguardando validacao finalizada pelo tecnico finalizadas tecnico";
+  }
+
+  return `${statusLabel(atual)} ${String(status || "")}`;
+}
+
+function compareOsNumeroDesc(a?: string, b?: string) {
+  return extractOsNumero(b) - extractOsNumero(a);
+}
+
+function extractOsNumero(value?: string) {
+  const match = String(value || "").match(/\d+/);
+  return match ? Number(match[0]) : 0;
 }
 
 function getClienteLinha(os: OSItem) {
