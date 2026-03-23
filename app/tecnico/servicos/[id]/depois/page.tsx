@@ -420,7 +420,10 @@ function SignaturePad({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const drawingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [draftValue, setDraftValue] = useState(value);
+  const [isPortraitViewport, setIsPortraitViewport] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -428,7 +431,17 @@ function SignaturePad({
     let cancelled = false;
     const modalElement = modalRef.current;
 
+    const atualizarViewport = () => {
+      if (typeof window === "undefined") return;
+      const viewport = window.visualViewport;
+      const width = viewport?.width || window.innerWidth;
+      const height = viewport?.height || window.innerHeight;
+      setIsPortraitViewport(height > width);
+    };
+
     const prepararAssinatura = async () => {
+      setDraftValue(value);
+      atualizarViewport();
       await abrirEmTelaCheiaPaisagem(modalElement);
       if (cancelled) return;
 
@@ -436,8 +449,11 @@ function SignaturePad({
       if (!canvas) return;
 
       const container = canvas.parentElement;
-      const width = Math.max((container?.clientWidth || window.innerWidth) - 8, 320);
-      const height = Math.max((container?.clientHeight || window.innerHeight) - 8, 220);
+      const viewport = window.visualViewport;
+      const viewportWidth = viewport?.width || window.innerWidth;
+      const viewportHeight = viewport?.height || window.innerHeight;
+      const width = Math.max((container?.clientWidth || viewportWidth) - 4, 320);
+      const height = Math.max((container?.clientHeight || viewportHeight) - 4, 220);
       const ratio = Math.max(window.devicePixelRatio || 1, 1);
 
       canvas.width = Math.floor(width * ratio);
@@ -466,9 +482,13 @@ function SignaturePad({
     };
 
     void prepararAssinatura();
+    window.addEventListener("resize", atualizarViewport);
+    window.visualViewport?.addEventListener("resize", atualizarViewport);
 
     return () => {
       cancelled = true;
+      window.removeEventListener("resize", atualizarViewport);
+      window.visualViewport?.removeEventListener("resize", atualizarViewport);
       void sairDaTelaCheiaPaisagem(modalElement);
     };
   }, [isOpen, value]);
@@ -484,19 +504,23 @@ function SignaturePad({
   }
 
   function startDrawing(event: React.PointerEvent<HTMLCanvasElement>) {
+    event.preventDefault();
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     const point = getPoint(event);
     if (!canvas || !ctx || !point) return;
 
     drawingRef.current = true;
+    activePointerIdRef.current = event.pointerId;
     canvas.setPointerCapture(event.pointerId);
     ctx.beginPath();
     ctx.moveTo(point.x, point.y);
   }
 
   function draw(event: React.PointerEvent<HTMLCanvasElement>) {
+    event.preventDefault();
     if (!drawingRef.current) return;
+    if (activePointerIdRef.current !== event.pointerId) return;
     const ctx = canvasRef.current?.getContext("2d");
     const point = getPoint(event);
     if (!ctx || !point) return;
@@ -505,12 +529,35 @@ function SignaturePad({
     ctx.stroke();
   }
 
-  function stopDrawing() {
+  function stopDrawing(event?: React.PointerEvent<HTMLCanvasElement>) {
+    event?.preventDefault();
     if (!drawingRef.current) return;
     drawingRef.current = false;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    onChange(canvas.toDataURL("image/png"));
+    if (event && canvas.hasPointerCapture(event.pointerId)) {
+      canvas.releasePointerCapture(event.pointerId);
+    }
+    activePointerIdRef.current = null;
+    setDraftValue(canvas.toDataURL("image/png"));
+  }
+
+  function limparAssinatura() {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) {
+      setDraftValue("");
+      return;
+    }
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    setDraftValue("");
+  }
+
+  function salvarAssinatura() {
+    onChange(draftValue);
+    setIsOpen(false);
   }
 
   return (
@@ -532,24 +579,30 @@ function SignaturePad({
       <p className="text-xs text-slate-500">Toque no quadro para abrir a assinatura em tela cheia.</p>
 
       {isOpen && (
-        <div ref={modalRef} className="fixed inset-0 z-50 bg-slate-950/80 p-0 sm:p-0">
-          <div className="flex h-full w-full flex-col bg-white shadow-2xl">
+        <div ref={modalRef} className="fixed inset-0 z-50 overflow-hidden bg-slate-950/80 p-0 touch-none select-none sm:p-0">
+          <div
+            className={`bg-white shadow-2xl ${
+              isPortraitViewport
+                ? "absolute left-1/2 top-1/2 flex h-[100vw] w-[100dvh] -translate-x-1/2 -translate-y-1/2 rotate-90 flex-col"
+                : "flex h-full w-full flex-col"
+            }`}
+          >
             <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
               <div>
                 <p className="text-sm font-extrabold text-slate-900 sm:text-base">{label}</p>
-                <p className="text-xs text-slate-500">A assinatura abre em tela cheia e tenta girar para paisagem automaticamente.</p>
+                <p className="text-xs text-slate-500">A assinatura fica em modo horizontal e ocupa praticamente a tela toda ate voce tocar em Salvar.</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onChange("")}
+                  onClick={limparAssinatura}
                   className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                 >
                   Limpar
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={salvarAssinatura}
                   className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-800"
                 >
                   Salvar
@@ -557,19 +610,19 @@ function SignaturePad({
               </div>
             </div>
 
-            <div className="flex-1 p-3 sm:p-4">
-              <div className="h-full rounded-2xl border border-slate-300 bg-white p-1">
+            <div className="flex-1 p-2 sm:p-3">
+              <div className="h-full rounded-2xl border border-slate-300 bg-white p-0.5 touch-none">
                 <canvas
                   ref={canvasRef}
                   onPointerDown={startDrawing}
                   onPointerMove={draw}
                   onPointerUp={stopDrawing}
-                  onPointerLeave={stopDrawing}
                   onPointerCancel={stopDrawing}
+                  onContextMenu={(event) => event.preventDefault()}
                   className="h-full w-full touch-none rounded-xl bg-white"
                 />
               </div>
-              <p className="mt-3 text-center text-xs text-slate-500">Assine por toda a área acima. Ao salvar, a assinatura volta para a visualização normal do relatório.</p>
+              <p className="mt-2 text-center text-xs text-slate-500">Use toda a area acima para assinar. Pode fazer varios traços e a tela so volta ao normal quando salvar.</p>
             </div>
           </div>
         </div>
