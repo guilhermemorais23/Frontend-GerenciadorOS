@@ -189,7 +189,7 @@ export default function DetalheOSPage() {
         if (whatsappCliente?.queued) {
           mensagens.push(`WhatsApp enviado para ${clienteLabel}.`);
         } else if (whatsappCliente) {
-          mensagens.push(`WhatsApp nao enviado para ${clienteLabel}: ${whatsappCliente.reason || whatsappCliente.error || whatsappCliente.status || "falha desconhecida"}.`);
+          mensagens.push(`WhatsApp nao enviado para ${clienteLabel}: ${formatarErroWhatsappAdmin(whatsappCliente.reason || whatsappCliente.error || whatsappCliente.status || "falha desconhecida")}.`);
         }
       }
 
@@ -459,6 +459,17 @@ export default function DetalheOSPage() {
       </div>
     </div>
   );
+}
+
+function formatarErroWhatsappAdmin(mensagem?: string | null) {
+  const texto = String(mensagem || "").trim();
+  const normalizado = texto.toLowerCase();
+
+  if (normalizado.includes("account expired") || normalizado.includes("billing portal") || normalizado.includes("payment")) {
+    return "Erro no metodo de pagamento da conta do WhatsApp";
+  }
+
+  return texto || "falha desconhecida";
 }
 
 function ActionButton({

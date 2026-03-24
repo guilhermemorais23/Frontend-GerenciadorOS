@@ -386,7 +386,7 @@ export default function NovaOSPage() {
       if (whatsappTecnico && whatsappTecnico.queued) {
         alert(`OS criada e WhatsApp do tecnico enviado com sucesso para ${whatsappTecnico.to || "numero cadastrado"}.`);
       } else if (whatsappTecnico && !whatsappTecnico.queued) {
-        const motivo = whatsappTecnico.reason || whatsappTecnico.error || "Falha ao enviar mensagem ao tecnico";
+        const motivo = formatarErroWhatsappAdmin(whatsappTecnico.reason || whatsappTecnico.error || "Falha ao enviar mensagem ao tecnico");
         const extra = whatsappTecnico.raw ? `\nDetalhe: ${JSON.stringify(whatsappTecnico.raw)}` : "";
         alert(`OS criada, mas o WhatsApp do tecnico nao foi enviado para ${whatsappTecnico.to || "numero cadastrado"}: ${motivo}${extra}`);
       } else {
@@ -691,6 +691,17 @@ export default function NovaOSPage() {
       </div>
     </div>
   );
+}
+
+function formatarErroWhatsappAdmin(mensagem?: string | null) {
+  const texto = String(mensagem || "").trim();
+  const normalizado = texto.toLowerCase();
+
+  if (normalizado.includes("account expired") || normalizado.includes("billing portal") || normalizado.includes("payment")) {
+    return "Erro no metodo de pagamento da conta do WhatsApp";
+  }
+
+  return texto || "Falha ao enviar mensagem ao tecnico";
 }
 
 function dedupeClientes(lista: ClienteSugestao[]) {
