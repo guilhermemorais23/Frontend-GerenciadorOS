@@ -163,24 +163,7 @@ export default function AdminDashboard() {
   async function baixarBackupCompleto() {
     try {
       setBackupLoading(true);
-      const [osData, clientesData, tecnicosData, terceirosData] = await Promise.all([
-        apiFetch("/projects/admin/export/all"),
-        apiFetch("/clientes/export/all"),
-        apiFetch("/auth/tecnicos/export/all"),
-        apiFetch("/auth/terceiros/export/all"),
-      ]);
-
-      const backup = {
-        exportedAt: new Date().toISOString(),
-        source: "sertech-admin-dashboard",
-        includesPhotos: true,
-        data: {
-          os: osData,
-          clientes: clientesData,
-          tecnicos: tecnicosData,
-          terceiros: terceirosData,
-        },
-      };
+      const backup = await apiFetch("/projects/admin/backup/full");
 
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
       downloadJsonFile(backup, `backup-completo-${stamp}.json`);
