@@ -346,7 +346,33 @@ export default function NovaOSPage() {
   }
 
   async function salvarOS() {
-    if (!cliente || !tecnicoId || !solicitanteNome) {
+    const clienteResolvido =
+      clienteSelecionado?.cliente ||
+      findClienteRegistro({
+        cliente,
+        subcliente,
+        unidade,
+        marca,
+        clientes: clientesDB,
+      })?.cliente ||
+      resolveSmartCliente(clienteBusca || cliente, clientesDB)?.cliente ||
+      cliente;
+    const subclienteResolvido =
+      isDASA
+        ? ""
+        : clienteSelecionado?.subcliente ||
+          findClienteRegistro({
+            cliente: clienteResolvido,
+            subcliente,
+            unidade,
+            marca,
+            clientes: clientesDB,
+          })?.subcliente ||
+          subcliente;
+    const tecnicoSelecionado = tecnicoId.trim();
+    const solicitanteResolvido = solicitanteNome.trim();
+
+    if (!clienteResolvido.trim() || !tecnicoSelecionado || !solicitanteResolvido) {
       alert("Cliente, técnico e solicitante são obrigatórios");
       return;
     }
@@ -355,16 +381,16 @@ export default function NovaOSPage() {
 
     try {
       const formData = new FormData();
-      formData.append("cliente", cliente);
-      formData.append("subcliente", isDASA ? "" : subcliente);
-      formData.append("endereco", endereco);
-      formData.append("telefone", telefone);
-      formData.append("email", email);
-      formData.append("marca", isDASA ? marca : "");
-      formData.append("unidade", isDASA ? unidade : "");
-      formData.append("detalhamento", detalhamento);
-      formData.append("tecnicoId", tecnicoId);
-      formData.append("solicitante_nome", solicitanteNome);
+      formData.append("cliente", clienteResolvido.trim());
+      formData.append("subcliente", subclienteResolvido.trim());
+      formData.append("endereco", endereco.trim());
+      formData.append("telefone", telefone.trim());
+      formData.append("email", email.trim());
+      formData.append("marca", isDASA ? marca.trim() : "");
+      formData.append("unidade", isDASA ? unidade.trim() : "");
+      formData.append("detalhamento", detalhamento.trim());
+      formData.append("tecnicoId", tecnicoSelecionado);
+      formData.append("solicitante_nome", solicitanteResolvido);
       formData.append("tipo_manutencao", tipoManutencao);
       formData.append("prioridade", prioridade);
       formData.append("equipamento_catalogo_id", tipoManutencao === "PREVENTIVA" ? equipamentoCatalogoId : "");
@@ -457,6 +483,11 @@ export default function NovaOSPage() {
                 setBuscaClientesErro("");
 
                 const query = v.trim();
+                const match = resolveSmartCliente(query, clientesDB);
+                if (match) {
+                  selecionarClienteDB(match);
+                  return;
+                }
                 if (debounceRef.current) clearTimeout(debounceRef.current);
                 if (query.length >= 1) {
                   setMostrarLista(true);
@@ -469,7 +500,7 @@ export default function NovaOSPage() {
                 }
               }}
               onBlur={() => {
-                const match = resolveExactCliente(clienteBusca, clientesDB);
+                const match = resolveSmartCliente(clienteBusca, clientesDB);
                 if (match) selecionarClienteDB(match);
                 setTimeout(() => setMostrarLista(false), 150);
               }}
@@ -776,6 +807,20 @@ function resolveExactCliente(query: string, options: ClienteSugestao[]) {
     dedupeClientes(options).find((item) => normalizeText(formatClienteLabel(item)) === q) ||
     null
   );
+}
+
+function resolveSmartCliente(query: string, options: ClienteSugestao[]) {
+  const exact = resolveExactCliente(query, options);
+  if (exact) return exact;
+
+  const q = normalizeText(query);
+  if (!q) return null;
+
+  const lista = dedupeClientes(options);
+  const porNome = lista.filter((item) => normalizeText(item.cliente || "") === q);
+  if (porNome.length === 1) return porNome[0];
+
+  return null;
 }
 
 function findClienteRegistro({
