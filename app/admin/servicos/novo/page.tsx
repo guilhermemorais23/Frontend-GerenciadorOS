@@ -19,7 +19,8 @@ type ClienteSugestao = {
 };
 
 type Tecnico = {
-  _id: string;
+  _id?: string;
+  id?: string;
   nome: string;
   telefone?: string;
 };
@@ -76,6 +77,7 @@ export default function NovaOSPage() {
   const [fotoProblema, setFotoProblema] = useState<File | null>(null);
 
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
+  const [tecnicosErro, setTecnicosErro] = useState("");
   const [tecnicoId, setTecnicoId] = useState("");
   const [catalogoEquipamentos, setCatalogoEquipamentos] = useState<EquipamentoCatalogo[]>([]);
   const [equipamentoCatalogoId, setEquipamentoCatalogoId] = useState("");
@@ -95,8 +97,14 @@ export default function NovaOSPage() {
 
   useEffect(() => {
     apiFetch("/auth/tecnicos")
-      .then((data) => setTecnicos(Array.isArray(data) ? (data as Tecnico[]) : []))
-      .catch(() => setTecnicos([]));
+      .then((data) => {
+        setTecnicos(Array.isArray(data) ? (data as Tecnico[]) : []);
+        setTecnicosErro("");
+      })
+      .catch((err: unknown) => {
+        setTecnicos([]);
+        setTecnicosErro(err instanceof Error ? err.message : "Erro ao carregar técnicos");
+      });
 
     apiFetch("/clientes")
       .then((data) => {
@@ -369,11 +377,22 @@ export default function NovaOSPage() {
             clientes: clientesDB,
           })?.subcliente ||
           subcliente;
-    const tecnicoSelecionado = tecnicoId.trim();
-    const solicitanteResolvido = solicitanteNome.trim();
+    const tecnicoResolvido =
+      tecnicoId.trim() ||
+      getTecnicoKey(tecnicos.find((t) => getTecnicoKey(t) === tecnicoId) || null);
+    const solicitanteResolvido =
+      solicitanteNome.trim() ||
+      solicitantesVinculados.find((s) => s._id === solicitanteVinculadoId)?.nome?.trim() ||
+      "";
 
-    if (!clienteResolvido.trim() || !tecnicoSelecionado || !solicitanteResolvido) {
-      alert("Cliente, técnico e solicitante são obrigatórios");
+    const camposFaltando = [
+      !clienteResolvido.trim() ? "cliente" : "",
+      !tecnicoResolvido ? "técnico" : "",
+      !solicitanteResolvido ? "solicitante" : "",
+    ].filter(Boolean);
+
+    if (camposFaltando.length > 0) {
+      alert(`Preencha/selecione: ${camposFaltando.join(", ")}.`);
       return;
     }
 
@@ -389,7 +408,7 @@ export default function NovaOSPage() {
       formData.append("marca", isDASA ? marca.trim() : "");
       formData.append("unidade", isDASA ? unidade.trim() : "");
       formData.append("detalhamento", detalhamento.trim());
-      formData.append("tecnicoId", tecnicoSelecionado);
+      formData.append("tecnicoId", tecnicoResolvido);
       formData.append("solicitante_nome", solicitanteResolvido);
       formData.append("tipo_manutencao", tipoManutencao);
       formData.append("prioridade", prioridade);
@@ -674,11 +693,12 @@ export default function NovaOSPage() {
             <select className="w-full rounded-xl border border-slate-200 px-3 py-2.5" value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)}>
               <option value="">Selecione o técnico</option>
               {tecnicos.map((t) => (
-                <option key={t._id} value={t._id}>
+                <option key={getTecnicoKey(t) || t.nome} value={getTecnicoKey(t)}>
                   {t.nome}
                 </option>
               ))}
             </select>
+            {tecnicosErro && <p className="mt-1 text-sm text-rose-600">{tecnicosErro}</p>}
           </label>
             </>
           )}
@@ -821,6 +841,10 @@ function resolveSmartCliente(query: string, options: ClienteSugestao[]) {
   if (porNome.length === 1) return porNome[0];
 
   return null;
+}
+
+function getTecnicoKey(tecnico: Tecnico | null) {
+  return String(tecnico?._id || tecnico?.id || "").trim();
 }
 
 function findClienteRegistro({
