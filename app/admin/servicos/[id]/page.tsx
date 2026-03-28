@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
-import { REPORT_CHANNELS, formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
+import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSDetalhe = {
   _id?: string;
@@ -78,7 +78,7 @@ type MaterialSolicitado = {
   observacao?: string;
 };
 
-type DeliveryChannel = typeof REPORT_CHANNELS[number];
+type DeliveryChannel = "EMAIL";
 
 type ValidationResponse = {
   message?: string;
@@ -100,7 +100,7 @@ export default function DetalheOSPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [timer, setTimer] = useState<TimerData | null>(null);
   const [events, setEvents] = useState<Array<{ _id: string; old_status?: string; new_status?: string; createdAt?: string }>>([]);
-  const [deliveryChannel, setDeliveryChannel] = useState<DeliveryChannel>("WHATSAPP");
+  const [deliveryChannel] = useState<DeliveryChannel>("EMAIL");
   const [deliveryPhone, setDeliveryPhone] = useState("");
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
@@ -273,40 +273,18 @@ export default function DetalheOSPage() {
 
           {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
             <div className="grid w-full gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 sm:grid-cols-2">
-              <label className="text-sm font-semibold text-slate-700">
-                Canal de envio
-                <select
-                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
-                  value={deliveryChannel}
-                  onChange={(e) => setDeliveryChannel(e.target.value as DeliveryChannel)}
-                >
-                  <option value="WHATSAPP">WhatsApp</option>
-                  <option value="EMAIL">Email</option>
-                  <option value="BOTH">WhatsApp + Email</option>
-                </select>
+              <div className="rounded-xl border border-emerald-200 bg-white px-3 py-2 text-sm font-semibold text-emerald-700">
+                Canal de envio: Email
+              </div>
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Email de entrega
+                <input
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                  placeholder="email@cliente.com"
+                  value={deliveryEmail}
+                  onChange={(e) => setDeliveryEmail(e.target.value)}
+                />
               </label>
-              {deliveryChannel !== "EMAIL" && (
-                <label className="text-sm font-semibold text-slate-700">
-                  Telefone com DDD
-                  <input
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                    placeholder="Telefone com DDD"
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                  />
-                </label>
-              )}
-              {deliveryChannel !== "WHATSAPP" && (
-                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                  Email de entrega
-                  <input
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                    placeholder="email@cliente.com"
-                    value={deliveryEmail}
-                    onChange={(e) => setDeliveryEmail(e.target.value)}
-                  />
-                </label>
-              )}
               <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
                 Mensagem
                 <textarea
