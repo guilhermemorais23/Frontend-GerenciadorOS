@@ -242,8 +242,13 @@ export default function NovaOSPage() {
   }
 
   async function salvarOS() {
-    if (!cliente || !tecnicoId || !solicitanteNome) {
-      alert("Cliente, técnico e solicitante são obrigatórios");
+    const faltando: string[] = [];
+    if (!cliente.trim()) faltando.push("cliente");
+    if (!tecnicoId.trim()) faltando.push("tecnico");
+    if (!solicitanteNome.trim()) faltando.push("solicitante");
+
+    if (faltando.length > 0) {
+      alert(`Preencha antes de salvar: ${faltando.join(", ")}`);
       return;
     }
 

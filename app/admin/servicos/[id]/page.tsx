@@ -1,9 +1,10 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { type ReactNode, useEffect, useState } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
+import { ArrowLeft, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
-import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
+import { REPORT_CHANNELS, formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSDetalhe = {
   _id?: string;
@@ -77,9 +78,21 @@ type MaterialSolicitado = {
   observacao?: string;
 };
 
+type DeliveryChannel = typeof REPORT_CHANNELS[number];
+
+type ValidationResponse = {
+  message?: string;
+  delivery?: {
+    channel?: string;
+    whatsapp?: { success?: boolean; endpoint?: string };
+    email?: { success?: boolean; to?: string };
+  };
+};
+
 export default function DetalheOSPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
 
   const [os, setOs] = useState<OSDetalhe | null>(null);
@@ -87,7 +100,11 @@ export default function DetalheOSPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [timer, setTimer] = useState<TimerData | null>(null);
   const [events, setEvents] = useState<Array<{ _id: string; old_status?: string; new_status?: string; createdAt?: string }>>([]);
+  const [deliveryChannel, setDeliveryChannel] = useState<DeliveryChannel>("WHATSAPP");
   const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryEmail, setDeliveryEmail] = useState("");
+  const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [printHandled, setPrintHandled] = useState(false);
 
   useEffect(() => {
     carregarOS();
@@ -95,11 +112,25 @@ export default function DetalheOSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (!os || printHandled) return;
+    if (searchParams.get("print") !== "1") return;
+
+    const timerId = window.setTimeout(() => {
+      window.print();
+      setPrintHandled(true);
+    }, 250);
+
+    return () => window.clearTimeout(timerId);
+  }, [os, printHandled, searchParams]);
+
   async function carregarOS() {
     try {
       const data = await apiFetch(`/projects/admin/view/${id}`);
       setOs(data as OSDetalhe);
       setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
+      setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
+      setDeliveryMessage(buildDeliveryMessage(data as OSDetalhe, id));
       try {
         const timerData = await apiFetch(`/os/${id}/timer`);
         setTimer(timerData as TimerData);
@@ -145,21 +176,23 @@ export default function DetalheOSPage() {
 
   async function validarOS() {
     try {
-      await apiFetch(`/os/${id}/validate`, {
+      const data = (await apiFetch(`/os/${id}/validate`, {
         method: "POST",
         body: JSON.stringify({
-          channel: "WHATSAPP",
-          delivery_email: "",
+          channel: deliveryChannel,
+          delivery_email: deliveryEmail,
           delivery_phone_e164: deliveryPhone,
+          custom_message: deliveryMessage,
         }),
-      });
-      const numero = String(deliveryPhone || "").replace(/\D/g, "");
-      if (numero) {
-        const texto = `OS ${os?.osNumero || id} validada. O relatório em PDF foi liberado no sistema.`;
-        window.location.href = `https://wa.me/55${numero}?text=${encodeURIComponent(texto)}`;
-      } else {
-        alert("OS validada pelo admin");
+      })) as ValidationResponse;
+      const partes = [data.message || "OS validada com sucesso"];
+      if (data.delivery?.whatsapp?.success) {
+        partes.push("WhatsApp enviado");
       }
+      if (data.delivery?.email?.success) {
+        partes.push(`Email enviado para ${data.delivery.email.to || deliveryEmail}`);
+      }
+      alert(partes.join("\n"));
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
@@ -210,8 +243,8 @@ export default function DetalheOSPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Erro ao baixar PDF");
+    } catch {
+      window.print();
     }
   }
 
@@ -234,32 +267,82 @@ export default function DetalheOSPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
-          <button onClick={gerarPDF} className="rounded-xl bg-sky-700 px-4 py-2 text-sm font-bold text-white hover:bg-sky-800">Gerar PDF</button>
+          <ActionButton onClick={gerarPDF} icon={<Printer size={16} />} variant="primary" iconOnly>
+            Gerar PDF
+          </ActionButton>
 
           {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                placeholder="Telefone com DDD"
-                value={deliveryPhone}
-                onChange={(e) => setDeliveryPhone(e.target.value)}
-              />
-              <button onClick={validarOS} className="rounded-xl bg-teal-700 px-4 py-2 text-sm font-bold text-white hover:bg-teal-800">Validar e Enviar no WhatsApp</button>
+            <div className="grid w-full gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 sm:grid-cols-2">
+              <label className="text-sm font-semibold text-slate-700">
+                Canal de envio
+                <select
+                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700"
+                  value={deliveryChannel}
+                  onChange={(e) => setDeliveryChannel(e.target.value as DeliveryChannel)}
+                >
+                  <option value="WHATSAPP">WhatsApp</option>
+                  <option value="EMAIL">Email</option>
+                  <option value="BOTH">WhatsApp + Email</option>
+                </select>
+              </label>
+              {deliveryChannel !== "EMAIL" && (
+                <label className="text-sm font-semibold text-slate-700">
+                  Telefone com DDD
+                  <input
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                    placeholder="Telefone com DDD"
+                    value={deliveryPhone}
+                    onChange={(e) => setDeliveryPhone(e.target.value)}
+                  />
+                </label>
+              )}
+              {deliveryChannel !== "WHATSAPP" && (
+                <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                  Email de entrega
+                  <input
+                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                    placeholder="email@cliente.com"
+                    value={deliveryEmail}
+                    onChange={(e) => setDeliveryEmail(e.target.value)}
+                  />
+                </label>
+              )}
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Mensagem
+                <textarea
+                  className="mt-1 min-h-28 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700"
+                  value={deliveryMessage}
+                  onChange={(e) => setDeliveryMessage(e.target.value)}
+                />
+              </label>
+              <ActionButton onClick={validarOS} icon={<Send size={16} />} variant="success">
+                Validar e enviar
+              </ActionButton>
             </div>
           )}
           {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.VALIDADA_PELO_ADMIN, STATUS.CANCELADA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.VALIDADA_PELO_ADMIN | typeof STATUS.CANCELADA) && (
-            <button onClick={reabrirOS} className="rounded-xl bg-indigo-700 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-800">Reabrir OS</button>
+            <ActionButton onClick={reabrirOS} icon={<RotateCcw size={16} />} variant="dark">
+              Reabrir OS
+            </ActionButton>
           )}
 
           {userRole === "admin" && (
             <>
-              <button onClick={() => router.push(`/admin/servicos/${id}/editar`)} className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-bold text-white hover:bg-amber-600">Editar</button>
-              <button onClick={cancelarOS} className="rounded-xl bg-orange-600 px-4 py-2 text-sm font-bold text-white hover:bg-orange-700">Cancelar</button>
-              <button onClick={excluirOS} className="rounded-xl bg-rose-700 px-4 py-2 text-sm font-bold text-white hover:bg-rose-800">Excluir</button>
+              <ActionButton onClick={() => router.push(`/admin/servicos/${id}/editar`)} icon={<FilePenLine size={16} />} variant="secondary" iconOnly>
+                Editar
+              </ActionButton>
+              <ActionButton onClick={cancelarOS} icon={<XCircle size={16} />} variant="warning" iconOnly>
+                Cancelar
+              </ActionButton>
+              <ActionButton onClick={excluirOS} icon={<Trash2 size={16} />} variant="danger" iconOnly>
+                Excluir
+              </ActionButton>
             </>
           )}
 
-          <button onClick={() => router.back()} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">Voltar</button>
+          <ActionButton onClick={() => router.back()} icon={<ArrowLeft size={16} />} variant="secondary">
+            Voltar
+          </ActionButton>
         </div>
 
         <div className="grid gap-4 text-sm text-slate-700 sm:grid-cols-2">
@@ -287,8 +370,8 @@ export default function DetalheOSPage() {
           <Info label="Retomada" value={formatDate(os.data_retomada_atendimento)} />
           <Info label="Finalização técnico" value={formatDate(os.data_finalizacao_tecnico)} />
           <Info label="Validação admin" value={formatDate(os.data_validacao_admin)} />
-          <Info label="Assinatura técnico" value={os.assinatura_tecnico} />
-          <Info label="Assinatura cliente" value={os.assinatura_cliente} />
+          <SignatureInfo label="Assinatura técnico" value={os.assinatura_tecnico} />
+          <SignatureInfo label="Assinatura cliente" value={os.assinatura_cliente} />
           <Info label="Cliente nome" value={os.cliente_nome} />
           <Info label="Cliente função" value={os.cliente_funcao} />
           <Info label="Cliente não assinou" value={os.cliente_nao_assinou ? "Sim" : "Não"} />
@@ -298,14 +381,14 @@ export default function DetalheOSPage() {
         {(os.botao_gps_endereco || os.botao_ligar_telefone) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {os.botao_gps_endereco && (
-              <a href={os.botao_gps_endereco} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
+              <ActionLink href={os.botao_gps_endereco} icon={<MapPinned size={16} />} target="_blank" rel="noreferrer">
                 Abrir GPS
-              </a>
+              </ActionLink>
             )}
             {os.botao_ligar_telefone && (
-              <a href={os.botao_ligar_telefone} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100">
+              <ActionLink href={os.botao_ligar_telefone} icon={<Phone size={16} />}>
                 Ligar
-              </a>
+              </ActionLink>
             )}
           </div>
         )}
@@ -403,11 +486,98 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
   );
 }
 
+function buildDeliveryMessage(os: OSDetalhe | null, id: string) {
+  const numero = os?.osNumero || id;
+  const cliente = os?.cliente || "cliente";
+  const solicitante = os?.solicitante_nome ? `\nSolicitante: ${os.solicitante_nome}` : "";
+  return `Olá! A OS ${numero} do cliente ${cliente} foi validada pelo admin.${solicitante}\n\nSe precisar de suporte, responda esta mensagem.`;
+}
+
+function ActionButton({
+  children,
+  onClick,
+  icon,
+  variant = "secondary",
+  iconOnly = false,
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  icon: ReactNode;
+  variant?: "primary" | "secondary" | "success" | "warning" | "danger" | "dark";
+  iconOnly?: boolean;
+}) {
+  const styles = {
+    primary: "border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+    secondary: "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50",
+    success: "border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100",
+    warning: "border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100",
+    danger: "border border-rose-200 bg-rose-50 text-rose-800 hover:bg-rose-100",
+    dark: "border border-slate-900 bg-slate-900 text-white hover:bg-slate-800",
+  } as const;
+
+  return (
+    <button
+      onClick={onClick}
+      title={typeof children === "string" ? children : undefined}
+      aria-label={typeof children === "string" ? children : undefined}
+      className={`inline-flex items-center justify-center rounded-xl text-sm font-bold transition ${
+        iconOnly ? "h-10 w-10 px-0 py-0" : "gap-2 px-4 py-2"
+      } ${styles[variant]}`}
+    >
+      {icon}
+      {!iconOnly && children}
+    </button>
+  );
+}
+
+function ActionLink({
+  children,
+  href,
+  icon,
+  target,
+  rel,
+}: {
+  children: ReactNode;
+  href: string;
+  icon: ReactNode;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+    >
+      {icon}
+      {children}
+    </a>
+  );
+}
+
 function Info({ label, value }: { label: string; value?: string | null }) {
   return (
     <div>
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
       <p className="font-semibold text-slate-800">{value || "-"}</p>
+    </div>
+  );
+}
+
+function SignatureInfo({ label, value }: { label: string; value?: string | null }) {
+  const isImage = Boolean(value && String(value).startsWith("data:image/"));
+
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      {isImage ? (
+        <div className="mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white p-2">
+          <img src={String(value)} alt={label} className="h-24 w-full object-contain" />
+        </div>
+      ) : (
+        <p className="font-semibold text-slate-800">{value || "-"}</p>
+      )}
     </div>
   );
 }

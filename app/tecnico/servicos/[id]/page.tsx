@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -166,56 +167,66 @@ export default function ServicoPage() {
           {!os.data_inicio_deslocamento || os.data_fim_deslocamento ? (
             <button
               onClick={() => mudarDeslocamento("iniciar")}
-              className="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-600"
+              title="Iniciar deslocamento"
+              aria-label="Iniciar deslocamento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-800 transition hover:bg-amber-100"
             >
-              Iniciar deslocamento
+              <CarFront size={16} />
             </button>
           ) : (
             <button
               onClick={() => mudarDeslocamento("finalizar")}
-              className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-700"
+              title="Finalizar deslocamento"
+              aria-label="Finalizar deslocamento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-amber-300 bg-amber-100 text-amber-900 transition hover:bg-amber-200"
             >
-              Finalizar deslocamento
+              <CircleStop size={16} />
             </button>
           )}
 
           {status === STATUS.ABERTA && (
             <button
               onClick={() => mudarStatus("iniciar")}
-              className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+              title="Iniciar atendimento"
+              aria-label="Iniciar atendimento"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-800 transition hover:bg-sky-100"
             >
-              Iniciar atendimento
+              <Play size={16} />
             </button>
           )}
 
           {status === STATUS.EM_ATENDIMENTO && (
             <button
               onClick={() => mudarStatus("pausar")}
-              className="rounded-xl bg-fuchsia-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-fuchsia-700"
+              title="Pausar"
+              aria-label="Pausar"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-violet-800 transition hover:bg-violet-100"
             >
-              Pausar
+              <Pause size={16} />
             </button>
           )}
 
           {status === STATUS.PAUSADA && (
             <button
               onClick={() => mudarStatus("retomar")}
-              className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+              title="Retomar"
+              aria-label="Retomar"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-sky-200 bg-sky-50 text-sky-800 transition hover:bg-sky-100"
             >
-              Retomar
+              <Play size={16} />
             </button>
           )}
 
           <button
             onClick={() => router.push(`/tecnico/servicos/${id}/antes`)}
-            className="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-sky-700"
+            className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
           >
             Registrar ANTES
           </button>
 
           <button
             onClick={() => router.push(`/tecnico/servicos/${id}/depois`)}
-            className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             disabled={!canGoDepois}
           >
             Registrar DEPOIS e Finalizar
@@ -223,9 +234,11 @@ export default function ServicoPage() {
 
           <button
             onClick={() => router.push("/tecnico")}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100"
+            title="Voltar"
+            aria-label="Voltar"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
           >
-            Voltar
+            <ArrowLeft size={16} />
           </button>
         </div>
 
@@ -238,10 +251,22 @@ export default function ServicoPage() {
         {(os.botao_gps_endereco || os.botao_ligar_telefone) && (
           <div className="mt-4 flex flex-wrap gap-2">
             {os.botao_gps_endereco && (
-              <a href={os.botao_gps_endereco} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100">Abrir GPS</a>
+              <a
+                href={os.botao_gps_endereco}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                <MapPinned size={16} />
+                Abrir GPS
+              </a>
             )}
             {os.botao_ligar_telefone && (
-              <a href={os.botao_ligar_telefone} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100">
+              <a
+                href={os.botao_ligar_telefone}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Phone size={16} />
                 Ligar
               </a>
             )}

@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { API_URL, apiFetch } from "@/app/lib/api";
-import { formatDate, isOpenStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS, STATUS_OPTIONS } from "@/app/lib/os";
+import { ArrowRight, Eye, Printer } from "lucide-react";
+import { apiFetch } from "@/app/lib/api";
+import { formatDate, isOpenStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type OSItem = {
   _id: string;
@@ -23,6 +24,32 @@ type OSItem = {
   data_abertura?: string;
   tipo_manutencao?: string;
   solicitante_nome?: string;
+  endereco?: string;
+  telefone?: string;
+  email?: string;
+  prioridade?: string;
+  antes?: HistoricoBloco;
+  depois?: HistoricoBloco;
+  assinatura_tecnico?: string;
+  assinatura_cliente?: string;
+  cliente_nome?: string;
+  cliente_funcao?: string;
+  materiais_solicitados?: MaterialSolicitado[];
+};
+
+type HistoricoBloco = {
+  relatorio?: string;
+  observacao?: string;
+  fotos?: string[];
+};
+
+type MaterialSolicitado = {
+  nome?: string;
+  fabricante?: string;
+  modelo?: string;
+  quantidade?: number;
+  unidade?: string;
+  observacao?: string;
 };
 
 type MetricsResponse = {
@@ -36,7 +63,29 @@ type MetricsResponse = {
   total_pendentes?: number;
 };
 
-const STATUS_CONCLUIDAS = "CONCLUIDAS";
+const STATUS_FINALIZADAS = "FINALIZADAS";
+const STATUS_ESPERANDO_VALIDACAO = "ESPERANDO_VALIDACAO";
+
+function getOsSequence(osNumero?: string) {
+  const match = String(osNumero || "").match(/^(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function sortByOsAscending(items: OSItem[]) {
+  return [...items].sort((a, b) => {
+    const diff = getOsSequence(a.osNumero) - getOsSequence(b.osNumero);
+    if (diff !== 0) return diff;
+    return String(a.osNumero || "").localeCompare(String(b.osNumero || ""));
+  });
+}
+
+function sortByOsDescending(items: OSItem[]) {
+  return [...items].sort((a, b) => {
+    const diff = getOsSequence(b.osNumero) - getOsSequence(a.osNumero);
+    if (diff !== 0) return diff;
+    return String(b.osNumero || "").localeCompare(String(a.osNumero || ""));
+  });
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -87,8 +136,8 @@ export default function AdminDashboard() {
             total_em_atendimento: Number(metricas.total_em_atendimento || 0),
             total_pausadas: Number(metricas.total_pausadas || 0),
             total_finalizadas_tecnico: Number(metricas.total_finalizadas_tecnico || 0),
+            total_validadas_admin: Number(metricas.total_validadas_admin || metricas.total_fechadas || 0),
             total_fechadas: Number(metricas.total_fechadas || 0),
-            total_pendentes: Number(metricas.total_pendentes || 0),
           });
         } else {
           setMetrics(null);
@@ -114,41 +163,174 @@ export default function AdminDashboard() {
     }
   }
 
-  async function baixarOS(os: OSItem) {
+  async function baixarOSRapido(os: OSItem) {
     try {
       const osId = os._id || os.id;
       if (!osId) throw new Error("OS sem identificador");
 
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/os/${osId}/report?variant=client&force=true`, {
-        method: "GET",
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-        cache: "no-store",
-      });
+      const detalhe = (await apiFetch(`/projects/admin/view/${osId}`)) as OSItem;
 
-      if (!res.ok) {
-        let message = "Erro ao baixar OS";
-        const raw = await res.text();
-        if (raw) {
-          try {
-            const data = JSON.parse(raw) as { error?: string; message?: string };
-            message = data.error || data.message || message;
-          } catch {
-            message = raw;
+      const { jsPDF } = await import("jspdf");
+      const pdf = new jsPDF({ unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const marginX = 14;
+      const contentWidth = pageWidth - marginX * 2;
+      let y = 16;
+
+      const tecnicoNome =
+        (typeof detalhe.tecnico === "object" ? detalhe.tecnico?.nome : detalhe.tecnico) ||
+        detalhe.tecnicoNome ||
+        "-";
+
+      const ensureSpace = (heightNeeded: number) => {
+        if (y + heightNeeded <= pageHeight - 14) return;
+        pdf.addPage();
+        y = 16;
+      };
+
+      const drawHeader = () => {
+        pdf.setFillColor(15, 23, 42);
+        pdf.roundedRect(marginX, y, contentWidth, 24, 3, 3, "F");
+        pdf.setFillColor(245, 158, 11);
+        pdf.roundedRect(marginX + 4, y + 4, 20, 16, 2, 2, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(12);
+        pdf.text("SERT", marginX + 8, y + 14);
+        pdf.setFontSize(16);
+        pdf.text(`RELATORIO OS ${detalhe.osNumero || ""}`.trim(), marginX + 28, y + 10);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+        pdf.text("Ordem de servico - Gerenciador", marginX + 28, y + 17);
+        y += 30;
+      };
+
+      const drawSectionTitle = (title: string) => {
+        ensureSpace(12);
+        pdf.setFillColor(241, 245, 249);
+        pdf.roundedRect(marginX, y, contentWidth, 10, 2, 2, "F");
+        pdf.setTextColor(30, 41, 59);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(11);
+        pdf.text(title, marginX + 4, y + 6.8);
+        y += 14;
+      };
+
+      const drawField = (label: string, value?: string | null) => {
+        const safeValue = String(value || "-");
+        const wrapped = pdf.splitTextToSize(safeValue, contentWidth - 42);
+        ensureSpace(Math.max(8, wrapped.length * 5 + 2));
+        pdf.setTextColor(51, 65, 85);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.text(`${label}:`, marginX, y);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(wrapped, marginX + 40, y);
+        y += Math.max(8, wrapped.length * 5 + 2);
+      };
+
+      const drawImageGrid = async (title: string, fotos?: string[]) => {
+        if (!Array.isArray(fotos) || fotos.length === 0) return;
+        drawSectionTitle(title);
+        const imageWidth = 56;
+        const imageHeight = 42;
+        const gap = 6;
+        let col = 0;
+
+        for (let index = 0; index < fotos.length; index += 1) {
+          if (col === 0) {
+            ensureSpace(imageHeight + 10);
+          }
+
+          const x = marginX + col * (imageWidth + gap);
+          const imageData = fotos[index]?.startsWith("data:image/")
+            ? fotos[index]
+            : `data:image/jpeg;base64,${fotos[index]}`;
+          const imageFormat = imageData.startsWith("data:image/png") ? "PNG" : "JPEG";
+
+          pdf.setDrawColor(203, 213, 225);
+          pdf.roundedRect(x, y, imageWidth, imageHeight, 2, 2);
+          pdf.addImage(imageData, imageFormat, x + 1, y + 1, imageWidth - 2, imageHeight - 2);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(8);
+          pdf.setTextColor(71, 85, 105);
+          pdf.text(`Foto ${index + 1}`, x, y + imageHeight + 4);
+
+          col += 1;
+          if (col === 3) {
+            col = 0;
+            y += imageHeight + 10;
           }
         }
-        throw new Error(message);
+
+        if (col !== 0) {
+          y += imageHeight + 10;
+        }
+      };
+
+      const drawSignature = (title: string, signature?: string | null) => {
+        if (!signature) return;
+        ensureSpace(42);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(10);
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(title, marginX, y);
+        y += 4;
+        pdf.setDrawColor(203, 213, 225);
+        pdf.roundedRect(marginX, y, 80, 32, 2, 2);
+        if (String(signature).startsWith("data:image/")) {
+          pdf.addImage(String(signature), "PNG", marginX + 2, y + 2, 76, 28);
+        }
+        y += 38;
+      };
+
+      drawHeader();
+
+      drawSectionTitle("Dados principais");
+      drawField("OS", detalhe.osNumero || osId);
+      drawField("Status", statusLabel(detalhe.status));
+      drawField("Cliente", detalhe.cliente);
+      drawField("Solicitante", detalhe.solicitante_nome);
+      drawField("Tipo", detalhe.tipo_manutencao);
+      drawField("Tecnico", tecnicoNome);
+      drawField("Abertura", formatDate(detalhe.data_abertura || detalhe.createdAt));
+      drawField("Telefone", detalhe.telefone);
+      drawField("Email", detalhe.email);
+      drawField("Endereco", detalhe.endereco);
+
+      drawSectionTitle("Descricao do servico");
+      drawField("Detalhamento", detalhe.detalhamento);
+
+      drawSectionTitle("ANTES");
+      drawField("Parecer inicial", detalhe.antes?.relatorio);
+      drawField("Observacao inicial", detalhe.antes?.observacao);
+      await drawImageGrid("Fotos do ANTES", detalhe.antes?.fotos);
+
+      drawSectionTitle("DEPOIS");
+      drawField("Parecer final", detalhe.depois?.relatorio);
+      drawField("Observacao final", detalhe.depois?.observacao);
+      await drawImageGrid("Fotos do DEPOIS", detalhe.depois?.fotos);
+
+      if (Array.isArray(detalhe.materiais_solicitados) && detalhe.materiais_solicitados.length > 0) {
+        drawSectionTitle("Materiais");
+        detalhe.materiais_solicitados.forEach((material, index) => {
+          drawField(
+            `Item ${index + 1}`,
+            `${material.nome || "-"} | ${material.quantidade ?? 0} ${material.unidade || "un"}${
+              material.fabricante ? ` | ${material.fabricante}` : ""
+            }${material.modelo ? ` | ${material.modelo}` : ""}${material.observacao ? ` | ${material.observacao}` : ""}`
+          );
+        });
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `RELATORIO-OS-${os.osNumero || osId}.pdf`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
+      drawSectionTitle("Assinaturas");
+      drawField("Cliente", detalhe.cliente_nome || "-");
+      drawField("Funcao", detalhe.cliente_funcao || "-");
+      drawSignature("Assinatura do tecnico", detalhe.assinatura_tecnico);
+      drawSignature("Assinatura do cliente", detalhe.assinatura_cliente);
+
+      pdf.save(`RELATORIO-OS-${detalhe.osNumero || osId}.pdf`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao baixar OS");
     }
@@ -167,19 +349,19 @@ export default function AdminDashboard() {
       abertas: metrics?.total_abertas ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.ABERTA).length,
       atendimento: metrics?.total_em_atendimento ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.EM_ATENDIMENTO).length,
       pausadas: metrics?.total_pausadas ?? osList.filter((o) => normalizeStatus(o.status) === STATUS.PAUSADA).length,
-      pendentes:
+      esperandoValidacao:
         metrics
-          ? (metrics.total_abertas ?? 0) + (metrics.total_em_atendimento ?? 0) + (metrics.total_pausadas ?? 0)
+          ? (metrics.total_finalizadas_tecnico ?? 0)
           : osList.filter((o) => {
               const s = normalizeStatus(o.status);
-              return s === STATUS.ABERTA || s === STATUS.EM_ATENDIMENTO || s === STATUS.PAUSADA;
+              return s === STATUS.FINALIZADA_PELO_TECNICO;
             }).length,
       finalizadas:
         metrics
-          ? (metrics.total_finalizadas_tecnico ?? 0) + (metrics.total_fechadas ?? 0)
+          ? (metrics.total_validadas_admin ?? metrics.total_fechadas ?? 0)
           : osList.filter((o) => {
               const s = normalizeStatus(o.status);
-              return s === STATUS.FINALIZADA_PELO_TECNICO || s === STATUS.VALIDADA_PELO_ADMIN;
+              return s === STATUS.VALIDADA_PELO_ADMIN;
             }).length,
     };
   }, [isProductionDeploy, metrics, osList]);
@@ -187,25 +369,25 @@ export default function AdminDashboard() {
   const listaFiltrada = useMemo(() => {
     return osList.filter((os) => {
       const statusAtual = isProductionDeploy ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
-      const finalizadaOuValidada =
-        statusAtual === STATUS.FINALIZADA_PELO_TECNICO ||
-        statusAtual === STATUS.VALIDADA_PELO_ADMIN ||
-        statusAtual === "concluido";
+      const esperandoValidacao = statusAtual === STATUS.FINALIZADA_PELO_TECNICO;
+      const finalizada = statusAtual === STATUS.VALIDADA_PELO_ADMIN || statusAtual === "concluido";
 
       if (statusFiltro) {
-        if (statusFiltro === STATUS_CONCLUIDAS) {
-          if (!finalizadaOuValidada) return false;
+        if (statusFiltro === STATUS_FINALIZADAS) {
+          if (!finalizada) return false;
+        } else if (statusFiltro === STATUS_ESPERANDO_VALIDACAO) {
+          if (!esperandoValidacao) return false;
         } else if (statusAtual !== statusFiltro) {
           return false;
         }
       }
 
       const filtroEhConcluida =
-        statusFiltro === STATUS_CONCLUIDAS ||
-        statusFiltro === STATUS.FINALIZADA_PELO_TECNICO ||
+        statusFiltro === STATUS_FINALIZADAS ||
         statusFiltro === STATUS.VALIDADA_PELO_ADMIN ||
         statusFiltro === "concluido";
-      if (!busca.trim() && !filtroEhConcluida && finalizadaOuValidada) return false;
+      const filtroEhEsperando = statusFiltro === STATUS_ESPERANDO_VALIDACAO || statusFiltro === STATUS.FINALIZADA_PELO_TECNICO;
+      if (!busca.trim() && !filtroEhConcluida && !filtroEhEsperando && (finalizada || esperandoValidacao)) return false;
 
       const texto = `
         ${os.cliente || ""}
@@ -234,26 +416,34 @@ export default function AdminDashboard() {
 
   const grupos = useMemo(() => {
     const ativas: OSItem[] = [];
-    const concluidas: OSItem[] = [];
+    const esperandoValidacao: OSItem[] = [];
+    const finalizadas: OSItem[] = [];
 
     for (const os of listaFiltrada) {
       const statusAtual = isProductionDeploy ? legacyStatusBucket(os.status) : normalizeStatus(os.status);
-      const finalizadaOuValidada =
-        statusAtual === STATUS.FINALIZADA_PELO_TECNICO ||
-        statusAtual === STATUS.VALIDADA_PELO_ADMIN ||
-        statusAtual === "concluido";
+      const isEsperandoValidacao = statusAtual === STATUS.FINALIZADA_PELO_TECNICO;
+      const isFinalizada = statusAtual === STATUS.VALIDADA_PELO_ADMIN || statusAtual === "concluido";
 
-      if (finalizadaOuValidada) concluidas.push(os);
+      if (isEsperandoValidacao) esperandoValidacao.push(os);
+      else if (isFinalizada) finalizadas.push(os);
       else ativas.push(os);
     }
 
-    return { ativas, concluidas };
+    return {
+      ativas: sortByOsAscending(ativas),
+      esperandoValidacao: sortByOsAscending(esperandoValidacao),
+      finalizadas: sortByOsDescending(finalizadas),
+    };
   }, [isProductionDeploy, listaFiltrada]);
 
-  const mostrarConcluidas =
+  const mostrarEsperandoValidacao =
     Boolean(busca.trim()) ||
-    statusFiltro === STATUS_CONCLUIDAS ||
-    statusFiltro === STATUS.FINALIZADA_PELO_TECNICO ||
+    statusFiltro === STATUS_ESPERANDO_VALIDACAO ||
+    statusFiltro === STATUS.FINALIZADA_PELO_TECNICO;
+
+  const mostrarFinalizadas =
+    Boolean(busca.trim()) ||
+    statusFiltro === STATUS_FINALIZADAS ||
     statusFiltro === STATUS.VALIDADA_PELO_ADMIN ||
     statusFiltro === "concluido";
 
@@ -266,17 +456,17 @@ export default function AdminDashboard() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {isProductionDeploy ? (
           <>
-            <Card titulo="Aguardando Técnico" valor={contadores.aguardando ?? 0} cor="bg-yellow-500" />
-            <Card titulo="Em Andamento" valor={contadores.andamento ?? 0} cor="bg-blue-600" />
-            <Card titulo="Concluídas" valor={contadores.concluido ?? 0} cor="bg-green-600" />
+            <Card titulo="Aguardando Técnico" valor={contadores.aguardando ?? 0} cor="bg-yellow-500" onClick={() => setStatusFiltro("aguardando_tecnico")} active={statusFiltro === "aguardando_tecnico"} />
+            <Card titulo="Em Andamento" valor={contadores.andamento ?? 0} cor="bg-blue-600" onClick={() => setStatusFiltro("em_andamento")} active={statusFiltro === "em_andamento"} />
+            <Card titulo="Finalizadas" valor={contadores.concluido ?? 0} cor="bg-green-600" onClick={() => setStatusFiltro("concluido")} active={statusFiltro === "concluido"} />
           </>
         ) : (
           <>
-            <Card titulo="Abertas" valor={contadores.abertas ?? 0} cor="bg-amber-500" />
-            <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" />
-            <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" />
-            <Card titulo="Pendentes" valor={contadores.pendentes ?? 0} cor="bg-indigo-600" />
-            <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" />
+            <Card titulo="Abertas" valor={contadores.abertas ?? 0} cor="bg-amber-500" onClick={() => setStatusFiltro(STATUS.ABERTA)} active={statusFiltro === STATUS.ABERTA} />
+            <Card titulo="Em andamento" valor={contadores.atendimento ?? 0} cor="bg-sky-600" onClick={() => setStatusFiltro(STATUS.EM_ATENDIMENTO)} active={statusFiltro === STATUS.EM_ATENDIMENTO} />
+            <Card titulo="Pausadas" valor={contadores.pausadas ?? 0} cor="bg-purple-600" onClick={() => setStatusFiltro(STATUS.PAUSADA)} active={statusFiltro === STATUS.PAUSADA} />
+            <Card titulo="Esperando validacao" valor={contadores.esperandoValidacao ?? 0} cor="bg-amber-700" onClick={() => setStatusFiltro(STATUS_ESPERANDO_VALIDACAO)} active={statusFiltro === STATUS_ESPERANDO_VALIDACAO} />
+            <Card titulo="Finalizadas" valor={contadores.finalizadas ?? 0} cor="bg-teal-700" onClick={() => setStatusFiltro(STATUS_FINALIZADAS)} active={statusFiltro === STATUS_FINALIZADAS} />
           </>
         )}
       </div>
@@ -296,12 +486,12 @@ export default function AdminDashboard() {
             </>
           ) : (
             <>
-              <option value={STATUS_CONCLUIDAS}>Concluídas (todas)</option>
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {statusLabel(s)}
-                </option>
-              ))}
+              <option value={STATUS.ABERTA}>Aberta</option>
+              <option value={STATUS.EM_ATENDIMENTO}>Em andamento</option>
+              <option value={STATUS.PAUSADA}>Pausada</option>
+              <option value={STATUS_ESPERANDO_VALIDACAO}>Esperando validação</option>
+              <option value={STATUS_FINALIZADAS}>Finalizadas</option>
+              <option value={STATUS.CANCELADA}>Cancelada</option>
             </>
           )}
         </select>
@@ -329,33 +519,60 @@ export default function AdminDashboard() {
       </div>
 
       <div className="space-y-3">
-        {grupos.ativas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOS))}
+        {grupos.ativas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOSRapido))}
 
-        {mostrarConcluidas && grupos.concluidas.length > 0 && (
+        {mostrarEsperandoValidacao && grupos.esperandoValidacao.length > 0 && (
           <>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
-              Finalizadas / Validadas
+              Esperando validação
             </div>
-            {grupos.concluidas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOS))}
+            {grupos.esperandoValidacao.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOSRapido))}
           </>
         )}
 
-        {grupos.ativas.length === 0 && (!mostrarConcluidas || grupos.concluidas.length === 0) && (
+        {mostrarFinalizadas && grupos.finalizadas.length > 0 && (
+          <>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
+              Finalizadas
+            </div>
+            {grupos.finalizadas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOSRapido))}
+          </>
+        )}
+
+        {grupos.ativas.length === 0 &&
+          (!mostrarEsperandoValidacao || grupos.esperandoValidacao.length === 0) &&
+          (!mostrarFinalizadas || grupos.finalizadas.length === 0) && (
           <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-slate-600">
             Nenhuma OS encontrada para os filtros aplicados.
           </p>
-        )}
+          )}
       </div>
     </div>
   );
 }
 
-function Card({ titulo, valor, cor }: { titulo: string; valor: number; cor: string }) {
+function Card({
+  titulo,
+  valor,
+  cor,
+  onClick,
+  active,
+}: {
+  titulo: string;
+  valor: number;
+  cor: string;
+  onClick: () => void;
+  active: boolean;
+}) {
   return (
-    <div className={`${cor} rounded-2xl p-4 text-white shadow`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`${cor} rounded-2xl p-4 text-left text-white shadow transition hover:-translate-y-0.5 hover:shadow-md ${active ? "ring-4 ring-slate-200" : ""}`}
+    >
       <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{titulo}</p>
       <p className="mt-1 text-3xl font-extrabold">{valor}</p>
-    </div>
+    </button>
   );
 }
 
@@ -363,7 +580,7 @@ function renderOsCard(
   os: OSItem,
   isProductionDeploy: boolean,
   router: { push: (href: string) => void },
-  onDownload: (os: OSItem) => void
+  onQuickDownload: (os: OSItem) => void
 ) {
   const tecnicoNome =
     (typeof os.tecnico === "object" ? os.tecnico?.nome : os.tecnico) ||
@@ -420,16 +637,42 @@ function renderOsCard(
         <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700">OS em aberto</p>
       )}
 
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex justify-end gap-2">
         <button
           type="button"
-          className="rounded-xl border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100"
+          title="Baixar OS"
+          aria-label="Baixar OS"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
           onClick={(e) => {
             e.stopPropagation();
-            onDownload(os);
+            onQuickDownload(os);
           }}
         >
-          Baixar OS
+          <Printer size={16} />
+        </button>
+        <button
+          type="button"
+          title="Preview"
+          aria-label="Preview"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/admin/servicos/${osId}`);
+          }}
+        >
+          <Eye size={16} />
+        </button>
+        <button
+          type="button"
+          title="Abrir detalhes"
+          aria-label="Abrir detalhes"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/admin/servicos/${osId}`);
+          }}
+        >
+          <ArrowRight size={16} />
         </button>
       </div>
     </div>

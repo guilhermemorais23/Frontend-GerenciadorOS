@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MapPinned, Phone } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import { formatDate, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
@@ -27,10 +28,11 @@ type Servico = {
 
 export default function TecnicoPage() {
   const router = useRouter();
+  const FILTRO_TODAS = "__TODAS__";
   const FILTRO_FINALIZADAS = "__FINALIZADAS__";
 
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [filtro, setFiltro] = useState(STATUS.ABERTA);
+  const [filtro, setFiltro] = useState(FILTRO_TODAS);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -63,6 +65,12 @@ export default function TecnicoPage() {
         retomar: "resume",
       };
       await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
+
+      if (acao === "iniciar") {
+        router.push(`/tecnico/servicos/${id}/antes`);
+        return;
+      }
+
       await carregarServicos();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");
@@ -78,6 +86,7 @@ export default function TecnicoPage() {
   }
 
   const filtros = [
+    { label: "Todas", value: FILTRO_TODAS },
     { label: "Abertas", value: STATUS.ABERTA },
     { label: "Em andamento", value: STATUS.EM_ATENDIMENTO },
     { label: "Pausadas", value: STATUS.PAUSADA },
@@ -85,18 +94,14 @@ export default function TecnicoPage() {
   ];
 
   const listaFiltrada = useMemo(() => {
-    const prioridadePeso: Record<string, number> = {
-      ALTA: 0,
-      MEDIA: 1,
-      BAIXA: 2,
-    };
-
     return servicos.filter((s) => {
       const status = normalizeStatus(s.status);
       const concluida = status === STATUS.FINALIZADA_PELO_TECNICO || status === STATUS.VALIDADA_PELO_ADMIN;
       const termo = busca.trim().toLowerCase();
 
-      if (filtro === FILTRO_FINALIZADAS) {
+      if (filtro === FILTRO_TODAS) {
+        // sem filtro adicional
+      } else if (filtro === FILTRO_FINALIZADAS) {
         if (!concluida) return false;
       } else {
         if (concluida) return false;
@@ -118,13 +123,14 @@ export default function TecnicoPage() {
 
       return texto.includes(termo);
     }).sort((a, b) => {
-      const pa = prioridadePeso[String(a.prioridade || "MEDIA").toUpperCase()] ?? 1;
-      const pb = prioridadePeso[String(b.prioridade || "MEDIA").toUpperCase()] ?? 1;
-      if (pa !== pb) return pa - pb;
-
       const oa = Number(String(a.osNumero || "").split("-")[0]) || 0;
       const ob = Number(String(b.osNumero || "").split("-")[0]) || 0;
-      return ob - oa;
+
+      if (filtro === FILTRO_FINALIZADAS) {
+        return ob - oa;
+      }
+
+      return oa - ob;
     });
   }, [servicos, filtro, busca]);
 
@@ -178,8 +184,24 @@ export default function TecnicoPage() {
         <div className="space-y-3">
           {listaFiltrada.map((s) => {
             const status = normalizeStatus(s.status);
+            const telefoneHref = s.telefone ? `tel:${String(s.telefone).replace(/\s+/g, "")}` : "";
+            const gpsHref = s.endereco
+              ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.endereco)}`
+              : "";
             return (
-              <div key={s._id} className="rounded-2xl border border-slate-200 p-4">
+              <div
+                key={s._id}
+                role="button"
+                tabIndex={0}
+                className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+                onClick={() => router.push(`/tecnico/servicos/${s._id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(`/tecnico/servicos/${s._id}`);
+                  }
+                }}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-lg font-extrabold">{s.osNumero || "Sem OS"}</p>
@@ -208,10 +230,40 @@ export default function TecnicoPage() {
                   </p>
                 </div>
 
+                {(gpsHref || telefoneHref) && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {gpsHref && (
+                      <a
+                        href={gpsHref}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MapPinned size={14} />
+                        Endereço
+                      </a>
+                    )}
+                    {telefoneHref && (
+                      <a
+                        href={telefoneHref}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone size={14} />
+                        Cliente
+                      </a>
+                    )}
+                  </div>
+                )}
+
                 <div className="mt-4 flex flex-wrap gap-2">
                   {status === STATUS.ABERTA && (
                     <button
-                      onClick={() => mudarStatus(s._id, "iniciar")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        mudarStatus(s._id, "iniciar");
+                      }}
                       className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800"
                     >
                       Iniciar atendimento
@@ -220,7 +272,10 @@ export default function TecnicoPage() {
 
                   {status === STATUS.EM_ATENDIMENTO && (
                     <button
-                      onClick={() => mudarStatus(s._id, "pausar")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        mudarStatus(s._id, "pausar");
+                      }}
                       className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700"
                     >
                       Pausar
@@ -229,7 +284,10 @@ export default function TecnicoPage() {
 
                   {status === STATUS.PAUSADA && (
                     <button
-                      onClick={() => mudarStatus(s._id, "retomar")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        mudarStatus(s._id, "retomar");
+                      }}
                       className="rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800"
                     >
                       Retomar
@@ -237,7 +295,10 @@ export default function TecnicoPage() {
                   )}
 
                   <button
-                    onClick={() => router.push(`/tecnico/servicos/${s._id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/tecnico/servicos/${s._id}`);
+                    }}
                     className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
                   >
                     Ver detalhes

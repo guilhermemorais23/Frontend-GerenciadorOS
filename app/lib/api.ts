@@ -24,6 +24,17 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     cache: options.cache || "no-store",
   });
 
+  if (res.status === 401 && typeof window !== "undefined") {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("nome");
+
+    const isLoginRoute = window.location.pathname.startsWith("/login");
+    if (!isLoginRoute) {
+      window.location.href = "/login?reason=session-expired";
+    }
+  }
+
   if (!res.ok) {
     let message = "Erro no servidor";
     const raw = await res.text();

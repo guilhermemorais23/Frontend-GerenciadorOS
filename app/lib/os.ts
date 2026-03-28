@@ -9,8 +9,13 @@
 
 const LEGACY_TO_CURRENT: Record<string, string> = {
   aguardando_tecnico: STATUS.ABERTA,
+  aberta: STATUS.ABERTA,
   em_andamento: STATUS.EM_ATENDIMENTO,
   em_atendimento: STATUS.EM_ATENDIMENTO,
+  pausada: STATUS.PAUSADA,
+  pausado: STATUS.PAUSADA,
+  finalizada_pelo_tecnico: STATUS.FINALIZADA_PELO_TECNICO,
+  validada_pelo_admin: STATUS.VALIDADA_PELO_ADMIN,
   concluido: STATUS.VALIDADA_PELO_ADMIN,
   concluida: STATUS.VALIDADA_PELO_ADMIN,
   finalizado: STATUS.VALIDADA_PELO_ADMIN,
@@ -47,8 +52,8 @@ export function statusLabel(rawStatus?: string | null) {
   if (status === STATUS.ABERTA) return "Aberta";
   if (status === STATUS.EM_ATENDIMENTO) return "Em andamento";
   if (status === STATUS.PAUSADA) return "Pausada";
-  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "Finalizada pelo técnico";
-  if (status === STATUS.VALIDADA_PELO_ADMIN) return "Validada pelo admin";
+  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "Esperando validação";
+  if (status === STATUS.VALIDADA_PELO_ADMIN) return "Finalizada";
   if (status === STATUS.CANCELADA) return "Cancelada";
   return status;
 }
@@ -59,8 +64,8 @@ export function statusBadgeClass(rawStatus?: string | null) {
   if (status === STATUS.ABERTA) return "bg-amber-100 text-amber-700 border border-amber-200";
   if (status === STATUS.EM_ATENDIMENTO) return "bg-sky-100 text-sky-700 border border-sky-200";
   if (status === STATUS.PAUSADA) return "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200";
-  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "bg-emerald-100 text-emerald-700 border border-emerald-200";
-  if (status === STATUS.VALIDADA_PELO_ADMIN) return "bg-teal-100 text-teal-700 border border-teal-200";
+  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "bg-amber-100 text-amber-800 border border-amber-200";
+  if (status === STATUS.VALIDADA_PELO_ADMIN) return "bg-green-100 text-green-800 border border-green-200";
   if (status === STATUS.CANCELADA) return "bg-rose-100 text-rose-700 border border-rose-200";
   return "bg-slate-100 text-slate-700 border border-slate-200";
 }
@@ -88,8 +93,7 @@ export function formatDate(date?: string | null) {
 export const TIPO_MANUTENCAO = ["CORRETIVA", "PREVENTIVA", "VISTORIA"] as const;
 export const MOTIVOS_NAO_ASSINOU = ["AUSENTE", "FERIAS", "NAO_QUIS_ASSINAR", "OUTROS"] as const;
 export const PRIORIDADES = ["BAIXA", "MEDIA", "ALTA"] as const;
-// Modo temporário: canal de envio apenas WhatsApp web (wa.me)
-export const REPORT_CHANNELS = ["WHATSAPP"] as const;
+export const REPORT_CHANNELS = ["WHATSAPP", "EMAIL", "BOTH"] as const;
 
 export function formatDuration(totalSeconds?: number | null) {
   const seconds = Math.max(0, Number(totalSeconds || 0));
