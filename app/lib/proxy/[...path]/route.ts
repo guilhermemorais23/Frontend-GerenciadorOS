@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const API_URL_RAW =
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://127.0.0.1:10000";
+  "http://127.0.0.1:3001";
 
 const API_URL = API_URL_RAW.replace("://localhost", "://127.0.0.1");
 
@@ -62,7 +62,7 @@ async function forward(req: NextRequest, params: { path: string[] }) {
     const message =
       err instanceof Error
         ? err.message
-        : "Backend indisponivel. Inicie a API local na porta 10000.";
+        : "Backend indisponivel. Inicie a API local na porta 3001.";
 
     return NextResponse.json(
       {

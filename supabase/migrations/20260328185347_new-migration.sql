@@ -1,0 +1,1 @@
+-- Migration de teste criada apenas para validar link e push do projeto Supabase.

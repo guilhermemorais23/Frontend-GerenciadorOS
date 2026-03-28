@@ -3,8 +3,8 @@
 Este projeto esta configurado para usar **somente API local** no desenvolvimento:
 
 - Frontend: `http://localhost:3000`
-- Backend: `http://localhost:10000`
-- Variavel: `NEXT_PUBLIC_API_URL=http://localhost:10000` em `.env.local`
+- Backend: `http://localhost:3001`
+- Variavel: `NEXT_PUBLIC_API_URL=http://localhost:3001` em `.env.local`
 
 ## Rodar backend local
 
