@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
-import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
+import { formatDate, formatDuration, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type HistoricoBloco = {
   relatorio?: string;
@@ -129,7 +129,12 @@ export default function ServicoPage() {
           <p><b>Subcliente:</b> {os.subcliente || "-"}</p>
           <p><b>Solicitante:</b> {os.solicitante_nome || "-"}</p>
           <p><b>Tipo:</b> {os.tipo_manutencao || "-"}</p>
-          <p><b>Prioridade:</b> {os.prioridade || "MEDIA"}</p>
+          <p>
+            <b>Prioridade:</b>{" "}
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${priorityBadgeClass(os.prioridade)}`}>
+              {priorityLabel(os.prioridade)}
+            </span>
+          </p>
           <p><b>Equipamento:</b> {os.equipamento_nome || "-"}</p>
           <p><b>Fabricante:</b> {os.equipamento_fabricante || "-"}</p>
           <p><b>Modelo:</b> {os.equipamento_modelo || "-"}</p>

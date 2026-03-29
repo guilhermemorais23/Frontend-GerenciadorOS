@@ -380,7 +380,7 @@ export default function DepoisPage() {
               </section>
 
               <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                <p className="mb-3 text-sm font-extrabold text-slate-800">Resumo do envio</p>
+                <p className="mb-3 text-sm font-extrabold text-slate-800">DEPOIS</p>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Parecer final</p>
@@ -391,16 +391,16 @@ export default function DepoisPage() {
                     <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{observacao || "Nao informado"}</p>
                   </div>
                 </div>
-              </section>
 
-              <section className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="mb-3 text-sm font-extrabold text-slate-800">Fotos finais</p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {fotos.map((foto, index) => (
-                    <div key={`${foto.name}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                      <img src={URL.createObjectURL(foto)} alt={`Foto final ${index + 1}`} className="h-28 w-full object-cover" />
-                    </div>
-                  ))}
+                <div className="mt-4">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Relatorio fotografico final</p>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {fotos.map((foto, index) => (
+                      <div key={`${foto.name}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        <img src={URL.createObjectURL(foto)} alt={`Foto final ${index + 1}`} className="h-28 w-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </section>
 

@@ -95,6 +95,24 @@ export const MOTIVOS_NAO_ASSINOU = ["AUSENTE", "FERIAS", "NAO_QUIS_ASSINAR", "OU
 export const PRIORIDADES = ["BAIXA", "MEDIA", "ALTA", "URGENTE"] as const;
 export const REPORT_CHANNELS = ["WHATSAPP", "EMAIL", "BOTH"] as const;
 
+export function priorityLabel(rawPriority?: string | null) {
+  const priority = String(rawPriority || "MEDIA").trim().toUpperCase();
+  if (priority === "URGENTE") return "Urgente";
+  if (priority === "ALTA") return "Alta";
+  if (priority === "MEDIA") return "Media";
+  if (priority === "BAIXA") return "Leve";
+  return priority;
+}
+
+export function priorityBadgeClass(rawPriority?: string | null) {
+  const priority = String(rawPriority || "MEDIA").trim().toUpperCase();
+  if (priority === "URGENTE") return "bg-red-100 text-red-700 border border-red-200";
+  if (priority === "ALTA") return "bg-amber-100 text-amber-800 border border-amber-200";
+  if (priority === "MEDIA") return "bg-emerald-100 text-emerald-700 border border-emerald-200";
+  if (priority === "BAIXA") return "bg-lime-100 text-lime-700 border border-lime-200";
+  return "bg-slate-100 text-slate-700 border border-slate-200";
+}
+
 export function formatDuration(totalSeconds?: number | null) {
   const seconds = Math.max(0, Number(totalSeconds || 0));
   const h = Math.floor(seconds / 3600);

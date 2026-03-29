@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPinned, Phone } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
-import { formatDate, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
+import { formatDate, normalizeStatus, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type Servico = {
   _id: string;
@@ -305,7 +305,10 @@ export default function TecnicoPage() {
                     <b>Tipo:</b> {s.tipo_manutencao || "-"}
                   </p>
                   <p>
-                    <b>Prioridade:</b> {s.prioridade || "MEDIA"}
+                    <b>Prioridade:</b>{" "}
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${priorityBadgeClass(s.prioridade)}`}>
+                      {priorityLabel(s.prioridade)}
+                    </span>
                   </p>
                   <p>
                     <b>Abertura:</b> {formatDate(s.data_abertura)}
