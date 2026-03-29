@@ -17,7 +17,10 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     headers["Content-Type"] = "application/json";
   }
 
-  const base = typeof window !== "undefined" ? "/lib/proxy" : API_URL;
+  const isBrowser = typeof window !== "undefined";
+  const isFormData = options.body instanceof FormData;
+  const shouldBypassProxy = isBrowser && isFormData;
+  const base = isBrowser ? (shouldBypassProxy ? API_URL : "/lib/proxy") : API_URL;
   const res = await fetch(`${base}${path}`, {
     ...options,
     headers,
