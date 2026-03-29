@@ -180,91 +180,152 @@ export default function AdminDashboard() {
       const pdf = new jsPDF({ unit: "mm", format: "a4" });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const marginX = 14;
+      const marginX = 10;
       const contentWidth = pageWidth - marginX * 2;
-      let y = 16;
+      const footerHeight = 10;
+      let y = 8;
 
       const tecnicoNome =
         (typeof detalhe.tecnico === "object" ? detalhe.tecnico?.nome : detalhe.tecnico) ||
         detalhe.tecnicoNome ||
         "-";
 
-      const ensureSpace = (heightNeeded: number) => {
-        if (y + heightNeeded <= pageHeight - 14) return;
-        pdf.addPage();
-        y = 16;
+      const statusTexto = legacyStatusLabel(detalhe.status, detalhe);
+      const statusCor = dashboardStatusBucket(detalhe) === STATUS_FINALIZADAS ? [34, 197, 94] : [245, 158, 11];
+      const addFooter = () => {
+        pdf.setDrawColor(245, 158, 11);
+        pdf.setLineWidth(0.6);
+        pdf.line(marginX, pageHeight - footerHeight, pageWidth - marginX, pageHeight - footerHeight);
+        pdf.setTextColor(71, 85, 105);
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7);
+        pdf.text("SERTECH Solucoes Integradas Ltda - Av. Recife, 4900 - Estancia, Recife - PE", marginX, pageHeight - 4);
+        pdf.text(`OS: ${detalhe.osNumero || "-"}`, pageWidth - marginX, pageHeight - 4, { align: "right" });
       };
 
-      const drawHeader = () => {
+      const addPage = () => {
+        pdf.addPage();
+        y = 8;
+        drawHeader(true);
+        addFooter();
+      };
+
+      const ensureSpace = (heightNeeded: number) => {
+        if (y + heightNeeded <= pageHeight - footerHeight - 8) return;
+        addPage();
+      };
+
+      const drawHeader = (compact = false) => {
+        const headerHeight = compact ? 22 : 30;
         pdf.setFillColor(15, 23, 42);
-        pdf.roundedRect(marginX, y, contentWidth, 24, 3, 3, "F");
+        pdf.rect(0, y, pageWidth, headerHeight, "F");
+        pdf.setFillColor(21, 101, 192);
+        pdf.roundedRect(marginX + 2, y + 7, 20, 14, 1.5, 1.5, "F");
         pdf.setFillColor(245, 158, 11);
-        pdf.roundedRect(marginX + 4, y + 4, 20, 16, 2, 2, "F");
+        pdf.roundedRect(marginX + 2, y + 20, 10, 4, 1, 1, "F");
         pdf.setTextColor(255, 255, 255);
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(12);
-        pdf.text("SERT", marginX + 8, y + 14);
-        pdf.setFontSize(16);
-        pdf.text(`RELATORIO OS ${detalhe.osNumero || ""}`.trim(), marginX + 28, y + 10);
+        pdf.setFontSize(compact ? 13 : 15);
+        pdf.text(`RELATORIO OS ${detalhe.osNumero || ""}`.trim(), marginX + 28, y + 13);
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(9);
-        pdf.text("Ordem de servico - Gerenciador", marginX + 28, y + 17);
-        y += 30;
+        pdf.setFontSize(7.5);
+        pdf.text("Ordem de Servico  -  Gerenciador", marginX + 28, y + 20);
+        pdf.text(formatDate(detalhe.data_validacao_admin || detalhe.data_abertura || detalhe.createdAt), pageWidth - marginX, y + 8, {
+          align: "right",
+        });
+        pdf.setFillColor(statusCor[0], statusCor[1], statusCor[2]);
+        pdf.roundedRect(pageWidth - 52, y + 9, 34, 8, 2, 2, "F");
+        pdf.setFontSize(7);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(statusTexto, pageWidth - 35, y + 14, { align: "center" });
+        pdf.setDrawColor(245, 158, 11);
+        pdf.setLineWidth(1);
+        pdf.line(0, y + headerHeight, pageWidth, y + headerHeight);
+        y += headerHeight + 6;
       };
 
       const drawSectionTitle = (title: string) => {
-        ensureSpace(12);
-        pdf.setFillColor(241, 245, 249);
-        pdf.roundedRect(marginX, y, contentWidth, 10, 2, 2, "F");
+        ensureSpace(8);
+        pdf.setFillColor(23, 37, 84);
+        pdf.rect(marginX, y, contentWidth, 7, "F");
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.text(title.toUpperCase(), marginX + 3, y + 4.8);
+        y += 9;
+      };
+
+      const drawFieldTable = (rows: Array<[string, string | undefined | null]>) => {
+        const lineHeight = 6;
+        const labelWidth = 28;
+        rows.forEach(([label, value]) => {
+          const text = String(value || "-");
+          const wrapped = pdf.splitTextToSize(text, contentWidth - labelWidth - 6);
+          const rowHeight = Math.max(lineHeight, wrapped.length * 4.5 + 1.5);
+          ensureSpace(rowHeight);
+          pdf.setDrawColor(203, 213, 225);
+          pdf.setFillColor(255, 255, 255);
+          pdf.rect(marginX, y, labelWidth, rowHeight);
+          pdf.rect(marginX + labelWidth, y, contentWidth - labelWidth, rowHeight);
+          pdf.setTextColor(30, 41, 59);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(7.5);
+          pdf.text(`${label}:`, marginX + 2, y + 4.2);
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(7.5);
+          pdf.text(wrapped, marginX + labelWidth + 2, y + 4.2);
+          y += rowHeight;
+        });
+        y += 3;
+      };
+
+      const drawLongField = (label: string, value?: string | null, color: [number, number, number] = [226, 232, 240]) => {
+        const safeValue = String(value || "-");
+        const wrapped = pdf.splitTextToSize(safeValue, contentWidth - 6);
+        const height = Math.max(9, wrapped.length * 4.5 + 3);
+        ensureSpace(height);
+        pdf.setDrawColor(color[0], color[1], color[2]);
+        pdf.rect(marginX, y, contentWidth, height);
         pdf.setTextColor(30, 41, 59);
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(11);
-        pdf.text(title, marginX + 4, y + 6.8);
-        y += 14;
-      };
-
-      const drawField = (label: string, value?: string | null) => {
-        const safeValue = String(value || "-");
-        const wrapped = pdf.splitTextToSize(safeValue, contentWidth - 42);
-        ensureSpace(Math.max(8, wrapped.length * 5 + 2));
-        pdf.setTextColor(51, 65, 85);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
-        pdf.text(`${label}:`, marginX, y);
+        pdf.setFontSize(7.5);
+        pdf.text(label, marginX + 2, y + 3.8);
         pdf.setFont("helvetica", "normal");
-        pdf.text(wrapped, marginX + 40, y);
-        y += Math.max(8, wrapped.length * 5 + 2);
+        pdf.text(wrapped, marginX + 28, y + 3.8);
+        y += height + 3;
       };
 
-      const drawImageGrid = async (title: string, fotos?: string[]) => {
+      const drawImageGrid = async (title: string, fotos?: string[], pageLimit = 4) => {
         if (!Array.isArray(fotos) || fotos.length === 0) return;
         drawSectionTitle(title);
-        const imageWidth = 56;
+        const imageWidth = (contentWidth - 8) / 2;
         const imageHeight = 42;
-        const gap = 6;
+        const gap = 8;
         let col = 0;
+        const visibleFotos = fotos.slice(0, pageLimit);
 
-        for (let index = 0; index < fotos.length; index += 1) {
+        for (let index = 0; index < visibleFotos.length; index += 1) {
           if (col === 0) {
             ensureSpace(imageHeight + 10);
           }
 
           const x = marginX + col * (imageWidth + gap);
-          const imageData = fotos[index]?.startsWith("data:image/")
-            ? fotos[index]
-            : `data:image/jpeg;base64,${fotos[index]}`;
+          const currentFoto = visibleFotos[index];
+          const imageData = currentFoto?.startsWith("data:image/")
+            ? currentFoto
+            : `data:image/jpeg;base64,${currentFoto}`;
           const imageFormat = imageData.startsWith("data:image/png") ? "PNG" : "JPEG";
 
-          pdf.setDrawColor(203, 213, 225);
-          pdf.roundedRect(x, y, imageWidth, imageHeight, 2, 2);
-          pdf.addImage(imageData, imageFormat, x + 1, y + 1, imageWidth - 2, imageHeight - 2);
+          pdf.setDrawColor(title.includes("ANTES") ? 248 : 134, title.includes("ANTES") ? 113 : 239, title.includes("ANTES") ? 113 : 172);
+          pdf.rect(x, y, imageWidth, imageHeight);
+          pdf.addImage(imageData, imageFormat, x + 1.5, y + 1.5, imageWidth - 3, imageHeight - 3);
           pdf.setFont("helvetica", "normal");
-          pdf.setFontSize(8);
+          pdf.setFontSize(7);
           pdf.setTextColor(71, 85, 105);
           pdf.text(`Foto ${index + 1}`, x, y + imageHeight + 4);
 
           col += 1;
-          if (col === 3) {
+          if (col === 2) {
             col = 0;
             y += imageHeight + 10;
           }
@@ -275,53 +336,70 @@ export default function AdminDashboard() {
         }
       };
 
-      const drawSignature = (title: string, signature?: string | null) => {
-        if (!signature) return;
-        ensureSpace(42);
-        pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
-        pdf.setTextColor(51, 65, 85);
-        pdf.text(title, marginX, y);
-        y += 4;
-        pdf.setDrawColor(203, 213, 225);
-        pdf.roundedRect(marginX, y, 80, 32, 2, 2);
-        if (String(signature).startsWith("data:image/")) {
-          pdf.addImage(String(signature), "PNG", marginX + 2, y + 2, 76, 28);
-        }
-        y += 38;
+      const drawSignatureRow = () => {
+        ensureSpace(44);
+        const boxWidth = (contentWidth - 6) / 2;
+        const titles = [
+          { label: "Assinatura do Técnico", value: detalhe.assinatura_tecnico, fallback: tecnicoNome },
+          { label: "Assinatura do Cliente", value: detalhe.assinatura_cliente, fallback: detalhe.cliente || "-" },
+        ];
+
+        titles.forEach((item, index) => {
+          const x = marginX + index * (boxWidth + 6);
+          pdf.setDrawColor(59, 130, 246);
+          pdf.rect(x, y, boxWidth, 30);
+          pdf.setTextColor(30, 41, 59);
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(7.5);
+          pdf.text(item.label, x + 2, y + 4);
+          if (item.value && String(item.value).startsWith("data:image/")) {
+            pdf.addImage(String(item.value), "PNG", x + 2, y + 6, boxWidth - 4, 18);
+          } else {
+            pdf.setFont("helvetica", "normal");
+            pdf.setFontSize(7);
+            pdf.text(String(item.fallback || "-"), x + boxWidth / 2, y + 22, { align: "center" });
+          }
+        });
+        y += 36;
       };
 
       drawHeader();
+      addFooter();
 
       drawSectionTitle("Dados principais");
-      drawField("OS", detalhe.osNumero || osId);
-      drawField("Status", statusLabel(detalhe.status));
-      drawField("Cliente", detalhe.cliente);
-      drawField("Solicitante", detalhe.solicitante_nome);
-      drawField("Tipo", detalhe.tipo_manutencao);
-      drawField("Tecnico", tecnicoNome);
-      drawField("Abertura", formatDate(detalhe.data_abertura || detalhe.createdAt));
-      drawField("Telefone", detalhe.telefone);
-      drawField("Email", detalhe.email);
-      drawField("Endereco", detalhe.endereco);
+      drawFieldTable([
+        ["OS", detalhe.osNumero || osId],
+        ["Status", statusTexto],
+        ["Cliente", detalhe.cliente],
+        ["Solicitante", detalhe.solicitante_nome],
+        ["Tipo", detalhe.tipo_manutencao],
+        ["Técnico", tecnicoNome],
+        ["Abertura", formatDate(detalhe.data_abertura || detalhe.createdAt)],
+        ["Telefone", detalhe.telefone],
+        ["E-mail", detalhe.email],
+        ["Endereço", detalhe.endereco],
+      ]);
 
-      drawSectionTitle("Descricao do servico");
-      drawField("Detalhamento", detalhe.detalhamento);
+      drawSectionTitle("Descrição do serviço");
+      drawLongField("Detalhamento", detalhe.detalhamento);
 
-      drawSectionTitle("ANTES");
-      drawField("Parecer inicial", detalhe.antes?.relatorio);
-      drawField("Observacao inicial", detalhe.antes?.observacao);
-      await drawImageGrid("Fotos do ANTES", detalhe.antes?.fotos);
+      drawSectionTitle("Situação inicial");
+      drawLongField("Parecer inicial", detalhe.antes?.relatorio, [252, 165, 165]);
+      drawLongField("Observações", detalhe.antes?.observacao, [252, 165, 165]);
 
-      drawSectionTitle("DEPOIS");
-      drawField("Parecer final", detalhe.depois?.relatorio);
-      drawField("Observacao final", detalhe.depois?.observacao);
-      await drawImageGrid("Fotos do DEPOIS", detalhe.depois?.fotos);
+      await drawImageGrid("Fotos iniciais", detalhe.antes?.fotos, 2);
+
+      addPage();
+
+      await drawImageGrid("Fotos finais", detalhe.depois?.fotos, 2);
+      drawSectionTitle("Situação final");
+      drawLongField("Parecer final", detalhe.depois?.relatorio, [134, 239, 172]);
+      drawLongField("Observações", detalhe.depois?.observacao, [134, 239, 172]);
 
       if (Array.isArray(detalhe.materiais_solicitados) && detalhe.materiais_solicitados.length > 0) {
         drawSectionTitle("Materiais");
-        detalhe.materiais_solicitados.forEach((material, index) => {
-          drawField(
+        detalhe.materiais_solicitados.slice(0, 3).forEach((material, index) => {
+          drawLongField(
             `Item ${index + 1}`,
             `${material.nome || "-"} | ${material.quantidade ?? 0} ${material.unidade || "un"}${
               material.fabricante ? ` | ${material.fabricante}` : ""
@@ -331,10 +409,7 @@ export default function AdminDashboard() {
       }
 
       drawSectionTitle("Assinaturas");
-      drawField("Cliente", detalhe.cliente_nome || "-");
-      drawField("Funcao", detalhe.cliente_funcao || "-");
-      drawSignature("Assinatura do tecnico", detalhe.assinatura_tecnico);
-      drawSignature("Assinatura do cliente", detalhe.assinatura_cliente);
+      drawSignatureRow();
 
       pdf.save(`RELATORIO-OS-${detalhe.osNumero || osId}.pdf`);
     } catch (err: unknown) {
