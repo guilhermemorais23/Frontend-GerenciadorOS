@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Check, FilePenLine, Send } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import SignaturePad from "@/app/components/SignaturePad";
@@ -29,7 +29,9 @@ type OSTecnico = {
 export default function DepoisPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const returnTo = searchParams.get("returnTo");
 
   const [os, setOs] = useState<OSTecnico | null>(null);
   const [relatorio, setRelatorio] = useState("");
@@ -53,7 +55,7 @@ export default function DepoisPage() {
 
   async function carregarOS() {
     try {
-      const data = (await apiFetch(`/projects/tecnico/view/${id}`)) as OSTecnico;
+      const data = (await apiFetch(`/projects/tecnico/view-lite/${id}`)) as OSTecnico;
       const status = normalizeStatus(data.status);
 
       if (status !== STATUS.EM_ATENDIMENTO && status !== STATUS.PAUSADA) {
@@ -102,7 +104,7 @@ export default function DepoisPage() {
   async function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     const novasFotos = await Promise.all(Array.from(e.target.files).map((f) => comprimirImagem(f)));
-    setFotos((prev) => [...prev, ...novasFotos]);
+    setFotos((prev) => [...prev, ...novasFotos].slice(0, 2));
   }
 
   function removerFoto(index: number) {
@@ -133,8 +135,13 @@ export default function DepoisPage() {
   }
 
   function abrirPreview() {
-    if (fotos.length < 1 || fotos.length > 4) {
-      alert("Adicione de 1 a 4 fotos para finalizar");
+    if (!relatorio.trim()) {
+      alert("Preencha o parecer final");
+      return;
+    }
+
+    if (fotos.length < 1 || fotos.length > 2) {
+      alert("Adicione de 1 a 2 fotos para finalizar");
       return;
     }
 
@@ -176,7 +183,7 @@ export default function DepoisPage() {
       });
 
       alert("OS enviada para o admin com sucesso!");
-      router.push("/tecnico");
+      router.push(returnTo || "/tecnico");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao finalizar OS");
     } finally {
@@ -195,7 +202,7 @@ export default function DepoisPage() {
           <h1 className="text-2xl font-extrabold">DEPOIS e Finalização - {os.osNumero}</h1>
           <button
             type="button"
-            onClick={() => router.push(`/tecnico/servicos/${id}`)}
+            onClick={() => router.push(`/tecnico/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
           >
             Voltar
@@ -209,12 +216,12 @@ export default function DepoisPage() {
         <textarea className="mb-4 w-full rounded-xl border border-slate-200 p-2.5" value={observacao} onChange={(e) => setObservacao(e.target.value)} />
 
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-          Adicionar fotos (1 a 4)
+          Adicionar fotos (1 a 2)
           <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
         </label>
 
-        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
-          {fotos.length} / 4 foto{fotos.length !== 1 && "s"}
+        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 2 ? "text-emerald-700" : "text-rose-700"}`}>
+          {fotos.length} / 2 foto{fotos.length !== 1 && "s"}
         </p>
 
         {fotos.length > 0 && (
@@ -287,14 +294,14 @@ export default function DepoisPage() {
 
         <button
           onClick={abrirPreview}
-          disabled={salvando || fotos.length < 1 || fotos.length > 4}
+          disabled={salvando || fotos.length < 1 || fotos.length > 2 || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Enviando..." : "Finalizar e revisar envio"}
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/tecnico/servicos/${id}`)}
+          onClick={() => router.push(`/tecnico/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
           className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100"
         >
           Voltar para o serviço
@@ -336,7 +343,7 @@ export default function DepoisPage() {
 
                   {Array.isArray(os.antes?.fotos) && os.antes.fotos.length > 0 && (
                     <div>
-                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Fotos iniciais</p>
+                      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Relatório fotográfico inicial</p>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {os.antes.fotos.map((foto, index) => (
                           <div key={`antes-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">

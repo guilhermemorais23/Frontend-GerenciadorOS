@@ -79,7 +79,7 @@ export default function NovoClientePage() {
           <label className="block text-sm font-semibold mb-1">Tipo de Cliente</label>
           <select className="w-full border rounded-lg p-2" value={tipo} onChange={(e) => setTipo(e.target.value as "normal" | "dasa" | "")}>
             <option value="">Selecione</option>
-            <option value="normal">Cliente Normal</option>
+            <option value="normal">Cliente Avulso</option>
             <option value="dasa">DASA</option>
           </select>
         </div>

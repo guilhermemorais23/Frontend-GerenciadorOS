@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, Printer } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
-import { formatDate, isOpenStatus, normalizeStatus, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
+import { formatDate, isOpenStatus, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSItem = {
   _id: string;
@@ -67,11 +67,20 @@ type MetricsResponse = {
   total_pendentes?: number;
 };
 
+type NotificationItem = {
+  _id: string;
+  type?: "CLIENT_REQUEST" | "STATUS_CHANGED" | "SYSTEM" | string;
+  title: string;
+  message: string;
+  os_id?: string | { _id?: string } | null;
+};
+
 const STATUS_AGUARDANDO_TECNICO = "aguardando_tecnico";
 const STATUS_EM_DESLOCAMENTO = "em_deslocamento";
 const STATUS_EM_ANDAMENTO = "em_andamento";
 const STATUS_PAUSADA = "pausada";
 const STATUS_FINALIZADAS = "finalizadas";
+const ADMIN_FILTER_STORAGE_KEY = "admin-dashboard-filters";
 
 function getOsSequence(osNumero?: string) {
   const match = String(osNumero || "").match(/^(\d+)/);
@@ -100,14 +109,31 @@ export default function AdminDashboard() {
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState<MetricsResponse | null>(null);
-
+  const [notificacoes, setNotificacoes] = useState<NotificationItem[]>([]);
   const [statusFiltro, setStatusFiltro] = useState("");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
 
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(ADMIN_FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as {
+          statusFiltro?: string;
+          busca?: string;
+          dataInicio?: string;
+          dataFim?: string;
+        };
+        setStatusFiltro(parsed.statusFiltro || "");
+        setBusca(parsed.busca || "");
+        setDataInicio(parsed.dataInicio || "");
+        setDataFim(parsed.dataFim || "");
+      }
+    } catch {
+      // noop
+    }
+
     const role = localStorage.getItem("role");
     if (role !== "admin") {
       router.replace("/login");
@@ -130,27 +156,31 @@ export default function AdminDashboard() {
     };
   }, [router]);
 
+  useEffect(() => {
+    sessionStorage.setItem(
+      ADMIN_FILTER_STORAGE_KEY,
+      JSON.stringify({ statusFiltro, busca, dataInicio, dataFim })
+    );
+  }, [statusFiltro, busca, dataInicio, dataFim]);
+
   async function carregarOS() {
     try {
       const lista = await apiFetch("/projects/admin/all");
       setOsList(Array.isArray(lista) ? lista : []);
       try {
+        const notificacoesData = await apiFetch("/admin/notifications?unread=true");
+        setNotificacoes(Array.isArray(notificacoesData) ? (notificacoesData as NotificationItem[]) : []);
+      } catch {
+        setNotificacoes([]);
+      }
+      try {
         const month = new Date().toISOString().slice(0, 7);
         const metricas = (await apiFetch(`/dashboard/metrics?month=${month}`)) as MetricsResponse;
         if (metricas && typeof metricas === "object") {
-          setMetrics({
-            total_abertas: Number(metricas.total_abertas || 0),
-            total_em_atendimento: Number(metricas.total_em_atendimento || 0),
-            total_pausadas: Number(metricas.total_pausadas || 0),
-            total_finalizadas_tecnico: Number(metricas.total_finalizadas_tecnico || 0),
-            total_validadas_admin: Number(metricas.total_validadas_admin || metricas.total_fechadas || 0),
-            total_fechadas: Number(metricas.total_fechadas || 0),
-          });
-        } else {
-          setMetrics(null);
+          // metricas carregadas para manter compatibilidade com a rota atual
         }
       } catch {
-        setMetrics(null);
+        // noop
       }
 
     } catch (err: unknown) {
@@ -201,7 +231,7 @@ export default function AdminDashboard() {
         pdf.setTextColor(71, 85, 105);
         pdf.setFont("helvetica", "normal");
         pdf.setFontSize(7);
-        pdf.text("SERTECH Solucoes Integradas Ltda - Av. Recife, 4900 - Estancia, Recife - PE", marginX, pageHeight - 4);
+        pdf.text("SERTECH Solucoes Integradas Ltda", marginX, pageHeight - 4);
         pdf.text(`OS: ${detalhe.osNumero || "-"}`, pageWidth - marginX, pageHeight - 4, { align: "right" });
       };
 
@@ -228,11 +258,13 @@ export default function AdminDashboard() {
         }
         pdf.setTextColor(255, 255, 255);
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(compact ? 13 : 15);
+        pdf.setFontSize(compact ? 15 : 17);
         pdf.text(`RELATORIO OS ${detalhe.osNumero || ""}`.trim(), marginX + 31, y + 13);
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(7.5);
-        pdf.text("Ordem de Servico  -  Gerenciador", marginX + 31, y + 20);
+        pdf.setFontSize(6.5);
+        pdf.text("Solucoes integradas", marginX + 31, y + 18);
+        pdf.setFontSize(9);
+        pdf.text("Ordem de Servico - Gerenciador", marginX + 31, y + 23);
         pdf.text(formatDate(detalhe.data_validacao_admin || detalhe.data_abertura || detalhe.createdAt), pageWidth - marginX, y + 8, {
           align: "right",
         });
@@ -386,18 +418,22 @@ export default function AdminDashboard() {
       drawSectionTitle("Descrição do serviço");
       drawLongField("Detalhamento", detalhe.detalhamento);
 
-      drawSectionTitle("Situação inicial");
-      drawLongField("Parecer inicial", detalhe.antes?.relatorio, [252, 165, 165]);
-      drawLongField("Observações", detalhe.antes?.observacao, [252, 165, 165]);
+      drawSectionTitle("Relatório inicial");
+      drawLongField("Parecer", detalhe.antes?.relatorio, [59, 130, 246]);
+      if (detalhe.antes?.observacao) {
+        drawLongField("Obs", detalhe.antes?.observacao, [59, 130, 246]);
+      }
 
-      await drawImageGrid("Fotos iniciais", detalhe.antes?.fotos, 2);
+      await drawImageGrid("Relatório fotográfico inicial", detalhe.antes?.fotos, 2);
 
       addPage();
 
-      await drawImageGrid("Fotos finais", detalhe.depois?.fotos, 2);
-      drawSectionTitle("Situação final");
-      drawLongField("Parecer final", detalhe.depois?.relatorio, [134, 239, 172]);
-      drawLongField("Observações", detalhe.depois?.observacao, [134, 239, 172]);
+      await drawImageGrid("Relatório fotográfico final", detalhe.depois?.fotos, 2);
+      drawSectionTitle("Relatório final");
+      drawLongField("Parecer", detalhe.depois?.relatorio, [16, 185, 129]);
+      if (detalhe.depois?.observacao) {
+        drawLongField("Obs", detalhe.depois?.observacao, [16, 185, 129]);
+      }
 
       if (Array.isArray(detalhe.materiais_solicitados) && detalhe.materiais_solicitados.length > 0) {
         drawSectionTitle("Materiais");
@@ -475,11 +511,10 @@ export default function AdminDashboard() {
       const db = new Date(b.data_abertura || b.createdAt || 0).getTime();
       return da - db;
     });
-  }, [isProductionDeploy, osList, statusFiltro, busca, dataInicio, dataFim]);
+  }, [osList, statusFiltro, busca, dataInicio, dataFim]);
 
   const grupos = useMemo(() => {
     const ativas: OSItem[] = [];
-    const esperandoValidacao: OSItem[] = [];
     const finalizadas: OSItem[] = [];
 
     for (const os of listaFiltrada) {
@@ -497,6 +532,15 @@ export default function AdminDashboard() {
   const mostrarFinalizadas =
     Boolean(busca.trim()) ||
     statusFiltro === STATUS_FINALIZADAS;
+  const hasFiltroAtivo = Boolean(statusFiltro || busca.trim() || dataInicio || dataFim);
+
+  function limparFiltros() {
+    setStatusFiltro("");
+    setBusca("");
+    setDataInicio("");
+    setDataFim("");
+    sessionStorage.removeItem(ADMIN_FILTER_STORAGE_KEY);
+  }
 
   if (loading) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-6">Carregando...</div>;
@@ -546,6 +590,63 @@ export default function AdminDashboard() {
           value={dataFim}
           onChange={(e) => setDataFim(e.target.value)}
         />
+      </div>
+
+      {hasFiltroAtivo && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={limparFiltros}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+          >
+            Limpar filtros
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-slate-200/70 bg-white p-4">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notificações</p>
+            <h2 className="text-lg font-extrabold text-slate-900">Página inicial</h2>
+          </div>
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+            {notificacoes.length}
+          </span>
+        </div>
+
+        {notificacoes.length === 0 ? (
+          <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Sem notificações pendentes.
+          </p>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2">
+            {notificacoes.slice(0, 6).map((notificacao) => {
+              const osId =
+                typeof notificacao.os_id === "string" ? notificacao.os_id : notificacao.os_id?._id;
+              const href = osId
+                ? notificacao.type === "CLIENT_REQUEST"
+                  ? `/admin/servicos/${osId}/editar?returnTo=${encodeURIComponent("/admin")}`
+                  : `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`
+                : "/admin";
+
+              return (
+                <button
+                  key={notificacao._id}
+                  type="button"
+                  onClick={() => router.push(href)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {notificacao.type === "CLIENT_REQUEST" ? "Cliente" : notificacao.type === "STATUS_CHANGED" ? "Técnico" : "Sistema"}
+                  </p>
+                  <p className="mt-1 text-sm font-bold text-slate-900">{notificacao.title}</p>
+                  <p className="mt-1 text-sm text-slate-600">{notificacao.message}</p>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">
@@ -607,6 +708,7 @@ function renderOsCard(
     os.tecnicoNome ||
     "Não definido";
   const osId = os._id || os.id;
+  const detalheHref = `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`;
 
   if (!osId) return null;
 
@@ -616,11 +718,11 @@ function renderOsCard(
       role="button"
       tabIndex={0}
       className="w-full rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-      onClick={() => router.push(`/admin/servicos/${osId}`)}
+      onClick={() => router.push(detalheHref)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          router.push(`/admin/servicos/${osId}`);
+          router.push(detalheHref);
         }
       }}
     >
@@ -653,6 +755,10 @@ function renderOsCard(
         </p>
       </div>
 
+      <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <b>Descrição inicial:</b> {os.detalhamento || "-"}
+      </div>
+
       {!isProductionDeploy && isOpenStatus(os.status) && (
         <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700">OS em aberto</p>
       )}
@@ -677,7 +783,7 @@ function renderOsCard(
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/admin/servicos/${osId}`);
+            router.push(detalheHref);
           }}
         >
           <Eye size={16} />
@@ -689,7 +795,7 @@ function renderOsCard(
           className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
           onClick={(e) => {
             e.stopPropagation();
-            router.push(`/admin/servicos/${osId}`);
+            router.push(detalheHref);
           }}
         >
           <ArrowRight size={16} />

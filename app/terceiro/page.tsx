@@ -10,15 +10,27 @@ export default function TerceiroPage() {
   const [detalhamento, setDetalhamento] = useState("");
   const [foto, setFoto] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [cliente, setCliente] = useState("");
+  const [subcliente, setSubcliente] = useState("");
+  const [marca, setMarca] = useState("");
+  const [unidade, setUnidade] = useState("");
+  const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const role = localStorage.getItem("role");
-    if (role !== "terceiro") {
+    if (role !== "terceiro" && role !== "cliente") {
       router.replace("/login");
       return;
     }
     const nome = localStorage.getItem("nome") || "";
     if (nome) setSolicitanteNome(nome);
+    setCliente(localStorage.getItem("cliente_vinculado") || "");
+    setSubcliente(localStorage.getItem("subcliente_vinculado") || "");
+    setMarca(localStorage.getItem("marca_vinculada") || "");
+    setUnidade(localStorage.getItem("unidade_vinculada") || "");
+    setTelefone(localStorage.getItem("telefone") || "");
+    setEmail(localStorage.getItem("email") || "");
   }, [router]);
 
   async function solicitarOS() {
@@ -29,9 +41,13 @@ export default function TerceiroPage() {
 
     setEnviando(true);
     try {
-      const nomeTerceiro = localStorage.getItem("nome") || "TERCEIRO";
       const formData = new FormData();
-      formData.append("cliente", `TERCEIRO - ${nomeTerceiro}`);
+      formData.append("cliente", cliente || "Cliente avulso");
+      formData.append("subcliente", subcliente);
+      formData.append("marca", marca);
+      formData.append("unidade", unidade);
+      formData.append("telefone", telefone);
+      formData.append("email", email);
       formData.append("solicitante_nome", solicitanteNome.trim());
       formData.append("detalhamento", detalhamento.trim());
       if (foto) formData.append("foto", foto);
@@ -70,6 +86,24 @@ export default function TerceiroPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Empresa</span>
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+              value={cliente || "Cliente avulso"}
+              disabled
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold text-slate-700">Unidade / Subcliente</span>
+            <input
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5"
+              value={subcliente || unidade || "-"}
+              disabled
+            />
+          </label>
+
           <label className="block">
             <span className="mb-1 block text-sm font-semibold text-slate-700">Solicitante</span>
             <input

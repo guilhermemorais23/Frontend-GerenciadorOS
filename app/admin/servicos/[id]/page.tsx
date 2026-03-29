@@ -82,6 +82,7 @@ type DeliveryChannel = "WHATSAPP" | "EMAIL" | "BOTH";
 
 type ValidationResponse = {
   message?: string;
+  warning?: string;
   delivery?: {
     channel?: string;
     whatsapp?: { success?: boolean; endpoint?: string };
@@ -105,6 +106,7 @@ export default function DetalheOSPage() {
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [printHandled, setPrintHandled] = useState(false);
+  const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
     carregarOS();
@@ -168,7 +170,11 @@ export default function DetalheOSPage() {
 
     try {
       await apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" });
-      router.push("/admin");
+      if (returnTo) {
+        router.push(returnTo);
+        return;
+      }
+      router.back();
     } catch (err: unknown) {
       alert("Erro ao excluir OS: " + (err instanceof Error ? err.message : "erro desconhecido"));
     }
@@ -191,6 +197,9 @@ export default function DetalheOSPage() {
       }
       if (data.delivery?.email?.success) {
         partes.push(`Email enviado para ${data.delivery.email.to || deliveryEmail}`);
+      }
+      if (data.warning) {
+        partes.push(`Aviso: ${data.warning}`);
       }
       alert(partes.join("\n"));
       await carregarOS();
@@ -328,7 +337,7 @@ export default function DetalheOSPage() {
 
           {userRole === "admin" && (
             <>
-              <ActionButton onClick={() => router.push(`/admin/servicos/${id}/editar`)} icon={<FilePenLine size={16} />} variant="secondary" iconOnly>
+              <ActionButton onClick={() => router.push(`/admin/servicos/${id}/editar${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)} icon={<FilePenLine size={16} />} variant="secondary" iconOnly>
                 Editar
               </ActionButton>
               <ActionButton onClick={cancelarOS} icon={<XCircle size={16} />} variant="warning" iconOnly>
@@ -340,7 +349,13 @@ export default function DetalheOSPage() {
             </>
           )}
 
-          <ActionButton onClick={() => router.back()} icon={<ArrowLeft size={16} />} variant="secondary">
+          <ActionButton onClick={() => {
+            if (returnTo) {
+              router.push(returnTo);
+              return;
+            }
+            router.back();
+          }} icon={<ArrowLeft size={16} />} variant="secondary">
             Voltar
           </ActionButton>
         </div>
@@ -478,9 +493,11 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
         <p>
           <b>Parecer:</b> {bloco.relatorio || "-"}
         </p>
-        <p>
-          <b>Observação:</b> {bloco.observacao || "-"}
-        </p>
+        {bloco.observacao ? (
+          <p>
+            <b>Observação:</b> {bloco.observacao}
+          </p>
+        ) : null}
       </div>
     </div>
   );

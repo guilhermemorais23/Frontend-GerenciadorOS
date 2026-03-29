@@ -1,16 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { PRIORIDADES, TIPO_MANUTENCAO } from "@/app/lib/os";
-
-type UploadFotosProps = {
-  fotosExistentes: string[];
-  setFotosExistentes: React.Dispatch<React.SetStateAction<string[]>>;
-  novasFotos: File[];
-  onChange: (files: FileList | null) => void;
-};
 
 type Tecnico = { _id: string; nome: string };
 type EquipamentoCatalogo = {
@@ -40,51 +33,20 @@ type OSDetalhe = {
   equipamento_numero_serie?: string;
   equipamento_patrimonio?: string;
   equipamento_especificacoes?: string;
-  status?: string;
   solicitante_nome?: string;
   tipo_manutencao?: (typeof TIPO_MANUTENCAO)[number];
   prioridade?: (typeof PRIORIDADES)[number];
   tecnico?: { _id?: string };
-  antes?: { relatorio?: string; observacao?: string; fotos?: string[] };
-  depois?: { relatorio?: string; observacao?: string; fotos?: string[] };
+  foto_abertura?: string;
+  problem_photo_url?: string;
 };
-
-function UploadFotos({ fotosExistentes, setFotosExistentes, novasFotos, onChange }: UploadFotosProps) {
-  function removerFoto(index: number) {
-    setFotosExistentes((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-3">
-        {fotosExistentes.map((foto, i) => (
-          <div key={i} className="relative">
-            <img src={`data:image/jpeg;base64,${foto}`} alt={`Foto ${i + 1}`} className="h-32 w-full rounded-lg object-cover" />
-            <button
-              type="button"
-              onClick={() => removerFoto(i)}
-              className="absolute right-1 top-1 rounded bg-rose-600 px-2 text-xs font-bold text-white"
-            >
-              X
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {fotosExistentes.length + novasFotos.length < 4 && (
-        <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 p-4 hover:bg-slate-50">
-          <span className="font-semibold">Adicionar fotos</span>
-          <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => onChange(e.target.files)} />
-        </label>
-      )}
-    </>
-  );
-}
 
 export default function EditarOSPage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const returnTo = searchParams.get("returnTo");
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -100,7 +62,6 @@ export default function EditarOSPage() {
   const [solicitanteNome, setSolicitanteNome] = useState("");
   const [tipoManutencao, setTipoManutencao] = useState<(typeof TIPO_MANUTENCAO)[number]>("CORRETIVA");
   const [prioridade, setPrioridade] = useState<(typeof PRIORIDADES)[number]>("MEDIA");
-
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [tecnicoId, setTecnicoId] = useState("");
   const [catalogoEquipamentos, setCatalogoEquipamentos] = useState<EquipamentoCatalogo[]>([]);
@@ -112,17 +73,8 @@ export default function EditarOSPage() {
   const [equipamentoPatrimonio, setEquipamentoPatrimonio] = useState("");
   const [equipamentoEspecificacoes, setEquipamentoEspecificacoes] = useState("");
   const [orcamentoPrevisto, setOrcamentoPrevisto] = useState("");
+  const [fotoProblema, setFotoProblema] = useState("");
 
-  const [antesRelatorio, setAntesRelatorio] = useState("");
-  const [antesObs, setAntesObs] = useState("");
-  const [antesFotos, setAntesFotos] = useState<string[]>([]);
-  const [novasFotosAntes, setNovasFotosAntes] = useState<File[]>([]);
-
-  const [depoisRelatorio, setDepoisRelatorio] = useState("");
-  const [depoisObs, setDepoisObs] = useState("");
-  const [depoisFotos, setDepoisFotos] = useState<string[]>([]);
-  const [novasFotosDepois, setNovasFotosDepois] = useState<File[]>([]);
-  const [fotoProblema, setFotoProblema] = useState<string>("");
   const isDasa = cliente.trim().toLowerCase() === "dasa";
 
   useEffect(() => {
@@ -130,6 +82,13 @@ export default function EditarOSPage() {
     carregarTecnicos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (tipoManutencao !== "PREVENTIVA") return;
+    apiFetch("/catalog/equipamentos")
+      .then((data) => setCatalogoEquipamentos(Array.isArray(data) ? (data as EquipamentoCatalogo[]) : []))
+      .catch(() => setCatalogoEquipamentos([]));
+  }, [tipoManutencao]);
 
   async function carregarOS() {
     try {
@@ -155,15 +114,7 @@ export default function EditarOSPage() {
       setEquipamentoPatrimonio(data.equipamento_patrimonio || "");
       setEquipamentoEspecificacoes(data.equipamento_especificacoes || "");
       setOrcamentoPrevisto(data.orcamento_previsto || "");
-
-      setAntesRelatorio(data.antes?.relatorio || "");
-      setAntesObs(data.antes?.observacao || "");
-      setAntesFotos(data.antes?.fotos || []);
-
-      setDepoisRelatorio(data.depois?.relatorio || "");
-      setDepoisObs(data.depois?.observacao || "");
-      setDepoisFotos(data.depois?.fotos || []);
-      setFotoProblema((data as OSDetalhe & { foto_abertura?: string; problem_photo_url?: string }).problem_photo_url || (data as OSDetalhe & { foto_abertura?: string }).foto_abertura || "");
+      setFotoProblema(data.problem_photo_url || data.foto_abertura || "");
     } catch (err: unknown) {
       alert("Erro ao carregar OS: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
@@ -175,13 +126,6 @@ export default function EditarOSPage() {
     const data = await apiFetch("/auth/tecnicos");
     setTecnicos(Array.isArray(data) ? (data as Tecnico[]) : []);
   }
-
-  useEffect(() => {
-    if (tipoManutencao !== "PREVENTIVA") return;
-    apiFetch("/catalog/equipamentos")
-      .then((data) => setCatalogoEquipamentos(Array.isArray(data) ? (data as EquipamentoCatalogo[]) : []))
-      .catch(() => setCatalogoEquipamentos([]));
-  }, [tipoManutencao]);
 
   function selecionarEquipamento(idSelecionado: string) {
     setEquipamentoCatalogoId(idSelecionado);
@@ -195,35 +139,10 @@ export default function EditarOSPage() {
     setEquipamentoEspecificacoes(eq.especificacoes_tecnicas || "");
   }
 
-  function handleNovasFotosAntes(files: FileList | null) {
-    if (!files) return;
-    setNovasFotosAntes((prev) => [...prev, ...Array.from(files)]);
-  }
-
-  function handleNovasFotosDepois(files: FileList | null) {
-    if (!files) return;
-    setNovasFotosDepois((prev) => [...prev, ...Array.from(files)]);
-  }
-
-  async function fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve((reader.result as string).split(",")[1]);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function salvarAlteracoes() {
     setSalvando(true);
 
     try {
-      const novasAntesBase64 = [];
-      for (const f of novasFotosAntes) novasAntesBase64.push(await fileToBase64(f));
-
-      const novasDepoisBase64 = [];
-      for (const f of novasFotosDepois) novasDepoisBase64.push(await fileToBase64(f));
-
       await apiFetch(`/projects/admin/update/${id}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -247,20 +166,10 @@ export default function EditarOSPage() {
           equipamento_patrimonio: tipoManutencao === "PREVENTIVA" ? equipamentoPatrimonio : "",
           equipamento_especificacoes: tipoManutencao === "PREVENTIVA" ? equipamentoEspecificacoes : "",
           orcamento_previsto: tipoManutencao === "PREVENTIVA" ? orcamentoPrevisto : "",
-          antes: {
-            relatorio: antesRelatorio,
-            observacao: antesObs,
-            fotos: [...antesFotos, ...novasAntesBase64].slice(0, 4),
-          },
-          depois: {
-            relatorio: depoisRelatorio,
-            observacao: depoisObs,
-            fotos: [...depoisFotos, ...novasDepoisBase64].slice(0, 4),
-          },
         }),
       });
 
-      router.push(`/admin/servicos/${id}`);
+      router.push(`/admin/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
     } catch (err: unknown) {
       alert("Erro ao salvar: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
@@ -277,12 +186,22 @@ export default function EditarOSPage() {
           <h1 className="text-2xl font-extrabold">Editar Ordem de Serviço</h1>
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={() => {
+              if (returnTo) {
+                router.push(returnTo);
+                return;
+              }
+              router.back();
+            }}
             className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-100"
           >
             Voltar
           </button>
         </div>
+
+        <p className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          Aqui o admin ajusta apenas a descrição inicial e o encaminhamento para o técnico. Os registros de ANTES, DEPOIS, informações e fotos do técnico permanecem preservados.
+        </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <input className="rounded-xl border border-slate-200 p-2.5" placeholder="Cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
@@ -327,7 +246,7 @@ export default function EditarOSPage() {
           </>
         )}
 
-        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={3} placeholder="Detalhamento" value={detalhamento} onChange={(e) => setDetalhamento(e.target.value)} />
+        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={4} placeholder="Descrição inicial e encaminhamento para o técnico" value={detalhamento} onChange={(e) => setDetalhamento(e.target.value)} />
 
         {tipoManutencao === "PREVENTIVA" && (
           <>
@@ -359,18 +278,6 @@ export default function EditarOSPage() {
             </div>
           </>
         )}
-
-        <h2 className="pt-2 text-lg font-extrabold">ANTES</h2>
-        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={2} placeholder="Relatório" value={antesRelatorio} onChange={(e) => setAntesRelatorio(e.target.value)} />
-        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={2} placeholder="Observação" value={antesObs} onChange={(e) => setAntesObs(e.target.value)} />
-
-        <UploadFotos fotosExistentes={antesFotos} setFotosExistentes={setAntesFotos} novasFotos={novasFotosAntes} onChange={handleNovasFotosAntes} />
-
-        <h2 className="pt-2 text-lg font-extrabold">DEPOIS</h2>
-        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={2} placeholder="Relatório" value={depoisRelatorio} onChange={(e) => setDepoisRelatorio(e.target.value)} />
-        <textarea className="w-full rounded-xl border border-slate-200 p-2.5" rows={2} placeholder="Observação" value={depoisObs} onChange={(e) => setDepoisObs(e.target.value)} />
-
-        <UploadFotos fotosExistentes={depoisFotos} setFotosExistentes={setDepoisFotos} novasFotos={novasFotosDepois} onChange={handleNovasFotosDepois} />
 
         <button
           onClick={salvarAlteracoes}

@@ -294,7 +294,7 @@ export default function AdminTerceirosPage() {
           </button>
         </div>
         <p className="mt-1 text-sm text-slate-600">
-          Cliente normal usa subcliente. Cliente DASA usa marca e unidade.
+          Cliente avulso usa subcliente. Cliente DASA usa marca e unidade.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">

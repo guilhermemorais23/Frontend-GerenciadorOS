@@ -24,19 +24,48 @@ type Servico = {
   tipo_manutencao?: string;
   solicitante_nome?: string;
   prioridade?: string;
+  detalhamento?: string;
 };
 
 export default function TecnicoPage() {
   const router = useRouter();
+  const FILTRO_INICIAL = "__INICIAL__";
   const FILTRO_TODAS = "__TODAS__";
   const FILTRO_FINALIZADAS = "__FINALIZADAS__";
+  const TECNICO_FILTER_STORAGE_KEY = "tecnico-dashboard-filters";
+  const TECNICO_CACHE_KEY = "tecnico-dashboard-cache";
 
   const [servicos, setServicos] = useState<Servico[]>([]);
-  const [filtro, setFiltro] = useState(FILTRO_TODAS);
+  const [filtro, setFiltro] = useState(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingFresh, setLoadingFresh] = useState(false);
 
   useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(TECNICO_FILTER_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { filtro?: string; busca?: string };
+        setFiltro(parsed.filtro || FILTRO_INICIAL);
+        setBusca(parsed.busca || "");
+      }
+    } catch {
+      // noop
+    }
+
+    try {
+      const cached = sessionStorage.getItem(TECNICO_CACHE_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached) as Servico[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setServicos(parsed);
+          setLoading(false);
+        }
+      }
+    } catch {
+      // noop
+    }
+
     const role = localStorage.getItem("role");
     if (role !== "tecnico") {
       router.replace("/login");
@@ -46,14 +75,22 @@ export default function TecnicoPage() {
     carregarServicos();
   }, [router]);
 
+  useEffect(() => {
+    sessionStorage.setItem(TECNICO_FILTER_STORAGE_KEY, JSON.stringify({ filtro, busca }));
+  }, [filtro, busca]);
+
   async function carregarServicos() {
+    setLoadingFresh(true);
     try {
       const data = await apiFetch("/projects/tecnico/my");
-      setServicos(Array.isArray(data) ? data : []);
+      const lista = Array.isArray(data) ? data : [];
+      setServicos(lista);
+      sessionStorage.setItem(TECNICO_CACHE_KEY, JSON.stringify(lista));
     } catch (err: unknown) {
       alert("Erro ao carregar serviços: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
       setLoading(false);
+      setLoadingFresh(false);
     }
   }
 
@@ -67,7 +104,7 @@ export default function TecnicoPage() {
       await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
 
       if (acao === "iniciar") {
-        router.push(`/tecnico/servicos/${id}/antes`);
+        router.push(`/tecnico/servicos/${id}/antes?returnTo=/tecnico`);
         return;
       }
 
@@ -86,6 +123,7 @@ export default function TecnicoPage() {
   }
 
   const filtros = [
+    { label: "Página inicial", value: FILTRO_INICIAL },
     { label: "Todas", value: FILTRO_TODAS },
     { label: "Abertas", value: STATUS.ABERTA },
     { label: "Em andamento", value: STATUS.EM_ATENDIMENTO },
@@ -99,7 +137,11 @@ export default function TecnicoPage() {
       const concluida = status === STATUS.FINALIZADA_PELO_TECNICO || status === STATUS.VALIDADA_PELO_ADMIN;
       const termo = busca.trim().toLowerCase();
 
-      if (filtro === FILTRO_TODAS) {
+      if (filtro === FILTRO_INICIAL) {
+        if (![STATUS.ABERTA, STATUS.PAUSADA].includes(status as typeof STATUS.ABERTA | typeof STATUS.PAUSADA)) {
+          return false;
+        }
+      } else if (filtro === FILTRO_TODAS) {
         // sem filtro adicional
       } else if (filtro === FILTRO_FINALIZADAS) {
         if (!concluida) return false;
@@ -126,6 +168,13 @@ export default function TecnicoPage() {
       const oa = Number(String(a.osNumero || "").split("-")[0]) || 0;
       const ob = Number(String(b.osNumero || "").split("-")[0]) || 0;
 
+      if ((a.prioridade || "").toUpperCase() === "URGENTE" && (b.prioridade || "").toUpperCase() !== "URGENTE") {
+        return -1;
+      }
+      if ((b.prioridade || "").toUpperCase() === "URGENTE" && (a.prioridade || "").toUpperCase() !== "URGENTE") {
+        return 1;
+      }
+
       if (filtro === FILTRO_FINALIZADAS) {
         return ob - oa;
       }
@@ -133,6 +182,12 @@ export default function TecnicoPage() {
       return oa - ob;
     });
   }, [servicos, filtro, busca]);
+
+  function limparFiltros() {
+    setFiltro(FILTRO_INICIAL);
+    setBusca("");
+    sessionStorage.removeItem(TECNICO_FILTER_STORAGE_KEY);
+  }
 
   if (loading) return <div className="rounded-2xl border border-slate-200 bg-white p-6">Carregando...</div>;
 
@@ -143,6 +198,7 @@ export default function TecnicoPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Área técnica</p>
             <h1 className="text-2xl font-extrabold text-slate-900">Painel do Técnico</h1>
+            {loadingFresh && <p className="text-xs font-semibold text-sky-700">Atualizando lista...</p>}
           </div>
           <button
             onClick={logout}
@@ -175,6 +231,18 @@ export default function TecnicoPage() {
           onChange={(e) => setBusca(e.target.value)}
         />
 
+        {(filtro !== FILTRO_INICIAL || busca.trim()) && (
+          <div className="mb-4 flex justify-end">
+            <button
+              type="button"
+              onClick={limparFiltros}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
+
         {listaFiltrada.length === 0 && (
           <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             Nenhum serviço encontrado.
@@ -194,11 +262,11 @@ export default function TecnicoPage() {
                 role="button"
                 tabIndex={0}
                 className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
-                onClick={() => router.push(`/tecnico/servicos/${s._id}`)}
+                onClick={() => router.push(`/tecnico/servicos/${s._id}?returnTo=/tecnico`)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    router.push(`/tecnico/servicos/${s._id}`);
+                    router.push(`/tecnico/servicos/${s._id}?returnTo=/tecnico`);
                   }
                 }}
               >
@@ -228,6 +296,10 @@ export default function TecnicoPage() {
                   <p>
                     <b>Início:</b> {formatDate(s.data_inicio_atendimento)}
                   </p>
+                </div>
+
+                <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <b>Descrição inicial:</b> {(s as Servico & { detalhamento?: string }).detalhamento || "-"}
                 </div>
 
                 {(gpsHref || telefoneHref) && (
@@ -297,7 +369,7 @@ export default function TecnicoPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/tecnico/servicos/${s._id}`);
+                      router.push(`/tecnico/servicos/${s._id}?returnTo=/tecnico`);
                     }}
                     className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
                   >

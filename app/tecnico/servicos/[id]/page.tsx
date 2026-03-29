@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
@@ -56,7 +56,9 @@ type MaterialSolicitado = {
 export default function ServicoPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const returnTo = searchParams.get("returnTo");
 
   const [os, setOs] = useState<ServicoDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -218,14 +220,14 @@ export default function ServicoPage() {
           )}
 
           <button
-            onClick={() => router.push(`/tecnico/servicos/${id}/antes`)}
+            onClick={() => router.push(`/tecnico/servicos/${id}/antes${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
             className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
           >
             Registrar ANTES
           </button>
 
           <button
-            onClick={() => router.push(`/tecnico/servicos/${id}/depois`)}
+            onClick={() => router.push(`/tecnico/servicos/${id}/depois${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
             className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-100 disabled:text-slate-400"
             disabled={!canGoDepois}
           >
@@ -233,7 +235,13 @@ export default function ServicoPage() {
           </button>
 
           <button
-            onClick={() => router.push("/tecnico")}
+            onClick={() => {
+              if (returnTo) {
+                router.push(returnTo);
+                return;
+              }
+              router.push("/tecnico");
+            }}
             title="Voltar"
             aria-label="Voltar"
             className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
@@ -306,7 +314,7 @@ function SectionHistorico({ titulo, bloco }: { titulo: string; bloco?: Historico
     <div className="space-y-2">
       <h2 className="text-base font-extrabold text-slate-800">{titulo}</h2>
       <p className="text-sm"><b>Parecer:</b> {bloco?.relatorio || "-"}</p>
-      <p className="text-sm"><b>Observação:</b> {bloco?.observacao || "-"}</p>
+      {bloco?.observacao ? <p className="text-sm"><b>Observação:</b> {bloco.observacao}</p> : null}
 
       {bloco?.fotos && bloco.fotos.length > 0 && (
         <div className="grid grid-cols-2 gap-2">

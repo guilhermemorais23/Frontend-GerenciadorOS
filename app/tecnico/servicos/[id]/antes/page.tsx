@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -31,7 +31,9 @@ type MaterialSolicitado = {
 export default function AntesPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const id = params.id as string;
+  const returnTo = searchParams.get("returnTo");
 
   const [os, setOs] = useState<OSTecnico | null>(null);
   const [relatorio, setRelatorio] = useState("");
@@ -55,7 +57,7 @@ export default function AntesPage() {
   async function carregarOS() {
     try {
       const [osData, catalogoData] = await Promise.all([
-        apiFetch(`/projects/tecnico/view/${id}`),
+        apiFetch(`/projects/tecnico/view-lite/${id}`),
         apiFetch("/catalog/equipamentos").catch(() => [])
       ]);
       const data = osData as OSTecnico & { materiais_solicitados?: MaterialSolicitado[] };
@@ -114,7 +116,7 @@ export default function AntesPage() {
   async function handleFotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
     const novasFotos = await Promise.all(Array.from(e.target.files).map((f) => comprimirImagem(f)));
-    setFotos((prev) => [...prev, ...novasFotos]);
+    setFotos((prev) => [...prev, ...novasFotos].slice(0, 2));
   }
 
   function removerFoto(index: number) {
@@ -155,6 +157,11 @@ export default function AntesPage() {
   const materialSelecionado = catalogo.find((item) => item._id === materialId);
 
   async function salvarAntes() {
+    if (!relatorio.trim()) {
+      alert("Preencha o parecer inicial");
+      return;
+    }
+
     setSalvando(true);
 
     try {
@@ -169,7 +176,7 @@ export default function AntesPage() {
         body: formData,
       });
 
-      router.push(`/tecnico/servicos/${id}/depois`);
+      router.push(`/tecnico/servicos/${id}/depois${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao salvar ANTES");
     } finally {
@@ -187,7 +194,7 @@ export default function AntesPage() {
           <h1 className="text-2xl font-extrabold">ANTES - {os.osNumero}</h1>
           <button
             type="button"
-            onClick={() => router.push(`/tecnico/servicos/${id}`)}
+            onClick={() => router.push(`/tecnico/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
             className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
           >
             Voltar
@@ -201,12 +208,12 @@ export default function AntesPage() {
         <textarea className="mb-4 w-full rounded-xl border border-slate-200 p-2.5" value={observacao} onChange={(e) => setObservacao(e.target.value)} />
 
         <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-          Adicionar fotos (1 a 4)
+          Adicionar fotos (1 a 2)
           <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
         </label>
 
-        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
-          {fotos.length} / 4 foto{fotos.length !== 1 && "s"}
+        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 2 ? "text-emerald-700" : "text-rose-700"}`}>
+          {fotos.length} / 2 foto{fotos.length !== 1 && "s"}
         </p>
 
         {fotos.length > 0 && (
@@ -278,14 +285,14 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          disabled={salvando || fotos.length < 1 || fotos.length > 4}
+          disabled={salvando || fotos.length < 1 || fotos.length > 2 || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-sky-700 px-4 py-3 font-bold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Salvando..." : "Salvar ANTES e ir para DEPOIS"}
         </button>
         <button
           type="button"
-          onClick={() => router.push(`/tecnico/servicos/${id}`)}
+          onClick={() => router.push(`/tecnico/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`)}
           className="mt-3 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100"
         >
           Voltar para o serviço

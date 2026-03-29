@@ -4,9 +4,16 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 
+type Tecnico = {
+  _id: string;
+  nome?: string;
+  email?: string;
+  telefone?: string;
+};
+
 export default function TecnicosPage() {
   const router = useRouter();
-  const [tecnicos, setTecnicos] = useState<any[]>([]);
+  const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -16,16 +23,16 @@ export default function TecnicosPage() {
   async function carregarTecnicos() {
     try {
       const data = await apiFetch("/auth/tecnicos");
-      setTecnicos(data);
-    } catch (err: any) {
-      alert("Erro ao carregar técnicos: " + err.message);
+      setTecnicos(Array.isArray(data) ? (data as Tecnico[]) : []);
+    } catch (err: unknown) {
+      alert("Erro ao carregar tecnicos: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
       setLoading(false);
     }
   }
 
   async function excluirTecnico(id: string) {
-    const ok = confirm("Tem certeza que deseja excluir este técnico?");
+    const ok = confirm("Tem certeza que deseja excluir este tecnico?");
     if (!ok) return;
 
     try {
@@ -33,10 +40,10 @@ export default function TecnicosPage() {
         method: "DELETE",
       });
 
-      alert("Técnico excluído com sucesso");
+      alert("Tecnico excluido com sucesso");
       carregarTecnicos();
-    } catch (err: any) {
-      alert("Erro ao excluir técnico: " + err.message);
+    } catch (err: unknown) {
+      alert("Erro ao excluir tecnico: " + (err instanceof Error ? err.message : "erro desconhecido"));
     }
   }
 
@@ -46,12 +53,12 @@ export default function TecnicosPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-black">Técnicos</h1>
+      <div className="mx-auto max-w-3xl rounded-xl bg-white p-6 shadow">
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-black">Tecnicos</h1>
           <button
             onClick={() => router.push("/admin")}
-            className="bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"
+            className="rounded bg-gray-300 px-4 py-2 text-black hover:bg-gray-400"
           >
             Voltar
           </button>
@@ -59,38 +66,31 @@ export default function TecnicosPage() {
 
         <button
           onClick={() => router.push("/admin/tecnicos/novo")}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mb-4"
+          className="mb-4 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
         >
-          + Novo Técnico
+          + Novo Tecnico
         </button>
 
         <div className="space-y-3">
           {tecnicos.map((t) => (
-            <div
-              key={t._id}
-              className="flex justify-between items-center border p-3 rounded"
-            >
+            <div key={t._id} className="flex items-center justify-between rounded border p-3">
               <div>
-                <p className="font-semibold text-black">{t.nome}</p>
-                <p className="text-sm text-gray-600">{t.email}</p>
-                <p className="text-sm text-gray-600">
-                  📞 {t.telefone || "Sem telefone"}
-                </p>
+                <p className="font-semibold text-black">{t.nome || "-"}</p>
+                <p className="text-sm text-gray-600">{t.email || "-"}</p>
+                <p className="text-sm text-gray-600">Telefone: {t.telefone || "Sem telefone"}</p>
               </div>
 
               <div className="flex gap-2">
                 <button
-                  onClick={() =>
-                    router.push(`/admin/tecnicos/${t._id}/editar`)
-                  }
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded"
+                  onClick={() => router.push(`/admin/tecnicos/${t._id}/editar`)}
+                  className="rounded bg-blue-600 px-3 py-2 text-white hover:bg-blue-700"
                 >
                   Editar
                 </button>
 
                 <button
                   onClick={() => excluirTecnico(t._id)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded"
+                  className="rounded bg-red-600 px-3 py-2 text-white hover:bg-red-700"
                 >
                   Excluir
                 </button>

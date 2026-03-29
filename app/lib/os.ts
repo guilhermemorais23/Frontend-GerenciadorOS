@@ -52,7 +52,7 @@ export function statusLabel(rawStatus?: string | null) {
   if (status === STATUS.ABERTA) return "Aberta";
   if (status === STATUS.EM_ATENDIMENTO) return "Em andamento";
   if (status === STATUS.PAUSADA) return "Pausada";
-  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "Esperando validação";
+  if (status === STATUS.FINALIZADA_PELO_TECNICO) return "Aguardando validação";
   if (status === STATUS.VALIDADA_PELO_ADMIN) return "Finalizada";
   if (status === STATUS.CANCELADA) return "Cancelada";
   return status;
@@ -92,7 +92,7 @@ export function formatDate(date?: string | null) {
 
 export const TIPO_MANUTENCAO = ["CORRETIVA", "PREVENTIVA", "VISTORIA"] as const;
 export const MOTIVOS_NAO_ASSINOU = ["AUSENTE", "FERIAS", "NAO_QUIS_ASSINAR", "OUTROS"] as const;
-export const PRIORIDADES = ["BAIXA", "MEDIA", "ALTA"] as const;
+export const PRIORIDADES = ["BAIXA", "MEDIA", "ALTA", "URGENTE"] as const;
 export const REPORT_CHANNELS = ["WHATSAPP", "EMAIL", "BOTH"] as const;
 
 export function formatDuration(totalSeconds?: number | null) {

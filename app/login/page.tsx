@@ -30,6 +30,12 @@ export default function LoginPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.role);
       localStorage.setItem("nome", data.nome || "");
+      localStorage.setItem("cliente_vinculado", data.cliente_vinculado || "");
+      localStorage.setItem("subcliente_vinculado", data.subcliente_vinculado || "");
+      localStorage.setItem("marca_vinculada", data.marca_vinculada || "");
+      localStorage.setItem("unidade_vinculada", data.unidade_vinculada || "");
+      localStorage.setItem("telefone", data.telefone || "");
+      localStorage.setItem("email", data.email || "");
 
       if (data.role === "admin") {
         router.replace("/admin");
