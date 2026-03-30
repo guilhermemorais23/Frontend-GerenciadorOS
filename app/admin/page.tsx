@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, Printer } from "lucide-react";
+import { ArrowRight, Printer } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, isOpenStatus, normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -540,42 +540,32 @@ function renderOsCard(
         <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700">OS em aberto</p>
       )}
 
-      <div className="mt-3 flex justify-end gap-2">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button
           type="button"
-          title="Baixar OS"
-          aria-label="Baixar OS"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+          title="Baixar PDF"
+          aria-label="Baixar PDF"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           onClick={(e) => {
             e.stopPropagation();
             onQuickDownload(os);
           }}
         >
           <Printer size={16} />
-        </button>
-        <button
-          type="button"
-          title="Preview"
-          aria-label="Preview"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
-          onClick={(e) => {
-            e.stopPropagation();
-            router.push(detalheHref);
-          }}
-        >
-          <Eye size={16} />
+          <span>Baixar PDF</span>
         </button>
         <button
           type="button"
           title="Abrir detalhes"
           aria-label="Abrir detalhes"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50"
+          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           onClick={(e) => {
             e.stopPropagation();
             router.push(detalheHref);
           }}
         >
           <ArrowRight size={16} />
+          <span>Detalhes</span>
         </button>
       </div>
     </div>
