@@ -105,7 +105,6 @@ export default function DetalheOSPage() {
   const [deliveryPhone, setDeliveryPhone] = useState("");
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
-  const [printHandled, setPrintHandled] = useState(false);
   const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
@@ -113,18 +112,6 @@ export default function DetalheOSPage() {
     setUserRole(localStorage.getItem("role"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!os || printHandled) return;
-    if (searchParams.get("print") !== "1") return;
-
-    const timerId = window.setTimeout(() => {
-      window.print();
-      setPrintHandled(true);
-    }, 250);
-
-    return () => window.clearTimeout(timerId);
-  }, [os, printHandled, searchParams]);
 
   async function carregarOS() {
     try {
@@ -252,8 +239,8 @@ export default function DetalheOSPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      window.print();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao gerar PDF");
     }
   }
 
@@ -277,7 +264,7 @@ export default function DetalheOSPage() {
 
         <div className="mb-5 flex flex-wrap gap-2">
           <ActionButton onClick={gerarPDF} icon={<Printer size={16} />} variant="primary" iconOnly>
-            Gerar PDF
+            Baixar PDF
           </ActionButton>
 
           {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
