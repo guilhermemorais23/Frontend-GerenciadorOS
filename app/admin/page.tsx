@@ -107,7 +107,6 @@ function sortByOsDescending(items: OSItem[]) {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const isProductionDeploy = process.env.NODE_ENV === "production";
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -431,14 +430,14 @@ export default function AdminDashboard() {
       </div>
 
       <div className="space-y-3">
-        {grupos.ativas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOSRapido))}
+        {grupos.ativas.map((os) => renderOsCard(os, router, baixarOSRapido))}
 
         {mostrarFinalizadas && grupos.finalizadas.length > 0 && (
           <>
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700">
               Finalizadas
             </div>
-            {grupos.finalizadas.map((os) => renderOsCard(os, isProductionDeploy, router, baixarOSRapido))}
+            {grupos.finalizadas.map((os) => renderOsCard(os, router, baixarOSRapido))}
           </>
         )}
 
@@ -480,7 +479,6 @@ function Card({
 
 function renderOsCard(
   os: OSItem,
-  isProductionDeploy: boolean,
   router: { push: (href: string) => void },
   onQuickDownload: (os: OSItem) => void
 ) {
@@ -513,11 +511,9 @@ function renderOsCard(
           <p className="text-sm font-semibold text-slate-700">{os.cliente || "Sem cliente"}</p>
         </div>
         <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
-            isProductionDeploy ? legacyStatusColor(os.status, os) : legacyStatusColor(os.status, os)
-          }`}
+          className={`rounded-full px-3 py-1 text-xs font-bold ${legacyStatusColor(os.status, os)}`}
         >
-          {isProductionDeploy ? legacyStatusLabel(os.status, os) : legacyStatusLabel(os.status, os)}
+          {legacyStatusLabel(os.status, os)}
         </span>
       </div>
 
@@ -540,7 +536,7 @@ function renderOsCard(
         <b>Descrição inicial:</b> {os.detalhamento || "-"}
       </div>
 
-      {!isProductionDeploy && isOpenStatus(os.status) && (
+      {isOpenStatus(os.status) && (
         <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-blue-700">OS em aberto</p>
       )}
 
