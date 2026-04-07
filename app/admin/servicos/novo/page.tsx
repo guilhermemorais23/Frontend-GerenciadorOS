@@ -187,8 +187,8 @@ export default function NovaOSPage() {
     const item = solicitantesVinculados.find((s) => s._id === id);
     if (!item) return;
     setSolicitanteNome(item.nome || "");
-    if (item.telefone) setTelefone(item.telefone);
-    if (item.email) setEmail(item.email);
+    if (!telefone.trim() && item.telefone) setTelefone(item.telefone);
+    if (!email.trim() && item.email) setEmail(item.email);
   }
 
   async function vincularSolicitanteAtual() {
@@ -278,7 +278,7 @@ export default function NovaOSPage() {
       formData.append("orcamento_previsto", tipoManutencao === "PREVENTIVA" ? orcamentoPrevisto : "");
       if (fotoProblema) formData.append("foto", fotoProblema);
 
-      const res = await apiFetch("/projects/admin/create", {
+      await apiFetch("/projects/admin/create", {
         method: "POST",
         body: formData,
       });
@@ -339,6 +339,7 @@ export default function NovaOSPage() {
                 setSubcliente("");
                 setEndereco("");
                 setTelefone("");
+                setEmail("");
                 setMarca("");
                 setUnidade("");
                 setBuscaClientesErro("");

@@ -105,6 +105,9 @@ export default function DetalheOSPage() {
   const [deliveryPhone, setDeliveryPhone] = useState("");
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
+  const [deliveryRecipientName, setDeliveryRecipientName] = useState("");
+  const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
+  const [validating, setValidating] = useState(false);
   const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
@@ -119,6 +122,14 @@ export default function DetalheOSPage() {
       setOs(data as OSDetalhe);
       setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
       setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
+      setDeliveryRecipientName(
+        String(
+          (data as OSDetalhe)?.cliente_nome ||
+            (data as OSDetalhe)?.solicitante_nome ||
+            (data as OSDetalhe)?.cliente ||
+            ""
+        )
+      );
       setDeliveryMessage(buildDeliveryMessage(data as OSDetalhe, id));
       try {
         const timerData = await apiFetch(`/os/${id}/timer`);
@@ -167,8 +178,23 @@ export default function DetalheOSPage() {
     }
   }
 
+  function abrirConfirmacaoEnvio() {
+    if ((deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && !deliveryPhone.trim()) {
+      alert("Informe o telefone para envio");
+      return;
+    }
+
+    if ((deliveryChannel === "EMAIL" || deliveryChannel === "BOTH") && !deliveryEmail.trim()) {
+      alert("Informe o email para envio");
+      return;
+    }
+
+    setConfirmDeliveryOpen(true);
+  }
+
   async function validarOS() {
     try {
+      setValidating(true);
       const data = (await apiFetch(`/os/${id}/validate`, {
         method: "POST",
         body: JSON.stringify({
@@ -189,9 +215,12 @@ export default function DetalheOSPage() {
         partes.push(`Aviso: ${data.warning}`);
       }
       alert(partes.join("\n"));
+      setConfirmDeliveryOpen(false);
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
+    } finally {
+      setValidating(false);
     }
   }
 
@@ -311,7 +340,16 @@ export default function DetalheOSPage() {
                   onChange={(e) => setDeliveryMessage(e.target.value)}
                 />
               </label>
-              <ActionButton onClick={validarOS} icon={<Send size={16} />} variant="success">
+              <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                Nome do destinatário
+                <input
+                  className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                  placeholder="Nome para confirmação"
+                  value={deliveryRecipientName}
+                  onChange={(e) => setDeliveryRecipientName(e.target.value)}
+                />
+              </label>
+              <ActionButton onClick={abrirConfirmacaoEnvio} icon={<Send size={16} />} variant="success">
                 Validar e enviar
               </ActionButton>
             </div>
@@ -450,6 +488,35 @@ export default function DetalheOSPage() {
         <PreviewBloco title="Preview ANTES" bloco={os.antes} />
         <PreviewBloco title="Preview DEPOIS" bloco={os.depois} />
       </div>
+
+      {confirmDeliveryOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-emerald-700">Confirmar envio</p>
+            <h2 className="mt-2 text-xl font-extrabold text-slate-900">Enviar esta OS para esse contato?</h2>
+
+            <div className="mt-5 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+              <Info label="Nome" value={deliveryRecipientName || os.cliente_nome || os.solicitante_nome || os.cliente} />
+              {(deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && (
+                <Info label="Telefone" value={deliveryPhone} />
+              )}
+              {(deliveryChannel === "EMAIL" || deliveryChannel === "BOTH") && (
+                <Info label="Email" value={deliveryEmail} />
+              )}
+              <Info label="Canal" value={deliveryChannel === "BOTH" ? "WhatsApp + Email" : deliveryChannel === "EMAIL" ? "Email" : "WhatsApp"} />
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <ActionButton onClick={() => setConfirmDeliveryOpen(false)} icon={<XCircle size={16} />} variant="secondary">
+                Cancelar
+              </ActionButton>
+              <ActionButton onClick={validarOS} icon={<Send size={16} />} variant="success">
+                {validating ? "Enviando..." : "Confirmar envio"}
+              </ActionButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
