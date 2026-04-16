@@ -61,7 +61,8 @@ export default function NovaOSPage() {
   const [solicitanteVinculadoId, setSolicitanteVinculadoId] = useState("");
   const [salvandoSolicitante, setSalvandoSolicitante] = useState(false);
   const [tipoManutencao, setTipoManutencao] = useState<(typeof TIPO_MANUTENCAO)[number]>("CORRETIVA");
-  const [abaPreventiva, setAbaPreventiva] = useState<"dados" | "catalogo">("dados");
+  /** Catálogo só aparece quando marcado (padrão: não). */
+  const [incluirPecaCatalogo, setIncluirPecaCatalogo] = useState(false);
 
   const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -101,11 +102,11 @@ export default function NovaOSPage() {
   }, []);
 
   useEffect(() => {
-    if (tipoManutencao !== "PREVENTIVA") return;
+    if (!incluirPecaCatalogo) return;
     apiFetch("/catalog/equipamentos")
       .then((data) => setCatalogoEquipamentos(Array.isArray(data) ? (data as EquipamentoCatalogo[]) : []))
       .catch(() => setCatalogoEquipamentos([]));
-  }, [tipoManutencao]);
+  }, [incluirPecaCatalogo]);
 
   useEffect(() => {
     carregarSolicitantesVinculados(cliente, subcliente);
@@ -187,8 +188,8 @@ export default function NovaOSPage() {
     const item = solicitantesVinculados.find((s) => s._id === id);
     if (!item) return;
     setSolicitanteNome(item.nome || "");
-    if (!telefone.trim() && item.telefone) setTelefone(item.telefone);
-    if (!email.trim() && item.email) setEmail(item.email);
+    if (item.telefone) setTelefone(item.telefone);
+    if (item.email) setEmail(item.email);
   }
 
   async function vincularSolicitanteAtual() {
@@ -268,14 +269,15 @@ export default function NovaOSPage() {
       formData.append("solicitante_nome", solicitanteNome);
       formData.append("tipo_manutencao", tipoManutencao);
       formData.append("prioridade", prioridade);
-      formData.append("equipamento_catalogo_id", tipoManutencao === "PREVENTIVA" ? equipamentoCatalogoId : "");
-      formData.append("equipamento_nome", tipoManutencao === "PREVENTIVA" ? equipamentoNome : "");
-      formData.append("equipamento_fabricante", tipoManutencao === "PREVENTIVA" ? equipamentoFabricante : "");
-      formData.append("equipamento_modelo", tipoManutencao === "PREVENTIVA" ? equipamentoModelo : "");
-      formData.append("equipamento_numero_serie", tipoManutencao === "PREVENTIVA" ? equipamentoNumeroSerie : "");
-      formData.append("equipamento_patrimonio", tipoManutencao === "PREVENTIVA" ? equipamentoPatrimonio : "");
-      formData.append("equipamento_especificacoes", tipoManutencao === "PREVENTIVA" ? equipamentoEspecificacoes : "");
-      formData.append("orcamento_previsto", tipoManutencao === "PREVENTIVA" ? orcamentoPrevisto : "");
+      const usarCat = incluirPecaCatalogo;
+      formData.append("equipamento_catalogo_id", usarCat ? equipamentoCatalogoId : "");
+      formData.append("equipamento_nome", usarCat ? equipamentoNome : "");
+      formData.append("equipamento_fabricante", usarCat ? equipamentoFabricante : "");
+      formData.append("equipamento_modelo", usarCat ? equipamentoModelo : "");
+      formData.append("equipamento_numero_serie", usarCat ? equipamentoNumeroSerie : "");
+      formData.append("equipamento_patrimonio", usarCat ? equipamentoPatrimonio : "");
+      formData.append("equipamento_especificacoes", usarCat ? equipamentoEspecificacoes : "");
+      formData.append("orcamento_previsto", usarCat ? orcamentoPrevisto : "");
       if (fotoProblema) formData.append("foto", fotoProblema);
 
       await apiFetch("/projects/admin/create", {
@@ -305,28 +307,8 @@ export default function NovaOSPage() {
           </button>
         </div>
 
-        {tipoManutencao === "PREVENTIVA" && (
-          <div className="mb-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setAbaPreventiva("dados")}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold ${abaPreventiva === "dados" ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-700"}`}
-            >
-              Dados da OS
-            </button>
-            <button
-              type="button"
-              onClick={() => setAbaPreventiva("catalogo")}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold ${abaPreventiva === "catalogo" ? "bg-blue-700 text-white" : "bg-slate-100 text-slate-700"}`}
-            >
-              Catálogo / Orçamento
-            </button>
-          </div>
-        )}
-
         <div className="grid gap-4 sm:grid-cols-2">
-          {(tipoManutencao !== "PREVENTIVA" || abaPreventiva === "dados") && (
-            <>
+          <>
           <label className="block sm:col-span-2">
             <span className="mb-1 block text-sm font-semibold">Cliente</span>
             <input
@@ -522,7 +504,7 @@ export default function NovaOSPage() {
             />
           </label>
 
-          <label className="block sm:col-span-2">
+            <label className="block sm:col-span-2">
             <span className="mb-1 block text-sm font-semibold">Técnico responsável</span>
             <select className="w-full rounded-xl border border-slate-200 px-3 py-2.5" value={tecnicoId} onChange={(e) => setTecnicoId(e.target.value)}>
               <option value="">Selecione o técnico</option>
@@ -533,36 +515,59 @@ export default function NovaOSPage() {
               ))}
             </select>
           </label>
-            </>
-          )}
 
-          {tipoManutencao === "PREVENTIVA" && abaPreventiva === "catalogo" && (
-            <>
-              <label className="block sm:col-span-2">
-                <span className="mb-1 block text-sm font-semibold">Equipamento do catálogo</span>
-                <select
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2.5"
-                  value={equipamentoCatalogoId}
-                  onChange={(e) => selecionarEquipamento(e.target.value)}
-                >
-                  <option value="">Selecione um equipamento</option>
-                  {catalogoEquipamentos.map((eq) => (
-                    <option key={eq._id} value={eq._id}>
-                      {eq.nome} {eq.fabricante ? `- ${eq.fabricante}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <span className="text-sm font-semibold">Incluir peça do catálogo nesta OS?</span>
+              <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-800">
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="catalogo_sn"
+                    checked={!incluirPecaCatalogo}
+                    onChange={() => setIncluirPecaCatalogo(false)}
+                  />
+                  Não
+                </label>
+                <label className="inline-flex cursor-pointer items-center gap-2">
+                  <input
+                    type="radio"
+                    name="catalogo_sn"
+                    checked={incluirPecaCatalogo}
+                    onChange={() => setIncluirPecaCatalogo(true)}
+                  />
+                  Sim
+                </label>
+              </div>
+            </div>
 
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Nome do equipamento" value={equipamentoNome} onChange={(e) => setEquipamentoNome(e.target.value)} />
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Fabricante" value={equipamentoFabricante} onChange={(e) => setEquipamentoFabricante(e.target.value)} />
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Modelo" value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Número de série" value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Patrimônio / TAG" value={equipamentoPatrimonio} onChange={(e) => setEquipamentoPatrimonio(e.target.value)} />
-              <textarea className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" rows={4} placeholder="Especificações técnicas" value={equipamentoEspecificacoes} onChange={(e) => setEquipamentoEspecificacoes(e.target.value)} />
-              <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Orçamento previsto" value={orcamentoPrevisto} onChange={(e) => setOrcamentoPrevisto(e.target.value)} />
-            </>
-          )}
+            {incluirPecaCatalogo && (
+              <>
+                <label className="block sm:col-span-2">
+                  <span className="mb-1 block text-sm font-semibold">Equipamento do catálogo</span>
+                  <select
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5"
+                    value={equipamentoCatalogoId}
+                    onChange={(e) => selecionarEquipamento(e.target.value)}
+                  >
+                    <option value="">Selecione um equipamento</option>
+                    {catalogoEquipamentos.map((eq) => (
+                      <option key={eq._id} value={eq._id}>
+                        {eq.nome} {eq.fabricante ? `- ${eq.fabricante}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Nome do equipamento" value={equipamentoNome} onChange={(e) => setEquipamentoNome(e.target.value)} />
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Fabricante" value={equipamentoFabricante} onChange={(e) => setEquipamentoFabricante(e.target.value)} />
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Modelo" value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Número de série" value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Patrimônio / TAG" value={equipamentoPatrimonio} onChange={(e) => setEquipamentoPatrimonio(e.target.value)} />
+                <textarea className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" rows={4} placeholder="Especificações técnicas" value={equipamentoEspecificacoes} onChange={(e) => setEquipamentoEspecificacoes(e.target.value)} />
+                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Orçamento previsto" value={orcamentoPrevisto} onChange={(e) => setOrcamentoPrevisto(e.target.value)} />
+              </>
+            )}
+          </>
         </div>
 
         <button

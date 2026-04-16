@@ -18,45 +18,34 @@ type OSItem = {
   status?: string;
   createdAt?: string;
   data_abertura?: string;
+  cliente?: string;
 };
 
 export default function AdminGraficosPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [osList, setOsList] = useState<OSItem[]>([]);
+  const [clienteFiltro, setClienteFiltro] = useState("");
 
   useEffect(() => {
-    carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [month]);
-
-  async function carregar() {
-    try {
+    let cancelled = false;
+    (async () => {
       setLoading(true);
       try {
-        const data = (await apiFetch(`/dashboard/metrics?month=${month}`)) as Metrics;
-        setMetrics(data);
-        return;
+        const raw = await apiFetch("/projects/admin/all");
+        if (!cancelled) setOsList(Array.isArray(raw) ? (raw as OSItem[]) : []);
       } catch {
-        // fallback: backend sem endpoint /dashboard/metrics
+        if (!cancelled) setOsList([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-      const list = await apiFetch("/projects/admin/all");
-      setMetrics(buildMetricsFromList(Array.isArray(list) ? list : [], month));
-    } catch {
-      setMetrics({
-        month,
-        total_abertas: 0,
-        total_em_atendimento: 0,
-        total_pausadas: 0,
-        total_finalizadas_tecnico: 0,
-        total_fechadas: 0,
-        total_pendentes: 0,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
+  const metrics = useMemo(() => buildMetricsFromList(osList, month, clienteFiltro), [osList, month, clienteFiltro]);
 
   const slices = useMemo(
     () => [
@@ -86,16 +75,37 @@ export default function AdminGraficosPage() {
   const circumference = 2 * Math.PI * radius;
   let cumulative = 0;
 
+  const clientesUnicos = useMemo(() => {
+    const s = new Set<string>();
+    osList.forEach((o) => {
+      if (o.cliente) s.add(String(o.cliente).trim());
+    });
+    return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [osList]);
+
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="block text-sm font-semibold text-slate-700">Mes</label>
+        <label className="block text-sm font-semibold text-slate-700">Mês</label>
         <input
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
           className="mt-2 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         />
+        <label className="mt-4 block text-sm font-semibold text-slate-700">Cliente</label>
+        <select
+          value={clienteFiltro}
+          onChange={(e) => setClienteFiltro(e.target.value)}
+          className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
+        >
+          <option value="">Todos os clientes</option>
+          {clientesUnicos.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -161,8 +171,10 @@ export default function AdminGraficosPage() {
   );
 }
 
-function buildMetricsFromList(list: OSItem[], month: string): Metrics {
+function buildMetricsFromList(list: OSItem[], month: string, clienteFiltro?: string): Metrics {
+  const cf = String(clienteFiltro || "").trim().toLowerCase();
   const filtered = list.filter((item) => {
+    if (cf && String(item.cliente || "").trim().toLowerCase() !== cf) return false;
     const rawDate = item.data_abertura || item.createdAt;
     if (!rawDate) return false;
     const date = new Date(rawDate);

@@ -79,14 +79,6 @@ type StorageEstimateResponse = {
   message?: string;
 };
 
-type NotificationItem = {
-  _id: string;
-  type?: "CLIENT_REQUEST" | "STATUS_CHANGED" | "SYSTEM" | string;
-  title: string;
-  message: string;
-  os_id?: string | { _id?: string } | null;
-};
-
 const STATUS_SOLICITACOES_CLIENTE = "solicitacoes_cliente";
 const STATUS_AGUARDANDO_TECNICO = "aguardando_tecnico";
 const STATUS_EM_DESLOCAMENTO = "em_deslocamento";
@@ -135,7 +127,6 @@ export default function AdminDashboard() {
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [notificacoes, setNotificacoes] = useState<NotificationItem[]>([]);
   const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResponse | null>(null);
   const [statusFiltro, setStatusFiltro] = useState("");
   const [busca, setBusca] = useState("");
@@ -194,12 +185,6 @@ export default function AdminDashboard() {
     try {
       const lista = await apiFetch("/projects/admin/all");
       setOsList(Array.isArray(lista) ? lista : []);
-      try {
-        const notificacoesData = await apiFetch("/admin/notifications?unread=true");
-        setNotificacoes(Array.isArray(notificacoesData) ? (notificacoesData as NotificationItem[]) : []);
-      } catch {
-        setNotificacoes([]);
-      }
       try {
         const month = new Date().toISOString().slice(0, 7);
         const metricas = (await apiFetch(`/dashboard/metrics?month=${month}`)) as MetricsResponse;
@@ -267,8 +252,32 @@ export default function AdminDashboard() {
     }
   }
 
+  /** Subconjunto usado nos cards: respeita busca + intervalo de datas (não o filtro de status). */
+  const osBaseFiltrada = useMemo(() => {
+    return osList.filter((os) => {
+      const texto = `
+        ${os.cliente || ""}
+        ${os.subcliente || os.Subcliente || os.subgrupo || ""}
+        ${os.unidade || ""}
+        ${os.marca || ""}
+        ${os.osNumero || ""}
+        ${typeof os.tecnico === "object" ? os.tecnico?.nome || "" : os.tecnico || ""}
+        ${os.solicitante_nome || ""}
+        ${os.tipo_manutencao || ""}
+      `.toLowerCase();
+
+      if (busca && !texto.includes(busca.toLowerCase())) return false;
+
+      const dataBase = new Date(os.data_abertura || os.createdAt || "");
+      if (dataInicio && dataBase < new Date(`${dataInicio}T00:00:00`)) return false;
+      if (dataFim && dataBase > new Date(`${dataFim}T23:59:59`)) return false;
+
+      return true;
+    });
+  }, [osList, busca, dataInicio, dataFim]);
+
   const contadores = useMemo(() => {
-    const byBucket = osList.reduce(
+    const byBucket = osBaseFiltrada.reduce(
       (acc, os) => {
         const bucket = dashboardStatusBucket(os);
         acc[bucket] = (acc[bucket] || 0) + 1;
@@ -286,7 +295,7 @@ export default function AdminDashboard() {
       aguardandoValidacao: byBucket[STATUS_AGUARDANDO_VALIDACAO] || 0,
       finalizadas: byBucket[STATUS_FINALIZADAS] || 0,
     };
-  }, [osList]);
+  }, [osBaseFiltrada]);
 
   const listaFiltrada = useMemo(() => {
     return osList.filter((os) => {
@@ -437,51 +446,6 @@ export default function AdminDashboard() {
           </button>
         </div>
       )}
-
-      <div className="rounded-2xl border border-slate-200/70 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Notificações</p>
-            <h2 className="text-lg font-extrabold text-slate-900">Página inicial</h2>
-          </div>
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-            {notificacoes.length}
-          </span>
-        </div>
-
-        {notificacoes.length === 0 ? (
-          <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-            Sem notificações pendentes.
-          </p>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {notificacoes.slice(0, 6).map((notificacao) => {
-              const osId =
-                typeof notificacao.os_id === "string" ? notificacao.os_id : notificacao.os_id?._id;
-              const href = osId
-                ? notificacao.type === "CLIENT_REQUEST"
-                  ? `/admin/servicos/${osId}/editar?returnTo=${encodeURIComponent("/admin")}`
-                  : `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`
-                : "/admin";
-
-              return (
-                <button
-                  key={notificacao._id}
-                  type="button"
-                  onClick={() => router.push(href)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition hover:bg-slate-100"
-                >
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                    {notificacao.type === "CLIENT_REQUEST" ? "Cliente" : notificacao.type === "STATUS_CHANGED" ? "Técnico" : "Sistema"}
-                  </p>
-                  <p className="mt-1 text-sm font-bold text-slate-900">{notificacao.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{notificacao.message}</p>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
 
       <div className="space-y-3">
         {grupos.ativas.map((os) => renderOsCard(os, router, baixarOSRapido))}

@@ -8,12 +8,12 @@ import { apiFetch } from "@/app/lib/api";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/servicos", label: "Servicos", icon: ClipboardList },
+  { href: "/admin/servicos", label: "Serviços", icon: ClipboardList },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
-  { href: "/admin/tecnicos", label: "Tecnicos", icon: Wrench },
+  { href: "/admin/tecnicos", label: "Técnicos", icon: Wrench },
   { href: "/admin/terceiros", label: "Terceiros", icon: Users },
-  { href: "/admin/catalogo", label: "Catalogo", icon: ClipboardList },
-  { href: "/admin/graficos", label: "Graficos", icon: BarChart3 },
+  { href: "/admin/catalogo", label: "Catálogo", icon: ClipboardList },
+  { href: "/admin/graficos", label: "Gráficos", icon: BarChart3 },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -32,12 +32,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [showNotifs, setShowNotifs] = useState(false);
 
   const currentTitle = useMemo(() => {
-    if (pathname.startsWith("/admin/servicos")) return "Servicos";
+    if (pathname.startsWith("/admin/servicos")) return "Serviços";
     if (pathname.startsWith("/admin/clientes")) return "Clientes";
-    if (pathname.startsWith("/admin/tecnicos")) return "Tecnicos";
+    if (pathname.startsWith("/admin/tecnicos")) return "Técnicos";
     if (pathname.startsWith("/admin/terceiros")) return "Terceiros";
-    if (pathname.startsWith("/admin/catalogo")) return "Catalogo";
-    if (pathname.startsWith("/admin/graficos")) return "Graficos";
+    if (pathname.startsWith("/admin/catalogo")) return "Catálogo";
+    if (pathname.startsWith("/admin/graficos")) return "Gráficos";
     return "Dashboard";
   }, [pathname]);
 
