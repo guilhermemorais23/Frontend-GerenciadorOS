@@ -17,6 +17,8 @@ export default function AdminServicosPage() {
   const router = useRouter();
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -31,7 +33,9 @@ export default function AdminServicosPage() {
   async function carregar() {
     try {
       const data = await apiFetch("/projects/admin/all");
-      setServicos(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data) ? data : [];
+      setServicos(list);
+      setSelectedIds((prev) => prev.filter((id) => list.some((item) => item._id === id)));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao carregar servicos";
       alert(message);
@@ -40,30 +44,100 @@ export default function AdminServicosPage() {
     }
   }
 
-  async function excluirOS(id: string) {
-    const ok = confirm("Tem certeza que deseja EXCLUIR esta OS?");
+  async function excluirSelecionadas(ids: string[]) {
+    if (!ids.length) return;
+
+    const plural = ids.length > 1;
+    const ok = confirm(
+      plural
+        ? `Tem certeza que deseja EXCLUIR ${ids.length} OS selecionadas? Essa acao nao pode ser desfeita.`
+        : "Tem certeza que deseja EXCLUIR esta OS? Essa acao nao pode ser desfeita."
+    );
     if (!ok) return;
 
+    setDeleting(true);
     try {
-      await apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" });
-      setServicos((prev) => prev.filter((s) => s._id !== id));
+      const results = await Promise.allSettled(
+        ids.map((id) => apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" }))
+      );
+
+      const removedIds = ids.filter((_, index) => results[index].status === "fulfilled");
+      const failedCount = ids.length - removedIds.length;
+
+      if (removedIds.length) {
+        setServicos((prev) => prev.filter((s) => !removedIds.includes(s._id)));
+        setSelectedIds((prev) => prev.filter((id) => !removedIds.includes(id)));
+      }
+
+      if (failedCount > 0) {
+        alert(
+          `Algumas OS nao puderam ser excluidas (${failedCount} de ${ids.length}). Tente novamente nas que restaram.`
+        );
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao excluir OS";
       alert(message);
+    } finally {
+      setDeleting(false);
     }
+  }
+
+  function toggleSelection(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAll(checked: boolean) {
+    if (checked) {
+      setSelectedIds(servicos.map((s) => s._id));
+      return;
+    }
+    setSelectedIds([]);
   }
 
   if (loading) return <p className="rounded-2xl border border-slate-200 bg-white p-4">Carregando...</p>;
 
   return (
     <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            checked={servicos.length > 0 && selectedIds.length === servicos.length}
+            onChange={(e) => toggleSelectAll(e.target.checked)}
+          />
+          Selecionar todas
+        </label>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-600">
+            {selectedIds.length} selecionada{selectedIds.length === 1 ? "" : "s"}
+          </span>
+          <button
+            onClick={() => excluirSelecionadas(selectedIds)}
+            disabled={!selectedIds.length || deleting}
+            className="rounded-xl bg-rose-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {deleting ? "Excluindo..." : "Excluir selecionadas"}
+          </button>
+        </div>
+      </div>
+
       {servicos.map((s) => (
         <div key={s._id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
-              <p className="text-sm text-slate-700">{s.cliente}</p>
-              <p className="text-xs text-slate-500">Abertura: {formatDate(s.data_abertura)}</p>
+            <div className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={selectedIds.includes(s._id)}
+                onChange={() => toggleSelection(s._id)}
+                className="mt-1"
+              />
+
+              <div>
+                <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
+                <p className="text-sm text-slate-700">{s.cliente}</p>
+                <p className="text-xs text-slate-500">Abertura: {formatDate(s.data_abertura)}</p>
+              </div>
             </div>
 
             <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(s.status)}`}>
@@ -72,11 +146,28 @@ export default function AdminServicosPage() {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            <button onClick={() => router.push(`/admin/servicos/${s._id}`)} className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white">Ver</button>
-            <button onClick={() => excluirOS(s._id)} className="rounded-xl bg-rose-700 px-3 py-2 text-sm font-bold text-white">Excluir</button>
+            <button
+              onClick={() => router.push(`/admin/servicos/${s._id}`)}
+              className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white"
+            >
+              Ver
+            </button>
+            <button
+              onClick={() => excluirSelecionadas([s._id])}
+              disabled={deleting}
+              className="rounded-xl bg-rose-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Excluir
+            </button>
           </div>
         </div>
       ))}
+
+      {!servicos.length && (
+        <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
+          Nenhuma OS encontrada.
+        </p>
+      )}
     </div>
   );
 }
