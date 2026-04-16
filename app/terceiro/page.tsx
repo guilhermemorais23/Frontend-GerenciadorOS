@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, FileText, Loader2, LogOut, Plus, RefreshCcw } from "lucide-react";
+import { FileDown, FileText, LogOut, Plus, RefreshCcw } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, normalizeStatus, statusLabel, STATUS } from "@/app/lib/os";
 
@@ -21,45 +21,39 @@ type OSItem = {
   status?: string;
   data_abertura?: string;
   createdAt?: string;
-  data_finalizacao_tecnico?: string | null;
   data_validacao_admin?: string | null;
   tecnico?: { nome?: string } | string | null;
   tecnicoNome?: string;
-  antes?: {
-    relatorio?: string;
-    observacao?: string;
-    fotos?: string[];
-  } | null;
-  depois?: {
-    relatorio?: string;
-    observacao?: string;
-    fotos?: string[];
-  } | null;
+  antes?: { fotos?: string[] } | null;
+  depois?: { fotos?: string[] } | null;
 };
 
 type FiltroTab = "todas" | "abertas" | "concluidas";
 
-const TERCEIRO_CACHE_KEY = "terceiro-dashboard-cache";
+function getPortalCacheKey() {
+  const uid = localStorage.getItem("userId")?.trim();
+  if (uid) return `portal-dashboard-cache:${uid}`;
+  const token = localStorage.getItem("token")?.trim();
+  if (token && token.length >= 24) {
+    return `portal-dashboard-cache:t:${token.slice(0, 12)}:${token.slice(-12)}`;
+  }
+  return "portal-dashboard-cache:anon";
+}
+
+function clearLegacyPortalCacheKey() {
+  sessionStorage.removeItem("terceiro-dashboard-cache");
+}
 
 export default function TerceiroPage() {
   const router = useRouter();
-  const [solicitanteNome, setSolicitanteNome] = useState("");
-  const [detalhamento, setDetalhamento] = useState("");
-  const [foto, setFoto] = useState<File | null>(null);
   const [cliente, setCliente] = useState("");
   const [subcliente, setSubcliente] = useState("");
-  const [marca, setMarca] = useState("");
   const [unidade, setUnidade] = useState("");
-  const [endereco, setEndereco] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [email, setEmail] = useState("");
   const [lista, setLista] = useState<OSItem[]>([]);
   const [carregandoLista, setCarregandoLista] = useState(true);
-  const [enviando, setEnviando] = useState(false);
   const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const [erroLista, setErroLista] = useState("");
   const [tab, setTab] = useState<FiltroTab>("todas");
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   useEffect(() => {
     const role = localStorage.getItem("role");
@@ -68,18 +62,15 @@ export default function TerceiroPage() {
       return;
     }
 
-    const nome = localStorage.getItem("nome") || "";
-    if (nome) setSolicitanteNome(nome);
+    clearLegacyPortalCacheKey();
+    const cacheKey = getPortalCacheKey();
+
     setCliente(localStorage.getItem("cliente_vinculado") || "");
     setSubcliente(localStorage.getItem("subcliente_vinculado") || "");
-    setMarca(localStorage.getItem("marca_vinculada") || "");
     setUnidade(localStorage.getItem("unidade_vinculada") || "");
-    setEndereco(localStorage.getItem("endereco_vinculado") || "");
-    setTelefone(localStorage.getItem("telefone") || "");
-    setEmail(localStorage.getItem("email") || "");
 
     try {
-      const cached = sessionStorage.getItem(TERCEIRO_CACHE_KEY);
+      const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached) as OSItem[];
         if (Array.isArray(parsed)) {
@@ -90,27 +81,20 @@ export default function TerceiroPage() {
     } catch {
       // noop
     }
+
     carregarDadosVinculados();
     carregarOS();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   async function carregarDadosVinculados() {
     try {
       const data = (await apiFetch("/clientes/vinculado/me")) as {
-        solicitante_nome?: string;
         cliente?: string;
         subcliente?: string;
-        marca?: string;
         unidade?: string;
-        endereco?: string;
-        telefone?: string;
-        email?: string;
       };
 
-      if (data.solicitante_nome) {
-        setSolicitanteNome(data.solicitante_nome);
-        localStorage.setItem("nome", data.solicitante_nome);
-      }
       if (data.cliente) {
         setCliente(data.cliente);
         localStorage.setItem("cliente_vinculado", data.cliente);
@@ -119,25 +103,9 @@ export default function TerceiroPage() {
         setSubcliente(data.subcliente);
         localStorage.setItem("subcliente_vinculado", data.subcliente);
       }
-      if (data.marca) {
-        setMarca(data.marca);
-        localStorage.setItem("marca_vinculada", data.marca);
-      }
       if (data.unidade) {
         setUnidade(data.unidade);
         localStorage.setItem("unidade_vinculada", data.unidade);
-      }
-      if (data.endereco) {
-        setEndereco(data.endereco);
-        localStorage.setItem("endereco_vinculado", data.endereco);
-      }
-      if (data.telefone) {
-        setTelefone(data.telefone);
-        localStorage.setItem("telefone", data.telefone);
-      }
-      if (data.email) {
-        setEmail(data.email);
-        localStorage.setItem("email", data.email);
       }
     } catch {
       // noop
@@ -151,44 +119,11 @@ export default function TerceiroPage() {
       const data = await apiFetch("/projects/terceiro/my");
       const itens = Array.isArray(data) ? (data as OSItem[]) : [];
       setLista(itens);
-      sessionStorage.setItem(TERCEIRO_CACHE_KEY, JSON.stringify(itens));
+      sessionStorage.setItem(getPortalCacheKey(), JSON.stringify(itens));
     } catch (err: unknown) {
       setErroLista(err instanceof Error ? err.message : "Erro ao carregar ordens de serviço");
     } finally {
       setCarregandoLista(false);
-    }
-  }
-
-  async function solicitarOS() {
-    if (!solicitanteNome.trim() || !detalhamento.trim()) {
-      alert("Preencha solicitante e descrição");
-      return;
-    }
-
-    setEnviando(true);
-    try {
-      const formData = new FormData();
-      formData.append("cliente", cliente || "Cliente avulso");
-      formData.append("subcliente", subcliente);
-      formData.append("marca", marca);
-      formData.append("unidade", unidade);
-      formData.append("endereco", endereco);
-      formData.append("telefone", telefone);
-      formData.append("email", email);
-      formData.append("solicitante_nome", solicitanteNome.trim());
-      formData.append("detalhamento", detalhamento.trim());
-      if (foto) formData.append("foto", foto);
-
-      await apiFetch("/projects/open", { method: "POST", body: formData });
-      alert("Solicitação enviada para o admin.");
-      setDetalhamento("");
-      setFoto(null);
-      setMostrarFormulario(false);
-      await carregarOS();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Erro ao solicitar OS");
-    } finally {
-      setEnviando(false);
     }
   }
 
@@ -227,8 +162,9 @@ export default function TerceiroPage() {
   }
 
   function sair() {
+    sessionStorage.removeItem(getPortalCacheKey());
+    clearLegacyPortalCacheKey();
     localStorage.clear();
-    sessionStorage.removeItem(TERCEIRO_CACHE_KEY);
     router.push("/login");
   }
 
@@ -258,24 +194,24 @@ export default function TerceiroPage() {
   }, [lista, tab]);
 
   return (
-    <div className="min-h-screen bg-[#252421] px-4 py-6 text-white sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#f3f8ff] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-6">
-        <section className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.22)] backdrop-blur sm:p-7">
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-300/80">Portal do cliente</p>
-              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white">Minhas ordens de serviço</h1>
-              <p className="mt-1 text-sm text-white/65">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-700">Portal do cliente</p>
+              <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">Minhas ordens de serviço</h1>
+              <p className="mt-1 text-sm text-slate-600">
                 {cliente || "Cliente"}
-                {subcliente || unidade ? ` — ${subcliente || unidade}` : ""}
+                {subcliente || unidade ? ` - ${subcliente || unidade}` : ""}
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={() => setMostrarFormulario((prev) => !prev)}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/8 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/12"
+                onClick={() => router.push("/terceiro/nova")}
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-800 transition hover:bg-sky-100"
               >
                 <Plus size={16} />
                 Nova solicitação
@@ -283,7 +219,7 @@ export default function TerceiroPage() {
               <button
                 type="button"
                 onClick={carregarOS}
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/8 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-white/12"
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 <RefreshCcw size={16} />
                 Atualizar
@@ -291,7 +227,7 @@ export default function TerceiroPage() {
               <button
                 type="button"
                 onClick={sair}
-                className="inline-flex items-center gap-2 rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-2.5 text-sm font-bold text-red-100 transition hover:bg-red-500/15"
+                className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-bold text-rose-700 transition hover:bg-rose-100"
               >
                 <LogOut size={16} />
                 Sair
@@ -312,68 +248,19 @@ export default function TerceiroPage() {
           </div>
         </section>
 
-        {mostrarFormulario && (
-          <section className="rounded-[28px] border border-white/10 bg-white/6 p-5 backdrop-blur sm:p-6">
-            <div className="mb-5 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-amber-300/80">Nova OS</p>
-                <h2 className="text-xl font-bold text-white">Abrir solicitação para o admin</h2>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Empresa" value={cliente || "Cliente avulso"} disabled />
-              <Field label="Unidade / Subcliente" value={subcliente || unidade || "-"} disabled />
-              <Field label="Endereço" value={endereco || "-"} disabled />
-              <Field label="Telefone" value={telefone || "-"} disabled />
-              <Field label="Email" value={email || "-"} disabled />
-              <Field label="Solicitante" value={solicitanteNome} onChange={setSolicitanteNome} placeholder="Nome do solicitante" />
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-white/80">Descrição</label>
-                <textarea
-                  rows={5}
-                  className="w-full rounded-2xl border border-white/12 bg-black/15 px-4 py-3 text-white outline-none transition focus:border-amber-300/40"
-                  value={detalhamento}
-                  onChange={(e) => setDetalhamento(e.target.value)}
-                  placeholder="Descreva o que precisa ser feito"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="mb-1 block text-sm font-semibold text-white/80">Foto do problema (opcional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="w-full rounded-2xl border border-white/12 bg-black/15 px-4 py-3 text-sm text-white file:mr-3 file:rounded-xl file:border-0 file:bg-amber-300 file:px-3 file:py-2 file:font-bold file:text-[#2b271d]"
-                  onChange={(e) => setFoto(e.target.files?.[0] || null)}
-                />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={solicitarOS}
-              disabled={enviando}
-              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-amber-300 px-5 py-3 text-sm font-extrabold text-[#2b271d] transition hover:bg-amber-200 disabled:opacity-60"
-            >
-              {enviando ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {enviando ? "Enviando..." : "Enviar solicitação"}
-            </button>
-          </section>
-        )}
-
         {erroLista && (
-          <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {erroLista}
           </div>
         )}
 
         <section className="space-y-4">
           {carregandoLista ? (
-            <div className="rounded-[28px] border border-white/10 bg-white/6 px-5 py-10 text-center text-white/75">
+            <div className="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center text-slate-600">
               Carregando ordens de serviço...
             </div>
           ) : listaFiltrada.length === 0 ? (
-            <div className="rounded-[28px] border border-white/10 bg-white/6 px-5 py-10 text-center text-white/75">
+            <div className="rounded-3xl border border-slate-200 bg-white px-5 py-10 text-center text-slate-600">
               Nenhuma OS encontrada para este filtro.
             </div>
           ) : (
@@ -385,40 +272,41 @@ export default function TerceiroPage() {
               const fotosTecnico = (os.depois?.fotos?.length || 0) + (os.antes?.fotos?.length || 0);
 
               return (
-                <article
-                  key={osId}
-                  className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03))] p-5 shadow-[0_12px_40px_rgba(0,0,0,0.16)]"
-                >
+                <article key={osId} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <h2 className="text-2xl font-bold text-white">{os.tipo_manutencao || "Serviço"}</h2>
-                      <p className="mt-1 text-sm font-semibold text-white/65">{os.osNumero || "Sem número"}</p>
+                      <h2 className="text-2xl font-bold text-slate-900">{os.tipo_manutencao || "Serviço"}</h2>
+                      <p className="mt-1 text-sm font-semibold text-slate-600">{os.osNumero || "Sem número"}</p>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold ${concluida ? "bg-lime-500/20 text-lime-300" : "bg-amber-400/15 text-amber-200"}`}>
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        concluida ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
                       {concluida ? "Concluída" : statusLabel(os.status)}
                     </span>
                   </div>
 
-                  <div className="mt-5 grid gap-2 text-sm text-white/78 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="mt-5 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
                     <InfoLine label="Abertura" value={formatDate(os.data_abertura || os.createdAt)} />
                     <InfoLine label="Solicitante" value={os.solicitante_nome || "-"} />
                     <InfoLine label="Técnico" value={tecnicoNome} />
                     <InfoLine label="Validação" value={formatDate(os.data_validacao_admin)} />
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/15 p-4 text-sm text-white/82">
-                    <p className="font-semibold text-white">Descrição</p>
-                    <p className="mt-2 whitespace-pre-line text-white/72">{os.detalhamento || "-"}</p>
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">Descrição</p>
+                    <p className="mt-2 whitespace-pre-line">{os.detalhamento || "-"}</p>
                   </div>
 
-                  <div className="mt-4 grid gap-3 text-sm text-white/72 sm:grid-cols-3">
+                  <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-3">
                     <MiniStat label="Cliente" value={os.cliente || "-"} />
                     <MiniStat label="Local" value={os.subcliente || os.Subcliente || os.unidade || "-"} />
                     <MiniStat label="Fotos do técnico" value={String(fotosTecnico)} />
                   </div>
 
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
-                    <div className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/12 px-4 py-2.5 text-sm font-semibold text-white/70">
+                    <div className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-600">
                       <FileText size={16} />
                       {concluida ? "OS validada pelo admin" : "OS em acompanhamento"}
                     </div>
@@ -426,10 +314,10 @@ export default function TerceiroPage() {
                       type="button"
                       disabled={!concluida || baixandoId === osId}
                       onClick={() => baixarPDF(os)}
-                      className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 border-lime-400/25 bg-lime-400/10 text-lime-100 hover:bg-lime-400/15"
+                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {baixandoId === osId ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
-                      {concluida ? "Baixar PDF" : "Disponível após validação"}
+                      <FileDown size={16} />
+                      {baixandoId === osId ? "Baixando..." : concluida ? "Baixar PDF" : "Disponível após validação"}
                     </button>
                   </div>
                 </article>
@@ -444,9 +332,9 @@ export default function TerceiroPage() {
 
 function MetricCard({ titulo, valor }: { titulo: string; valor: number }) {
   return (
-    <div className="rounded-[24px] border border-white/10 bg-black/14 px-5 py-4">
-      <p className="text-sm font-semibold text-white/65">{titulo}</p>
-      <p className="mt-3 text-5xl font-extrabold tracking-tight text-white">{valor}</p>
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+      <p className="text-sm font-semibold text-slate-600">{titulo}</p>
+      <p className="mt-3 text-5xl font-extrabold tracking-tight text-slate-900">{valor}</p>
     </div>
   );
 }
@@ -456,10 +344,8 @@ function TabButton({ active, children, onClick }: { active: boolean; children: s
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border px-5 py-3 text-sm font-bold transition ${
-        active
-          ? "border-white/15 bg-white text-[#252421]"
-          : "border-white/15 bg-transparent text-white hover:bg-white/10"
+      className={`rounded-xl border px-5 py-3 text-sm font-bold transition ${
+        active ? "border-sky-200 bg-sky-50 text-sky-800" : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
       }`}
     >
       {children}
@@ -467,46 +353,19 @@ function TabButton({ active, children, onClick }: { active: boolean; children: s
   );
 }
 
-function Field({
-  label,
-  value,
-  onChange,
-  placeholder,
-  disabled,
-}: {
-  label: string;
-  value: string;
-  onChange?: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-semibold text-white/80">{label}</span>
-      <input
-        className="w-full rounded-2xl border border-white/12 bg-black/15 px-4 py-3 text-white outline-none transition focus:border-amber-300/40 disabled:text-white/60"
-        value={value}
-        onChange={(e) => onChange?.(e.target.value)}
-        placeholder={placeholder}
-        disabled={disabled}
-      />
-    </label>
-  );
-}
-
 function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <p>
-      <span className="font-semibold text-white">{label}:</span> {value}
+      <span className="font-semibold text-slate-900">{label}:</span> {value}
     </p>
   );
 }
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/12 px-4 py-3">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
