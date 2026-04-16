@@ -8,6 +8,7 @@ import { apiFetch } from "@/app/lib/api";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/servicos", label: "Servicos", icon: ClipboardList },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/tecnicos", label: "Tecnicos", icon: Wrench },
   { href: "/admin/terceiros", label: "Terceiros", icon: Users },

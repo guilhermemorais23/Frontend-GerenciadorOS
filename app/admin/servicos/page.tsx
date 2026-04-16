@@ -57,11 +57,20 @@ export default function AdminServicosPage() {
 
     setDeleting(true);
     try {
-      const results = await Promise.allSettled(
-        ids.map((id) => apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" }))
-      );
+      const removedIds: string[] = [];
+      const failedMessages: string[] = [];
 
-      const removedIds = ids.filter((_, index) => results[index].status === "fulfilled");
+      // Evita disparar dezenas de requests em paralelo (proxy/servidor podem recusar em massa).
+      for (const id of ids) {
+        try {
+          await apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" });
+          removedIds.push(id);
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Erro ao excluir OS";
+          failedMessages.push(message);
+        }
+      }
+
       const failedCount = ids.length - removedIds.length;
 
       if (removedIds.length) {
@@ -70,8 +79,12 @@ export default function AdminServicosPage() {
       }
 
       if (failedCount > 0) {
+        const details =
+          failedMessages.length > 0
+            ? `\nMotivo: ${failedMessages[0]}`
+            : "";
         alert(
-          `Algumas OS nao puderam ser excluidas (${failedCount} de ${ids.length}). Tente novamente nas que restaram.`
+          `Algumas OS nao puderam ser excluidas (${failedCount} de ${ids.length}). Tente novamente nas que restaram.${details}`
         );
       }
     } catch (err: unknown) {
@@ -99,11 +112,12 @@ export default function AdminServicosPage() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <label className="inline-flex cursor-pointer items-center gap-3 rounded-lg px-1 py-1 text-sm font-semibold text-slate-700">
           <input
             type="checkbox"
             checked={servicos.length > 0 && selectedIds.length === servicos.length}
             onChange={(e) => toggleSelectAll(e.target.checked)}
+            className="h-5 w-5 cursor-pointer accent-blue-700"
           />
           Selecionar todas
         </label>
@@ -126,12 +140,14 @@ export default function AdminServicosPage() {
         <div key={s._id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-start gap-3">
-              <input
-                type="checkbox"
-                checked={selectedIds.includes(s._id)}
-                onChange={() => toggleSelection(s._id)}
-                className="mt-1"
-              />
+              <label className="mt-0.5 inline-flex cursor-pointer items-center rounded-md p-1">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(s._id)}
+                  onChange={() => toggleSelection(s._id)}
+                  className="h-5 w-5 cursor-pointer accent-blue-700"
+                />
+              </label>
 
               <div>
                 <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
