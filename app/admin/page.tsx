@@ -67,6 +67,18 @@ type MetricsResponse = {
   total_pendentes?: number;
 };
 
+type StorageEstimateResponse = {
+  mode?: "supabase" | "mongo";
+  target_mb?: number;
+  target_bytes?: number;
+  db_size_bytes?: number;
+  projects_table_bytes?: number;
+  total_os?: number;
+  avg_os_row_bytes?: number;
+  estimated_os_to_delete?: number;
+  message?: string;
+};
+
 type NotificationItem = {
   _id: string;
   type?: "CLIENT_REQUEST" | "STATUS_CHANGED" | "SYSTEM" | string;
@@ -105,12 +117,26 @@ function sortByOsDescending(items: OSItem[]) {
   });
 }
 
+function formatBytes(value?: number) {
+  const bytes = Number(value || 0);
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = bytes;
+  let index = 0;
+  while (size >= 1024 && index < units.length - 1) {
+    size /= 1024;
+    index += 1;
+  }
+  return `${size.toFixed(size >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [notificacoes, setNotificacoes] = useState<NotificationItem[]>([]);
+  const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResponse | null>(null);
   const [statusFiltro, setStatusFiltro] = useState("");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
@@ -182,6 +208,17 @@ export default function AdminDashboard() {
         }
       } catch {
         // noop
+      }
+
+      try {
+        const estimate = (await apiFetch("/dashboard/storage-estimate?targetMb=450")) as StorageEstimateResponse;
+        if (estimate && typeof estimate === "object") {
+          setStorageEstimate(estimate);
+        } else {
+          setStorageEstimate(null);
+        }
+      } catch {
+        setStorageEstimate(null);
       }
 
     } catch (err: unknown) {
@@ -334,6 +371,23 @@ export default function AdminDashboard() {
         <Card titulo="Concluída" valor={contadores.finalizadas ?? 0} cor="bg-green-700" onClick={() => setStatusFiltro(STATUS_FINALIZADAS)} active={statusFiltro === STATUS_FINALIZADAS} />
       </div>
 
+      {storageEstimate && (
+        <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Armazenamento</p>
+          <h2 className="mt-1 text-lg font-extrabold text-slate-900">Estimativa Supabase (plano gratuito)</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <StatBox label="Total de OS" value={String(storageEstimate.total_os || 0)} />
+            <StatBox label="Banco atual" value={formatBytes(storageEstimate.db_size_bytes)} />
+            <StatBox label="Tabela projects" value={formatBytes(storageEstimate.projects_table_bytes)} />
+            <StatBox label="Média por OS" value={formatBytes(storageEstimate.avg_os_row_bytes)} />
+            <StatBox label={`OS para alvo ${storageEstimate.target_mb || 450} MB`} value={String(storageEstimate.estimated_os_to_delete || 0)} />
+          </div>
+          {storageEstimate.message && (
+            <p className="mt-3 text-xs text-slate-600">{storageEstimate.message}</p>
+          )}
+        </div>
+      )}
+
       <div className="grid gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 sm:grid-cols-2 xl:grid-cols-4">
         <select
           className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
@@ -474,6 +528,15 @@ function Card({
       <p className="text-xs font-semibold uppercase tracking-wide text-white/85">{titulo}</p>
       <p className="mt-1 text-3xl font-extrabold">{valor}</p>
     </button>
+  );
+}
+
+function StatBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-extrabold text-slate-900">{value}</p>
+    </div>
   );
 }
 
