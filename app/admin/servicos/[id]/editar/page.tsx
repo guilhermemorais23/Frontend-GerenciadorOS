@@ -346,6 +346,9 @@ export default function EditarOSPage() {
   if (loading) return <div className="p-6 text-center">Carregando...</div>;
 
   const fotoUrl = photoSrc(fotoProblema);
+  const hasAntesTecnico = Boolean(antesRelatorio.trim() || antesObs.trim() || antesFotos.length > 0);
+  const hasDepoisTecnico = Boolean(depoisRelatorio.trim() || depoisObs.trim() || depoisFotos.length > 0);
+  const mostrarHistoricoTecnico = hasAntesTecnico || hasDepoisTecnico;
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
@@ -368,8 +371,7 @@ export default function EditarOSPage() {
         </div>
 
         <p className="rounded-xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
-          Revise a solicitação, o encaminhamento e os registros do técnico (antes/depois). Ao reabrir a OS, o histórico
-          permanece visível para correção.
+          Revise os dados do cliente e a solicitação enviada. O histórico ANTES/DEPOIS só aparece após o técnico registrar atendimento.
         </p>
 
         <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
@@ -492,79 +494,83 @@ export default function EditarOSPage() {
           </section>
         )}
 
-        <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
-          <h2 className="text-lg font-extrabold text-slate-900">Antes (técnico)</h2>
-          <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={4} placeholder="Relatório / parecer inicial" value={antesRelatorio} onChange={(e) => setAntesRelatorio(e.target.value)} />
-          <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={3} placeholder="Observação" value={antesObs} onChange={(e) => setAntesObs(e.target.value)} />
-          <div className="flex flex-wrap gap-2">
-            <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
-              Adicionar fotos
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                disabled={uploadingAntes}
-                onChange={(e) => {
-                  uploadFotos("antes", e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            {uploadingAntes && <span className="text-sm text-slate-600">Enviando...</span>}
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {antesFotos.map((u, idx) => (
-              <div key={`${u}-${idx}`} className="relative">
-                <img src={u} alt="" className="h-28 w-full rounded-lg object-cover" />
-                <button
-                  type="button"
-                  className="absolute right-1 top-1 rounded bg-rose-600 px-2 py-0.5 text-xs font-bold text-white"
-                  onClick={() => setAntesFotos((prev) => prev.filter((_, i) => i !== idx))}
-                >
-                  Remover
-                </button>
+        {mostrarHistoricoTecnico && (
+          <>
+            <section className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+              <h2 className="text-lg font-extrabold text-slate-900">Antes (técnico)</h2>
+              <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={4} placeholder="Relatório / parecer inicial" value={antesRelatorio} onChange={(e) => setAntesRelatorio(e.target.value)} />
+              <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={3} placeholder="Observação" value={antesObs} onChange={(e) => setAntesObs(e.target.value)} />
+              <div className="flex flex-wrap gap-2">
+                <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                  Adicionar fotos
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploadingAntes}
+                    onChange={(e) => {
+                      uploadFotos("antes", e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {uploadingAntes && <span className="text-sm text-slate-600">Enviando...</span>}
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {antesFotos.map((u, idx) => (
+                  <div key={`${u}-${idx}`} className="relative">
+                    <img src={u} alt="" className="h-28 w-full rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1 rounded bg-rose-600 px-2 py-0.5 text-xs font-bold text-white"
+                      onClick={() => setAntesFotos((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-        <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
-          <h2 className="text-lg font-extrabold text-slate-900">Depois (técnico)</h2>
-          <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={4} placeholder="Relatório / parecer final" value={depoisRelatorio} onChange={(e) => setDepoisRelatorio(e.target.value)} />
-          <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={3} placeholder="Observação" value={depoisObs} onChange={(e) => setDepoisObs(e.target.value)} />
-          <div className="flex flex-wrap gap-2">
-            <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
-              Adicionar fotos
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                disabled={uploadingDepois}
-                onChange={(e) => {
-                  uploadFotos("depois", e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-            {uploadingDepois && <span className="text-sm text-slate-600">Enviando...</span>}
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {depoisFotos.map((u, idx) => (
-              <div key={`${u}-d-${idx}`} className="relative">
-                <img src={u} alt="" className="h-28 w-full rounded-lg object-cover" />
-                <button
-                  type="button"
-                  className="absolute right-1 top-1 rounded bg-rose-600 px-2 py-0.5 text-xs font-bold text-white"
-                  onClick={() => setDepoisFotos((prev) => prev.filter((_, i) => i !== idx))}
-                >
-                  Remover
-                </button>
+            <section className="space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4">
+              <h2 className="text-lg font-extrabold text-slate-900">Depois (técnico)</h2>
+              <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={4} placeholder="Relatório / parecer final" value={depoisRelatorio} onChange={(e) => setDepoisRelatorio(e.target.value)} />
+              <textarea className="w-full rounded-xl border border-slate-200 bg-white p-2.5" rows={3} placeholder="Observação" value={depoisObs} onChange={(e) => setDepoisObs(e.target.value)} />
+              <div className="flex flex-wrap gap-2">
+                <label className="cursor-pointer rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold hover:bg-slate-50">
+                  Adicionar fotos
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploadingDepois}
+                    onChange={(e) => {
+                      uploadFotos("depois", e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                {uploadingDepois && <span className="text-sm text-slate-600">Enviando...</span>}
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {depoisFotos.map((u, idx) => (
+                  <div key={`${u}-d-${idx}`} className="relative">
+                    <img src={u} alt="" className="h-28 w-full rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      className="absolute right-1 top-1 rounded bg-rose-600 px-2 py-0.5 text-xs font-bold text-white"
+                      onClick={() => setDepoisFotos((prev) => prev.filter((_, i) => i !== idx))}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </>
+        )}
 
         <textarea
           className="w-full rounded-xl border border-slate-200 p-2.5"
