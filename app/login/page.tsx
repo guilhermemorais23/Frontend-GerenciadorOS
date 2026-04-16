@@ -28,6 +28,10 @@ export default function LoginPage() {
       }
 
       localStorage.setItem("token", data.token);
+      localStorage.setItem(
+        "userId",
+        String((data as { userId?: string }).userId || "")
+      );
       localStorage.setItem("role", data.role);
       localStorage.setItem("nome", data.nome || "");
       localStorage.setItem("cliente_vinculado", data.cliente_vinculado || "");

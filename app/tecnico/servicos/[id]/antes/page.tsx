@@ -50,9 +50,20 @@ export default function AntesPage() {
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
-    carregarOS();
+    setLoading(true);
+    setOs(null);
+    setRelatorio("");
+    setObservacao("");
+    setFotos([]);
+    setMaterialId("");
+    setMaterialNomeLivre("");
+    setMaterialQuantidade("1");
+    setMaterialUnidade("un");
+    setMaterialObs("");
+    setMateriais([]);
+    void carregarOS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   async function carregarOS() {
     try {
@@ -184,8 +195,20 @@ export default function AntesPage() {
     }
   }
 
-  if (loading) return <div className="p-6">Carregando...</div>;
-  if (!os) return <div className="p-6">OS não encontrada</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6">Carregando...</div>
+      </div>
+    );
+  }
+  if (!os) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6">OS não encontrada</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 text-slate-900 sm:p-6">

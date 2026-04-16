@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 import { formatDate, formatDuration, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type HistoricoBloco = {
@@ -64,9 +65,11 @@ export default function ServicoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    carregarOS();
+    setLoading(true);
+    setOs(null);
+    void carregarOS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [id]);
 
   async function carregarOS() {
     try {
@@ -106,8 +109,20 @@ export default function ServicoPage() {
     }
   }
 
-  if (loading) return <div className="p-6">Carregando...</div>;
-  if (!os) return <div className="p-6">OS não encontrada</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6">Carregando...</div>
+      </div>
+    );
+  }
+  if (!os) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 text-slate-900 sm:p-6">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-6">OS não encontrada</div>
+      </div>
+    );
+  }
 
   const status = normalizeStatus(os.status);
   const canGoDepois = status === STATUS.EM_ATENDIMENTO || status === STATUS.PAUSADA;
@@ -163,7 +178,7 @@ export default function ServicoPage() {
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="mb-2 text-sm font-semibold text-slate-700">Foto enviada na solicitação</p>
             <img
-              src={`data:image/jpeg;base64,${os.problem_photo_url || os.foto_abertura}`}
+              src={normalizeImageSrc(String(os.problem_photo_url || os.foto_abertura || ""))}
               alt="Foto da solicitação"
               className="h-44 w-full max-w-sm rounded-lg object-cover"
             />
@@ -324,7 +339,7 @@ function SectionHistorico({ titulo, bloco }: { titulo: string; bloco?: Historico
       {bloco?.fotos && bloco.fotos.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {bloco.fotos.map((f, i) => (
-            <img key={i} src={`data:image/jpeg;base64,${f}`} alt={`${titulo} foto ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
+            <img key={i} src={normalizeImageSrc(f)} alt={`${titulo} foto ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
           ))}
         </div>
       )}

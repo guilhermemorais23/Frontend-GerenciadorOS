@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CarFront, Eye, MapPinned, Phone } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
+import {
+  clearAllTecnicoDashboardSessionKeys,
+  clearLegacyTecnicoSessionKeys,
+  tecnicoDashboardCacheKey,
+  tecnicoDashboardFiltersKey,
+} from "@/app/lib/tecnico-session";
 import { formatDate, normalizeStatus, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type Servico = {
@@ -35,9 +41,6 @@ export default function TecnicoPage() {
   const FILTRO_INICIAL = "__INICIAL__";
   const FILTRO_TODAS = "__TODAS__";
   const FILTRO_FINALIZADAS = "__FINALIZADAS__";
-  const TECNICO_FILTER_STORAGE_KEY = "tecnico-dashboard-filters";
-  const TECNICO_CACHE_KEY = "tecnico-dashboard-cache";
-
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [filtro, setFiltro] = useState(FILTRO_INICIAL);
   const [busca, setBusca] = useState("");
@@ -45,8 +48,10 @@ export default function TecnicoPage() {
   const [loadingFresh, setLoadingFresh] = useState(false);
 
   useEffect(() => {
+    clearLegacyTecnicoSessionKeys();
+
     try {
-      const saved = sessionStorage.getItem(TECNICO_FILTER_STORAGE_KEY);
+      const saved = sessionStorage.getItem(tecnicoDashboardFiltersKey());
       if (saved) {
         const parsed = JSON.parse(saved) as { filtro?: string; busca?: string };
         setFiltro(parsed.filtro || FILTRO_INICIAL);
@@ -57,7 +62,7 @@ export default function TecnicoPage() {
     }
 
     try {
-      const cached = sessionStorage.getItem(TECNICO_CACHE_KEY);
+      const cached = sessionStorage.getItem(tecnicoDashboardCacheKey());
       if (cached) {
         const parsed = JSON.parse(cached) as Servico[];
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -96,7 +101,7 @@ export default function TecnicoPage() {
   }, [router]);
 
   useEffect(() => {
-    sessionStorage.setItem(TECNICO_FILTER_STORAGE_KEY, JSON.stringify({ filtro, busca }));
+    sessionStorage.setItem(tecnicoDashboardFiltersKey(), JSON.stringify({ filtro, busca }));
   }, [filtro, busca]);
 
   async function carregarServicos() {
@@ -105,7 +110,7 @@ export default function TecnicoPage() {
       const data = await apiFetch("/projects/tecnico/my");
       const lista = Array.isArray(data) ? data : [];
       setServicos(lista);
-      sessionStorage.setItem(TECNICO_CACHE_KEY, JSON.stringify(lista));
+      sessionStorage.setItem(tecnicoDashboardCacheKey(), JSON.stringify(lista));
     } catch (err: unknown) {
       alert("Erro ao carregar serviços: " + (err instanceof Error ? err.message : "erro desconhecido"));
     } finally {
@@ -151,6 +156,7 @@ export default function TecnicoPage() {
     const ok = confirm("Deseja realmente sair?");
     if (!ok) return;
 
+    clearAllTecnicoDashboardSessionKeys();
     localStorage.clear();
     router.push("/login");
   }
@@ -219,10 +225,16 @@ export default function TecnicoPage() {
   function limparFiltros() {
     setFiltro(FILTRO_INICIAL);
     setBusca("");
-    sessionStorage.removeItem(TECNICO_FILTER_STORAGE_KEY);
+    sessionStorage.removeItem(tecnicoDashboardFiltersKey());
   }
 
-  if (loading) return <div className="rounded-2xl border border-slate-200 bg-white p-6">Carregando...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f3f8ff] p-4 sm:p-6">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 bg-[#f3f8ff] p-4 sm:p-6">
