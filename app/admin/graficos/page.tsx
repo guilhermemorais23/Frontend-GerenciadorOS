@@ -19,13 +19,18 @@ type OSItem = {
   createdAt?: string;
   data_abertura?: string;
   cliente?: string;
+  subcliente?: string;
+  Subcliente?: string;
+  subgrupo?: string;
+  unidade?: string;
+  marca?: string;
 };
 
 export default function AdminGraficosPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [loading, setLoading] = useState(true);
   const [osList, setOsList] = useState<OSItem[]>([]);
-  const [clienteFiltro, setClienteFiltro] = useState("");
+  const [escopoFiltro, setEscopoFiltro] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +50,7 @@ export default function AdminGraficosPage() {
     };
   }, []);
 
-  const metrics = useMemo(() => buildMetricsFromList(osList, month, clienteFiltro), [osList, month, clienteFiltro]);
+  const metrics = useMemo(() => buildMetricsFromList(osList, month, escopoFiltro), [osList, month, escopoFiltro]);
 
   const slices = useMemo(
     () => [
@@ -75,12 +80,18 @@ export default function AdminGraficosPage() {
   const circumference = 2 * Math.PI * radius;
   let cumulative = 0;
 
-  const clientesUnicos = useMemo(() => {
-    const s = new Set<string>();
+  const escoposUnicos = useMemo(() => {
+    const map = new Map<string, string>();
     osList.forEach((o) => {
-      if (o.cliente) s.add(String(o.cliente).trim());
+      const escopo = getEscopoFromOs(o);
+      if (!escopo) return;
+      if (!map.has(escopo.key)) {
+        map.set(escopo.key, escopo.label);
+      }
     });
-    return Array.from(s).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    return Array.from(map.entries())
+      .map(([key, label]) => ({ key, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [osList]);
 
   return (
@@ -93,16 +104,16 @@ export default function AdminGraficosPage() {
           onChange={(e) => setMonth(e.target.value)}
           className="mt-2 rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         />
-        <label className="mt-4 block text-sm font-semibold text-slate-700">Cliente</label>
+        <label className="mt-4 block text-sm font-semibold text-slate-700">Cliente / Escopo</label>
         <select
-          value={clienteFiltro}
-          onChange={(e) => setClienteFiltro(e.target.value)}
+          value={escopoFiltro}
+          onChange={(e) => setEscopoFiltro(e.target.value)}
           className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
         >
-          <option value="">Todos os clientes</option>
-          {clientesUnicos.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          <option value="">Todos</option>
+          {escoposUnicos.map((item) => (
+            <option key={item.key} value={item.key}>
+              {item.label}
             </option>
           ))}
         </select>
@@ -171,10 +182,36 @@ export default function AdminGraficosPage() {
   );
 }
 
-function buildMetricsFromList(list: OSItem[], month: string, clienteFiltro?: string): Metrics {
-  const cf = String(clienteFiltro || "").trim().toLowerCase();
+function normalizeScopeValue(value?: string) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function getEscopoFromOs(item: OSItem): { key: string; label: string } | null {
+  const cliente = String(item.cliente || "").trim();
+  if (!cliente) return null;
+
+  const clienteNorm = normalizeScopeValue(cliente);
+  if (clienteNorm === "dasa") {
+    const unidade = String(item.unidade || "").trim();
+    const marca = String(item.marca || "").trim();
+    return {
+      key: `dasa|${normalizeScopeValue(unidade)}|${normalizeScopeValue(marca)}`,
+      label: `DASA - Unidade: ${unidade || "-"} | Marca: ${marca || "-"}`,
+    };
+  }
+
+  const subcliente = String(item.subcliente || item.Subcliente || item.subgrupo || "").trim();
+  return {
+    key: `${clienteNorm}|${normalizeScopeValue(subcliente)}`,
+    label: subcliente ? `${cliente} - ${subcliente}` : `${cliente} - (sem subcliente)`,
+  };
+}
+
+function buildMetricsFromList(list: OSItem[], month: string, escopoFiltro?: string): Metrics {
+  const ef = String(escopoFiltro || "").trim();
   const filtered = list.filter((item) => {
-    if (cf && String(item.cliente || "").trim().toLowerCase() !== cf) return false;
+    const escopoItem = getEscopoFromOs(item);
+    if (ef && escopoItem?.key !== ef) return false;
     const rawDate = item.data_abertura || item.createdAt;
     if (!rawDate) return false;
     const date = new Date(rawDate);
