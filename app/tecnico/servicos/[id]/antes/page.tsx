@@ -8,6 +8,12 @@ import { normalizeStatus, STATUS } from "@/app/lib/os";
 type OSTecnico = {
   osNumero?: string;
   status?: string;
+  antes?: {
+    relatorio?: string;
+    observacao?: string;
+    fotos?: string[];
+  };
+  materiais_solicitados?: MaterialSolicitado[];
 };
 
 type EquipamentoCatalogo = {
@@ -70,10 +76,10 @@ export default function AntesPage() {
   async function carregarOS() {
     try {
       const [osData, catalogoData] = await Promise.all([
-        apiFetch(`/projects/tecnico/view-lite/${id}`),
+        apiFetch(`/projects/tecnico/view/${id}`),
         apiFetch("/catalog/equipamentos").catch(() => [])
       ]);
-      const data = osData as OSTecnico & { materiais_solicitados?: MaterialSolicitado[] };
+      const data = osData as OSTecnico;
       const status = normalizeStatus(data.status);
 
       const bloqueada =
@@ -87,6 +93,8 @@ export default function AntesPage() {
       }
 
       setOs(data);
+      setRelatorio(String(data.antes?.relatorio || ""));
+      setObservacao(String(data.antes?.observacao || ""));
       const materiaisSalvos = Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : [];
       setMateriais(materiaisSalvos);
       setUsaMateriais(materiaisSalvos.length > 0);
