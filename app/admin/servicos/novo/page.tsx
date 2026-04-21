@@ -24,16 +24,6 @@ type Tecnico = {
   telefone?: string;
 };
 
-type EquipamentoCatalogo = {
-  _id: string;
-  nome: string;
-  fabricante?: string;
-  modelo?: string;
-  numero_serie?: string;
-  patrimonio?: string;
-  especificacoes_tecnicas?: string;
-};
-
 type SolicitanteVinculado = {
   _id: string;
   nome: string;
@@ -61,8 +51,6 @@ export default function NovaOSPage() {
   const [solicitanteVinculadoId, setSolicitanteVinculadoId] = useState("");
   const [salvandoSolicitante, setSalvandoSolicitante] = useState(false);
   const [tipoManutencao, setTipoManutencao] = useState<(typeof TIPO_MANUTENCAO)[number]>("CORRETIVA");
-  /** Catálogo só aparece quando marcado (padrão: não). */
-  const [incluirPecaCatalogo, setIncluirPecaCatalogo] = useState(false);
 
   const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -75,15 +63,6 @@ export default function NovaOSPage() {
 
   const [tecnicos, setTecnicos] = useState<Tecnico[]>([]);
   const [tecnicoId, setTecnicoId] = useState("");
-  const [catalogoEquipamentos, setCatalogoEquipamentos] = useState<EquipamentoCatalogo[]>([]);
-  const [equipamentoCatalogoId, setEquipamentoCatalogoId] = useState("");
-  const [equipamentoNome, setEquipamentoNome] = useState("");
-  const [equipamentoFabricante, setEquipamentoFabricante] = useState("");
-  const [equipamentoModelo, setEquipamentoModelo] = useState("");
-  const [equipamentoNumeroSerie, setEquipamentoNumeroSerie] = useState("");
-  const [equipamentoPatrimonio, setEquipamentoPatrimonio] = useState("");
-  const [equipamentoEspecificacoes, setEquipamentoEspecificacoes] = useState("");
-  const [orcamentoPrevisto, setOrcamentoPrevisto] = useState("");
 
   const [loading, setLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -100,13 +79,6 @@ export default function NovaOSPage() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    if (!incluirPecaCatalogo) return;
-    apiFetch("/catalog/equipamentos")
-      .then((data) => setCatalogoEquipamentos(Array.isArray(data) ? (data as EquipamentoCatalogo[]) : []))
-      .catch(() => setCatalogoEquipamentos([]));
-  }, [incluirPecaCatalogo]);
 
   useEffect(() => {
     carregarSolicitantesVinculados(cliente, subcliente);
@@ -230,18 +202,6 @@ export default function NovaOSPage() {
     }
   }
 
-  function selecionarEquipamento(id: string) {
-    setEquipamentoCatalogoId(id);
-    const eq = catalogoEquipamentos.find((item) => item._id === id);
-    if (!eq) return;
-    setEquipamentoNome(eq.nome || "");
-    setEquipamentoFabricante(eq.fabricante || "");
-    setEquipamentoModelo(eq.modelo || "");
-    setEquipamentoNumeroSerie(eq.numero_serie || "");
-    setEquipamentoPatrimonio(eq.patrimonio || "");
-    setEquipamentoEspecificacoes(eq.especificacoes_tecnicas || "");
-  }
-
   async function salvarOS() {
     const faltando: string[] = [];
     if (!cliente.trim()) faltando.push("cliente");
@@ -269,15 +229,14 @@ export default function NovaOSPage() {
       formData.append("solicitante_nome", solicitanteNome);
       formData.append("tipo_manutencao", tipoManutencao);
       formData.append("prioridade", prioridade);
-      const usarCat = incluirPecaCatalogo;
-      formData.append("equipamento_catalogo_id", usarCat ? equipamentoCatalogoId : "");
-      formData.append("equipamento_nome", usarCat ? equipamentoNome : "");
-      formData.append("equipamento_fabricante", usarCat ? equipamentoFabricante : "");
-      formData.append("equipamento_modelo", usarCat ? equipamentoModelo : "");
-      formData.append("equipamento_numero_serie", usarCat ? equipamentoNumeroSerie : "");
-      formData.append("equipamento_patrimonio", usarCat ? equipamentoPatrimonio : "");
-      formData.append("equipamento_especificacoes", usarCat ? equipamentoEspecificacoes : "");
-      formData.append("orcamento_previsto", usarCat ? orcamentoPrevisto : "");
+      formData.append("equipamento_catalogo_id", "");
+      formData.append("equipamento_nome", "");
+      formData.append("equipamento_fabricante", "");
+      formData.append("equipamento_modelo", "");
+      formData.append("equipamento_numero_serie", "");
+      formData.append("equipamento_patrimonio", "");
+      formData.append("equipamento_especificacoes", "");
+      formData.append("orcamento_previsto", "");
       if (fotoProblema) formData.append("foto", fotoProblema);
 
       await apiFetch("/projects/admin/create", {
@@ -516,57 +475,6 @@ export default function NovaOSPage() {
             </select>
           </label>
 
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <span className="text-sm font-semibold">Incluir peça do catálogo nesta OS?</span>
-              <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-800">
-                <label className="inline-flex cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
-                    name="catalogo_sn"
-                    checked={!incluirPecaCatalogo}
-                    onChange={() => setIncluirPecaCatalogo(false)}
-                  />
-                  Não
-                </label>
-                <label className="inline-flex cursor-pointer items-center gap-2">
-                  <input
-                    type="radio"
-                    name="catalogo_sn"
-                    checked={incluirPecaCatalogo}
-                    onChange={() => setIncluirPecaCatalogo(true)}
-                  />
-                  Sim
-                </label>
-              </div>
-            </div>
-
-            {incluirPecaCatalogo && (
-              <>
-                <label className="block sm:col-span-2">
-                  <span className="mb-1 block text-sm font-semibold">Equipamento do catálogo</span>
-                  <select
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5"
-                    value={equipamentoCatalogoId}
-                    onChange={(e) => selecionarEquipamento(e.target.value)}
-                  >
-                    <option value="">Selecione um equipamento</option>
-                    {catalogoEquipamentos.map((eq) => (
-                      <option key={eq._id} value={eq._id}>
-                        {eq.nome} {eq.fabricante ? `- ${eq.fabricante}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Nome do equipamento" value={equipamentoNome} onChange={(e) => setEquipamentoNome(e.target.value)} />
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Fabricante" value={equipamentoFabricante} onChange={(e) => setEquipamentoFabricante(e.target.value)} />
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Modelo" value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5" placeholder="Número de série" value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Patrimônio / TAG" value={equipamentoPatrimonio} onChange={(e) => setEquipamentoPatrimonio(e.target.value)} />
-                <textarea className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" rows={4} placeholder="Especificações técnicas" value={equipamentoEspecificacoes} onChange={(e) => setEquipamentoEspecificacoes(e.target.value)} />
-                <input className="w-full rounded-xl border border-slate-200 px-3 py-2.5 sm:col-span-2" placeholder="Orçamento previsto" value={orcamentoPrevisto} onChange={(e) => setOrcamentoPrevisto(e.target.value)} />
-              </>
-            )}
           </>
         </div>
 

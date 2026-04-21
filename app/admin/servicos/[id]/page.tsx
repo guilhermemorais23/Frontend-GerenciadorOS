@@ -315,7 +315,7 @@ export default function DetalheOSPage() {
                   WhatsApp
                   <input
                     className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                    placeholder="5583999999999"
+                    placeholder="DDD + número (ex: 83999999999)"
                     value={deliveryPhone}
                     onChange={(e) => setDeliveryPhone(e.target.value)}
                   />

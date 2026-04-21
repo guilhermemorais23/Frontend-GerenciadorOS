@@ -24,16 +24,6 @@ type SolicitanteVinculado = {
   email?: string;
 };
 
-type EquipamentoCatalogo = {
-  _id: string;
-  nome: string;
-  fabricante?: string;
-  modelo?: string;
-  numero_serie?: string;
-  patrimonio?: string;
-  especificacoes_tecnicas?: string;
-};
-
 type OSDetalhe = {
   cliente?: string;
   subcliente?: string;
@@ -105,9 +95,7 @@ export default function EditarOSPage() {
   const [uploadingAntes, setUploadingAntes] = useState(false);
   const [uploadingDepois, setUploadingDepois] = useState(false);
 
-  const [incluirPecaCatalogo, setIncluirPecaCatalogo] = useState(false);
-  const [catalogoEquipamentos, setCatalogoEquipamentos] = useState<EquipamentoCatalogo[]>([]);
-  const [equipamentoCatalogoId, setEquipamentoCatalogoId] = useState("");
+  const equipamentoCatalogoId = "";
   const [equipamentoNome, setEquipamentoNome] = useState("");
   const [equipamentoFabricante, setEquipamentoFabricante] = useState("");
   const [equipamentoModelo, setEquipamentoModelo] = useState("");
@@ -123,13 +111,6 @@ export default function EditarOSPage() {
     carregarTecnicos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (!incluirPecaCatalogo) return;
-    apiFetch("/catalog/equipamentos")
-      .then((data) => setCatalogoEquipamentos(Array.isArray(data) ? (data as EquipamentoCatalogo[]) : []))
-      .catch(() => setCatalogoEquipamentos([]));
-  }, [incluirPecaCatalogo]);
 
   useEffect(() => {
     carregarSolicitantesVinculados();
@@ -178,7 +159,7 @@ export default function EditarOSPage() {
       setSolicitanteNome(data.solicitante_nome || "");
       setTipoManutencao(data.tipo_manutencao || "CORRETIVA");
       setPrioridade(data.prioridade || "MEDIA");
-      setTecnicoId(data.tecnico?._id || "");
+      setTecnicoId(typeof data.tecnico === "string" ? data.tecnico : data.tecnico?._id || "");
       setFotoProblema(data.problem_photo_url || data.foto_abertura || "");
 
       const a = data.antes;
@@ -191,11 +172,6 @@ export default function EditarOSPage() {
       setDepoisObs(d?.observacao || "");
       setDepoisFotos(Array.isArray(d?.fotos) ? d!.fotos! : []);
 
-      const temEquip =
-        Boolean(data.equipamento_nome?.trim()) ||
-        Boolean(data.orcamento_previsto?.trim()) ||
-        data.tipo_manutencao === "PREVENTIVA";
-      setIncluirPecaCatalogo(temEquip);
       setEquipamentoNome(data.equipamento_nome || "");
       setEquipamentoFabricante(data.equipamento_fabricante || "");
       setEquipamentoModelo(data.equipamento_modelo || "");
@@ -260,18 +236,6 @@ export default function EditarOSPage() {
     }
   }
 
-  function selecionarEquipamento(eqId: string) {
-    setEquipamentoCatalogoId(eqId);
-    const eq = catalogoEquipamentos.find((item) => item._id === eqId);
-    if (!eq) return;
-    setEquipamentoNome(eq.nome || "");
-    setEquipamentoFabricante(eq.fabricante || "");
-    setEquipamentoModelo(eq.modelo || "");
-    setEquipamentoNumeroSerie(eq.numero_serie || "");
-    setEquipamentoPatrimonio(eq.patrimonio || "");
-    setEquipamentoEspecificacoes(eq.especificacoes_tecnicas || "");
-  }
-
   async function uploadFotos(section: "antes" | "depois", files: FileList | null) {
     if (!files?.length) return;
     const setBusy = section === "antes" ? setUploadingAntes : setUploadingDepois;
@@ -298,7 +262,6 @@ export default function EditarOSPage() {
     setSalvando(true);
 
     try {
-      const usarCatalogo = incluirPecaCatalogo;
       await apiFetch(`/projects/admin/update/${id}`, {
         method: "PUT",
         body: JSON.stringify({
@@ -324,14 +287,14 @@ export default function EditarOSPage() {
             observacao: depoisObs,
             fotos: depoisFotos,
           },
-          equipamento_catalogo_id: usarCatalogo ? equipamentoCatalogoId : "",
-          equipamento_nome: usarCatalogo ? equipamentoNome : "",
-          equipamento_fabricante: usarCatalogo ? equipamentoFabricante : "",
-          equipamento_modelo: usarCatalogo ? equipamentoModelo : "",
-          equipamento_numero_serie: usarCatalogo ? equipamentoNumeroSerie : "",
-          equipamento_patrimonio: usarCatalogo ? equipamentoPatrimonio : "",
-          equipamento_especificacoes: usarCatalogo ? equipamentoEspecificacoes : "",
-          orcamento_previsto: usarCatalogo ? orcamentoPrevisto : "",
+          equipamento_catalogo_id: equipamentoCatalogoId,
+          equipamento_nome: equipamentoNome,
+          equipamento_fabricante: equipamentoFabricante,
+          equipamento_modelo: equipamentoModelo,
+          equipamento_numero_serie: equipamentoNumeroSerie,
+          equipamento_patrimonio: equipamentoPatrimonio,
+          equipamento_especificacoes: equipamentoEspecificacoes,
+          orcamento_previsto: orcamentoPrevisto,
         }),
       });
 
@@ -449,41 +412,6 @@ export default function EditarOSPage() {
             </select>
           </div>
         </section>
-
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">
-          <input type="checkbox" className="h-4 w-4 rounded border-slate-300" checked={incluirPecaCatalogo} onChange={(e) => setIncluirPecaCatalogo(e.target.checked)} />
-          Incluir / editar peça do catálogo nesta OS
-        </label>
-
-        {incluirPecaCatalogo && (
-          <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-            <h2 className="text-lg font-extrabold text-slate-900">Catálogo / equipamento</h2>
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold">Equipamento do catálogo</span>
-              <select
-                className="w-full rounded-xl border border-slate-200 p-2.5"
-                value={equipamentoCatalogoId}
-                onChange={(e) => selecionarEquipamento(e.target.value)}
-              >
-                <option value="">Selecione um equipamento</option>
-                {catalogoEquipamentos.map((eq) => (
-                  <option key={eq._id} value={eq._id}>
-                    {eq.nome} {eq.fabricante ? `- ${eq.fabricante}` : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <input className="rounded-xl border border-slate-200 p-2.5" placeholder="Nome" value={equipamentoNome} onChange={(e) => setEquipamentoNome(e.target.value)} />
-              <input className="rounded-xl border border-slate-200 p-2.5" placeholder="Fabricante" value={equipamentoFabricante} onChange={(e) => setEquipamentoFabricante(e.target.value)} />
-              <input className="rounded-xl border border-slate-200 p-2.5" placeholder="Modelo" value={equipamentoModelo} onChange={(e) => setEquipamentoModelo(e.target.value)} />
-              <input className="rounded-xl border border-slate-200 p-2.5" placeholder="Número de série" value={equipamentoNumeroSerie} onChange={(e) => setEquipamentoNumeroSerie(e.target.value)} />
-              <input className="rounded-xl border border-slate-200 p-2.5 sm:col-span-2" placeholder="Patrimônio / TAG" value={equipamentoPatrimonio} onChange={(e) => setEquipamentoPatrimonio(e.target.value)} />
-              <textarea className="w-full rounded-xl border border-slate-200 p-2.5 sm:col-span-2" rows={3} placeholder="Especificações" value={equipamentoEspecificacoes} onChange={(e) => setEquipamentoEspecificacoes(e.target.value)} />
-              <input className="rounded-xl border border-slate-200 p-2.5 sm:col-span-2" placeholder="Orçamento previsto" value={orcamentoPrevisto} onChange={(e) => setOrcamentoPrevisto(e.target.value)} />
-            </div>
-          </section>
-        )}
 
         {fotoUrl && (
           <section className="space-y-2">

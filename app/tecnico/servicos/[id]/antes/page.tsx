@@ -45,6 +45,7 @@ export default function AntesPage() {
   const [materialQuantidade, setMaterialQuantidade] = useState("1");
   const [materialUnidade, setMaterialUnidade] = useState("un");
   const [materialObs, setMaterialObs] = useState("");
+  const [usaMateriais, setUsaMateriais] = useState(false);
   const [materiais, setMateriais] = useState<MaterialSolicitado[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -60,6 +61,7 @@ export default function AntesPage() {
     setMaterialQuantidade("1");
     setMaterialUnidade("un");
     setMaterialObs("");
+    setUsaMateriais(false);
     setMateriais([]);
     void carregarOS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +87,9 @@ export default function AntesPage() {
       }
 
       setOs(data);
-      setMateriais(Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : []);
+      const materiaisSalvos = Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : [];
+      setMateriais(materiaisSalvos);
+      setUsaMateriais(materiaisSalvos.length > 0);
       setCatalogo(Array.isArray(catalogoData) ? (catalogoData as EquipamentoCatalogo[]) : []);
     } catch {
       setOs(null);
@@ -179,7 +183,7 @@ export default function AntesPage() {
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
-      formData.append("materiais_solicitados", JSON.stringify(materiais));
+      formData.append("materiais_solicitados", JSON.stringify(usaMateriais ? materiais : []));
       fotos.forEach((f) => formData.append("fotos", f));
 
       await apiFetch(`/projects/tecnico/antes/${id}`, {
@@ -258,51 +262,79 @@ export default function AntesPage() {
 
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <p className="mb-3 text-sm font-extrabold text-slate-800">Materiais necessários</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
-              <option value="">Selecionar no catálogo</option>
-              {catalogo.map((item) => (
-                <option key={item._id} value={item._id}>
-                  {item.nome}
-                  {item.fabricante ? ` - ${item.fabricante}` : ""}
-                  {" | Est: "}
-                  {item.estoque_qtd ?? 0}
-                </option>
-              ))}
-            </select>
-            <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" placeholder="Ou digite o material" value={materialNomeLivre} onChange={(e) => setMaterialNomeLivre(e.target.value)} />
-            <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" type="number" min={0} step="0.1" placeholder="Quantidade" value={materialQuantidade} onChange={(e) => setMaterialQuantidade(e.target.value)} />
-            <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" placeholder="Unidade (ex: m, un)" value={materialUnidade} onChange={(e) => setMaterialUnidade(e.target.value)} />
-            <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:col-span-2" placeholder="Observação do material" value={materialObs} onChange={(e) => setMaterialObs(e.target.value)} />
+          <div className="mb-3 flex flex-wrap gap-4 text-sm font-semibold text-slate-800">
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="usa_materiais_sn"
+                checked={!usaMateriais}
+                onChange={() => {
+                  setUsaMateriais(false);
+                  setMateriais([]);
+                }}
+              />
+              Não
+            </label>
+            <label className="inline-flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="usa_materiais_sn"
+                checked={usaMateriais}
+                onChange={() => setUsaMateriais(true)}
+              />
+              Sim
+            </label>
           </div>
-          {materialSelecionado && (
-            <p className="mt-2 text-xs font-semibold text-slate-600">
-              Estoque atual no catálogo: {materialSelecionado.estoque_qtd ?? 0}
-            </p>
-          )}
-          <button type="button" onClick={adicionarMaterial} className="mt-3 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800">
-            Adicionar material
-          </button>
 
-          {materiais.length > 0 && (
-            <div className="mt-3 space-y-2">
-              {materiais.map((m, index) => (
-                <div key={`${m.nome}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-                  <div>
-                    <p className="font-semibold text-slate-800">{m.nome}</p>
-                    <p className="text-slate-600">
-                      {m.quantidade} {m.unidade}
-                      {m.fabricante ? ` | ${m.fabricante}` : ""}
-                      {m.modelo ? ` | ${m.modelo}` : ""}
-                    </p>
-                    {m.observacao ? <p className="text-slate-600">{m.observacao}</p> : null}
-                  </div>
-                  <button type="button" onClick={() => removerMaterial(index)} className="rounded-lg bg-rose-600 px-2 py-1 text-xs font-bold text-white hover:bg-rose-700">
-                    Remover
-                  </button>
+          {usaMateriais && (
+            <>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <select className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" value={materialId} onChange={(e) => setMaterialId(e.target.value)}>
+                  <option value="">Selecionar no catálogo</option>
+                  {catalogo.map((item) => (
+                    <option key={item._id} value={item._id}>
+                      {item.nome}
+                      {item.fabricante ? ` - ${item.fabricante}` : ""}
+                      {" | Est: "}
+                      {item.estoque_qtd ?? 0}
+                    </option>
+                  ))}
+                </select>
+                <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" placeholder="Ou digite o material" value={materialNomeLivre} onChange={(e) => setMaterialNomeLivre(e.target.value)} />
+                <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" type="number" min={0} step="0.1" placeholder="Quantidade" value={materialQuantidade} onChange={(e) => setMaterialQuantidade(e.target.value)} />
+                <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5" placeholder="Unidade (ex: m, un)" value={materialUnidade} onChange={(e) => setMaterialUnidade(e.target.value)} />
+                <input className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:col-span-2" placeholder="Observação do material" value={materialObs} onChange={(e) => setMaterialObs(e.target.value)} />
+              </div>
+              {materialSelecionado && (
+                <p className="mt-2 text-xs font-semibold text-slate-600">
+                  Estoque atual no catálogo: {materialSelecionado.estoque_qtd ?? 0}
+                </p>
+              )}
+              <button type="button" onClick={adicionarMaterial} className="mt-3 rounded-xl bg-blue-700 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800">
+                Adicionar material
+              </button>
+
+              {materiais.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {materiais.map((m, index) => (
+                    <div key={`${m.nome}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                      <div>
+                        <p className="font-semibold text-slate-800">{m.nome}</p>
+                        <p className="text-slate-600">
+                          {m.quantidade} {m.unidade}
+                          {m.fabricante ? ` | ${m.fabricante}` : ""}
+                          {m.modelo ? ` | ${m.modelo}` : ""}
+                        </p>
+                        {m.observacao ? <p className="text-slate-600">{m.observacao}</p> : null}
+                      </div>
+                      <button type="button" onClick={() => removerMaterial(index)} className="rounded-lg bg-rose-600 px-2 py-1 text-xs font-bold text-white hover:bg-rose-700">
+                        Remover
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
 
