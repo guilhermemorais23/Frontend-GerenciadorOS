@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { normalizeStatus, STATUS } from "@/app/lib/os";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 
 type OSTecnico = {
   osNumero?: string;
@@ -45,6 +46,7 @@ export default function AntesPage() {
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  const [fotosSalvasAntes, setFotosSalvasAntes] = useState<string[]>([]);
   const [catalogo, setCatalogo] = useState<EquipamentoCatalogo[]>([]);
   const [materialId, setMaterialId] = useState("");
   const [materialNomeLivre, setMaterialNomeLivre] = useState("");
@@ -62,6 +64,7 @@ export default function AntesPage() {
     setRelatorio("");
     setObservacao("");
     setFotos([]);
+    setFotosSalvasAntes([]);
     setMaterialId("");
     setMaterialNomeLivre("");
     setMaterialQuantidade("1");
@@ -95,6 +98,7 @@ export default function AntesPage() {
       setOs(data);
       setRelatorio(String(data.antes?.relatorio || ""));
       setObservacao(String(data.antes?.observacao || ""));
+      setFotosSalvasAntes(Array.isArray(data.antes?.fotos) ? data.antes.fotos : []);
       const materiaisSalvos = Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : [];
       setMateriais(materiaisSalvos);
       setUsaMateriais(materiaisSalvos.length > 0);
@@ -178,6 +182,7 @@ export default function AntesPage() {
   }
 
   const materialSelecionado = catalogo.find((item) => item._id === materialId);
+  const totalFotosAntes = fotosSalvasAntes.length + fotos.length;
 
   async function salvarAntes() {
     if (!relatorio.trim()) {
@@ -247,9 +252,20 @@ export default function AntesPage() {
           <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
         </label>
 
-        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
-          {fotos.length} / 4 foto{fotos.length !== 1 && "s"}
+        <p className={`mt-2 text-sm ${totalFotosAntes >= 1 && totalFotosAntes <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
+          {totalFotosAntes} / 4 foto{totalFotosAntes !== 1 && "s"} (incluindo já salvas)
         </p>
+
+        {fotosSalvasAntes.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-semibold text-slate-700">Fotos já salvas no ANTES</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {fotosSalvasAntes.map((foto, i) => (
+                <img key={`antes-salva-${i}`} src={normalizeImageSrc(foto)} alt={`Antes salvo ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
+              ))}
+            </div>
+          </div>
+        )}
 
         {fotos.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -348,7 +364,7 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          disabled={salvando || fotos.length < 1 || fotos.length > 4 || !relatorio.trim()}
+          disabled={salvando || totalFotosAntes < 1 || totalFotosAntes > 4 || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-sky-700 px-4 py-3 font-bold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Salvando..." : "Salvar ANTES e ir para DEPOIS"}

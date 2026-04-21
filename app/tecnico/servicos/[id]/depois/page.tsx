@@ -16,6 +16,11 @@ type OSTecnico = {
     observacao?: string;
     fotos?: string[];
   } | null;
+  depois?: {
+    relatorio?: string;
+    observacao?: string;
+    fotos?: string[];
+  } | null;
   materiais_solicitados?: Array<{
     nome?: string;
     fabricante?: string;
@@ -46,6 +51,7 @@ export default function DepoisPage() {
   const [relatorio, setRelatorio] = useState("");
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
+  const [fotosSalvasDepois, setFotosSalvasDepois] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -63,6 +69,7 @@ export default function DepoisPage() {
     setRelatorio("");
     setObservacao("");
     setFotos([]);
+    setFotosSalvasDepois([]);
     setSalvando(false);
     setPreviewOpen(false);
     setAssinaturaTecnico("");
@@ -86,6 +93,9 @@ export default function DepoisPage() {
       }
 
       setOs(data);
+      setRelatorio(String(data.depois?.relatorio || ""));
+      setObservacao(String(data.depois?.observacao || ""));
+      setFotosSalvasDepois(Array.isArray(data.depois?.fotos) ? data.depois.fotos : []);
     } catch {
       setOs(null);
     } finally {
@@ -133,6 +143,8 @@ export default function DepoisPage() {
     setFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
+  const totalFotosDepois = fotosSalvasDepois.length + fotos.length;
+
   function validarFinalizacao() {
     if (!assinaturaTecnico.trim()) {
       alert("Informe a assinatura do técnico");
@@ -162,7 +174,7 @@ export default function DepoisPage() {
       return;
     }
 
-    if (fotos.length < 1 || fotos.length > 4) {
+    if (totalFotosDepois < 1 || totalFotosDepois > 4) {
       alert("Adicione de 1 a 4 fotos para finalizar");
       return;
     }
@@ -254,9 +266,20 @@ export default function DepoisPage() {
           <input type="file" accept="image/*" multiple hidden onChange={handleFotosChange} />
         </label>
 
-        <p className={`mt-2 text-sm ${fotos.length >= 1 && fotos.length <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
-          {fotos.length} / 4 foto{fotos.length !== 1 && "s"}
+        <p className={`mt-2 text-sm ${totalFotosDepois >= 1 && totalFotosDepois <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
+          {totalFotosDepois} / 4 foto{totalFotosDepois !== 1 && "s"} (incluindo já salvas)
         </p>
+
+        {fotosSalvasDepois.length > 0 && (
+          <div className="mt-4">
+            <p className="mb-2 text-sm font-semibold text-slate-700">Fotos já salvas no DEPOIS</p>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {fotosSalvasDepois.map((foto, i) => (
+                <img key={`depois-salva-${i}`} src={normalizePreviewImageSrc(foto)} alt={`Depois salvo ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
+              ))}
+            </div>
+          </div>
+        )}
 
         {fotos.length > 0 && (
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -328,7 +351,7 @@ export default function DepoisPage() {
 
         <button
           onClick={abrirPreview}
-          disabled={salvando || fotos.length < 1 || fotos.length > 4 || !relatorio.trim()}
+          disabled={salvando || totalFotosDepois < 1 || totalFotosDepois > 4 || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Enviando..." : "Finalizar e revisar envio"}
