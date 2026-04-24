@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
+import { ArrowLeft, Download, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
@@ -107,6 +107,7 @@ export default function DetalheOSPage() {
   const [deliveryEmail, setDeliveryEmail] = useState("");
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [deliveryRecipientName, setDeliveryRecipientName] = useState("");
+  const [includePdfWhatsapp, setIncludePdfWhatsapp] = useState(false);
   const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
   const [validating, setValidating] = useState(false);
   const returnTo = searchParams.get("returnTo");
@@ -125,7 +126,10 @@ export default function DetalheOSPage() {
       setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
       setDeliveryRecipientName(
         String(
-          (data as OSDetalhe)?.cliente_nome ||
+          (data as OSDetalhe)?.subcliente ||
+            (data as OSDetalhe)?.Subcliente ||
+            (data as OSDetalhe)?.subgrupo ||
+            (data as OSDetalhe)?.cliente_nome ||
             (data as OSDetalhe)?.solicitante_nome ||
             (data as OSDetalhe)?.cliente ||
             ""
@@ -184,6 +188,10 @@ export default function DetalheOSPage() {
       alert("Informe o telefone para envio");
       return;
     }
+    if ((deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && !includePdfWhatsapp) {
+      alert("Baixe o PDF e marque para anexar no WhatsApp antes de enviar.");
+      return;
+    }
 
     if ((deliveryChannel === "EMAIL" || deliveryChannel === "BOTH") && !deliveryEmail.trim()) {
       alert("Informe o email para envio");
@@ -196,6 +204,13 @@ export default function DetalheOSPage() {
   async function validarOS() {
     try {
       setValidating(true);
+      console.log("VALIDACAO OS - REQUEST", {
+        id,
+        channel: deliveryChannel,
+        deliveryPhone,
+        deliveryEmail,
+        includePdfWhatsapp,
+      });
       const data = (await apiFetch(`/os/${id}/validate`, {
         method: "POST",
         body: JSON.stringify({
@@ -203,8 +218,10 @@ export default function DetalheOSPage() {
           delivery_email: deliveryEmail,
           delivery_phone_e164: deliveryPhone,
           custom_message: deliveryMessage,
+          include_pdf_whatsapp: includePdfWhatsapp,
         }),
       })) as ValidationResponse;
+      console.log("VALIDACAO OS - RESPONSE", data);
       const partes = [data.message || "OS validada com sucesso"];
       if (data.delivery?.whatsapp?.success) {
         partes.push("WhatsApp enviado");
@@ -219,6 +236,7 @@ export default function DetalheOSPage() {
       setConfirmDeliveryOpen(false);
       await carregarOS();
     } catch (err: unknown) {
+      console.error("VALIDACAO OS - ERROR", err);
       alert(err instanceof Error ? err.message : "Erro ao validar OS");
     } finally {
       setValidating(false);
@@ -236,7 +254,7 @@ export default function DetalheOSPage() {
   }
 
   async function gerarPDF() {
-    if (!os) return;
+    if (!os) return false;
 
     try {
       const token = localStorage.getItem("token");
@@ -269,8 +287,10 @@ export default function DetalheOSPage() {
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
+      return true;
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao gerar PDF");
+      return false;
     }
   }
 
@@ -312,15 +332,20 @@ export default function DetalheOSPage() {
                 </select>
               </label>
               {(deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && (
-                <label className="text-sm font-semibold text-slate-700">
-                  WhatsApp
-                  <input
-                    className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
-                    placeholder="DDD + número (ex: 83999999999)"
-                    value={deliveryPhone}
-                    onChange={(e) => setDeliveryPhone(e.target.value)}
-                  />
-                </label>
+                <div className="text-sm font-semibold text-slate-700">
+                  <label>
+                    WhatsApp
+                    <input
+                      className="mt-1 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                      placeholder="DDD + número (ex: 83999999999)"
+                      value={deliveryPhone}
+                      onChange={(e) => setDeliveryPhone(e.target.value)}
+                    />
+                  </label>
+                  {includePdfWhatsapp && (
+                    <p className="mt-1 text-xs font-bold text-emerald-700">PDF preparado para enviar no WhatsApp.</p>
+                  )}
+                </div>
               )}
               {(deliveryChannel === "EMAIL" || deliveryChannel === "BOTH") && (
                 <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
@@ -350,9 +375,26 @@ export default function DetalheOSPage() {
                   onChange={(e) => setDeliveryRecipientName(e.target.value)}
                 />
               </label>
-              <ActionButton onClick={abrirConfirmacaoEnvio} icon={<Send size={16} />} variant="success">
-                Validar e enviar
-              </ActionButton>
+              <div className="flex flex-wrap gap-2 sm:col-span-2">
+                {(deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && (
+                  <ActionButton
+                    onClick={async () => {
+                      const ok = await gerarPDF();
+                      if (ok) {
+                        setIncludePdfWhatsapp(true);
+                        console.log("PDF preparado para WhatsApp", { osId: id });
+                      }
+                    }}
+                    icon={<Download size={16} />}
+                    variant="primary"
+                  >
+                    Baixar PDF
+                  </ActionButton>
+                )}
+                <ActionButton onClick={abrirConfirmacaoEnvio} icon={<Send size={16} />} variant="success">
+                  Validar e enviar
+                </ActionButton>
+              </div>
             </div>
           )}
           {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.VALIDADA_PELO_ADMIN, STATUS.CANCELADA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.VALIDADA_PELO_ADMIN | typeof STATUS.CANCELADA) && (
@@ -497,7 +539,7 @@ export default function DetalheOSPage() {
             <h2 className="mt-2 text-xl font-extrabold text-slate-900">Enviar esta OS para esse contato?</h2>
 
             <div className="mt-5 space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-              <Info label="Nome" value={deliveryRecipientName || os.cliente_nome || os.solicitante_nome || os.cliente} />
+              <Info label="Nome" value={deliveryRecipientName || os.subcliente || os.Subcliente || os.subgrupo || os.cliente_nome || os.solicitante_nome || os.cliente} />
               {(deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && (
                 <Info label="Telefone" value={deliveryPhone} />
               )}
@@ -560,7 +602,7 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
 
 function buildDeliveryMessage(os: OSDetalhe | null, id: string) {
   const numero = os?.osNumero || id;
-  const cliente = os?.cliente || "cliente";
+  const cliente = os?.subcliente || os?.Subcliente || os?.subgrupo || os?.cliente || "cliente";
   const solicitante = os?.solicitante_nome ? `\nSolicitante: ${os.solicitante_nome}` : "";
   return `Olá! A OS ${numero} do cliente ${cliente} foi validada pelo admin.${solicitante}\n\nSe precisar de suporte, responda esta mensagem.`;
 }
