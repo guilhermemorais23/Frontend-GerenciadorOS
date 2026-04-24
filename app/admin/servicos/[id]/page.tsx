@@ -108,6 +108,7 @@ export default function DetalheOSPage() {
   const [deliveryMessage, setDeliveryMessage] = useState("");
   const [deliveryRecipientName, setDeliveryRecipientName] = useState("");
   const [includePdfWhatsapp, setIncludePdfWhatsapp] = useState(false);
+  const [preparingPdfWhatsapp, setPreparingPdfWhatsapp] = useState(false);
   const [confirmDeliveryOpen, setConfirmDeliveryOpen] = useState(false);
   const [validating, setValidating] = useState(false);
   const returnTo = searchParams.get("returnTo");
@@ -122,6 +123,7 @@ export default function DetalheOSPage() {
     try {
       const data = await apiFetch(`/projects/admin/view/${id}`);
       setOs(data as OSDetalhe);
+      setIncludePdfWhatsapp(false);
       setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
       setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
       setDeliveryRecipientName(
@@ -294,6 +296,21 @@ export default function DetalheOSPage() {
     }
   }
 
+  async function prepararPdfWhatsapp() {
+    if (includePdfWhatsapp || preparingPdfWhatsapp) return;
+
+    setPreparingPdfWhatsapp(true);
+    try {
+      const ok = await gerarPDF();
+      if (ok) {
+        setIncludePdfWhatsapp(true);
+        console.log("PDF preparado para WhatsApp", { osId: id });
+      }
+    } finally {
+      setPreparingPdfWhatsapp(false);
+    }
+  }
+
   if (loading) return <div className="p-6 text-center">Carregando...</div>;
   if (!os) return <div className="p-6 text-center text-rose-700">OS não encontrada</div>;
 
@@ -378,17 +395,12 @@ export default function DetalheOSPage() {
               <div className="flex flex-wrap gap-2 sm:col-span-2">
                 {(deliveryChannel === "WHATSAPP" || deliveryChannel === "BOTH") && (
                   <ActionButton
-                    onClick={async () => {
-                      const ok = await gerarPDF();
-                      if (ok) {
-                        setIncludePdfWhatsapp(true);
-                        console.log("PDF preparado para WhatsApp", { osId: id });
-                      }
-                    }}
+                    onClick={prepararPdfWhatsapp}
                     icon={<Download size={16} />}
                     variant="primary"
+                    disabled={includePdfWhatsapp || preparingPdfWhatsapp}
                   >
-                    Baixar PDF
+                    {includePdfWhatsapp ? "PDF preparado" : preparingPdfWhatsapp ? "Preparando PDF..." : "Baixar PDF"}
                   </ActionButton>
                 )}
                 <ActionButton onClick={abrirConfirmacaoEnvio} icon={<Send size={16} />} variant="success">
@@ -613,12 +625,14 @@ function ActionButton({
   icon,
   variant = "secondary",
   iconOnly = false,
+  disabled = false,
 }: {
   children: ReactNode;
-  onClick: () => void;
+  onClick: () => void | Promise<void>;
   icon: ReactNode;
   variant?: "primary" | "secondary" | "success" | "warning" | "danger" | "dark";
   iconOnly?: boolean;
+  disabled?: boolean;
 }) {
   const styles = {
     primary: "border border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
@@ -632,11 +646,12 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       title={typeof children === "string" ? children : undefined}
       aria-label={typeof children === "string" ? children : undefined}
       className={`inline-flex items-center justify-center rounded-xl text-sm font-bold transition ${
         iconOnly ? "h-10 w-10 px-0 py-0" : "gap-2 px-4 py-2"
-      } ${styles[variant]}`}
+      } ${styles[variant]} disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {icon}
       {!iconOnly && children}
