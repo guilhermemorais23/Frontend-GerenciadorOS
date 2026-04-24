@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { PRIORIDADES, TIPO_MANUTENCAO } from "@/app/lib/os";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 
 type Tecnico = { _id: string; nome: string };
 
@@ -51,10 +52,7 @@ type OSDetalhe = {
 };
 
 function photoSrc(raw?: string) {
-  const u = String(raw || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://")) return u;
-  return `data:image/jpeg;base64,${u}`;
+  return normalizeImageSrc(raw);
 }
 
 export default function EditarOSPage() {

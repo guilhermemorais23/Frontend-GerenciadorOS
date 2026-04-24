@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 
 type OSDetalhe = {
   _id?: string;
@@ -535,7 +536,7 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
           {fotos.map((foto, i) => (
             <img
               key={`${title}-${i}`}
-              src={`data:image/jpeg;base64,${foto}`}
+              src={normalizeImageSrc(foto)}
               alt={`${title} foto ${i + 1}`}
               className="h-28 w-full rounded-lg object-cover"
             />

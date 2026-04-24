@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 
 type Equip = {
   _id: string;
@@ -163,7 +164,7 @@ export default function CatalogoPage() {
           </label>
           {fotoBase64 && (
             <img
-              src={`data:image/jpeg;base64,${fotoBase64}`}
+              src={normalizeImageSrc(fotoBase64)}
               alt="Preview"
               className="h-32 w-32 rounded-xl border border-slate-200 object-cover"
             />
@@ -199,7 +200,7 @@ export default function CatalogoPage() {
               <p className="text-sm text-slate-600">Serie: {item.numero_serie || "-"} | Patrimonio: {item.patrimonio || "-"}</p>
               {item.foto_base64 ? (
                 <img
-                  src={`data:image/jpeg;base64,${item.foto_base64}`}
+                  src={normalizeImageSrc(item.foto_base64)}
                   alt={item.nome}
                   className="mt-2 h-28 w-28 rounded-lg border border-slate-200 object-cover"
                 />
