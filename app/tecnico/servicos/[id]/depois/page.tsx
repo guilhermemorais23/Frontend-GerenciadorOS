@@ -6,6 +6,7 @@ import { Check, FilePenLine, Send } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import SignaturePad from "@/app/components/SignaturePad";
 import { MOTIVOS_NAO_ASSINOU, normalizeStatus, STATUS } from "@/app/lib/os";
+import { normalizeImageSrc } from "@/app/lib/image-url";
 
 type OSTecnico = {
   osNumero?: string;
@@ -30,15 +31,6 @@ type OSTecnico = {
     observacao?: string;
   }>;
 };
-
-function normalizePreviewImageSrc(value?: string) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (raw.startsWith("data:image")) return raw;
-  if (/^https?:\/\//i.test(raw)) return raw;
-  if (/^file:\/\//i.test(raw)) return raw;
-  return `data:image/jpeg;base64,${raw.replace(/\s+/g, "")}`;
-}
 
 export default function DepoisPage() {
   const params = useParams();
@@ -275,7 +267,7 @@ export default function DepoisPage() {
             <p className="mb-2 text-sm font-semibold text-slate-700">Fotos já salvas no DEPOIS</p>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {fotosSalvasDepois.map((foto, i) => (
-                <img key={`depois-salva-${i}`} src={normalizePreviewImageSrc(foto)} alt={`Depois salvo ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
+                <img key={`depois-salva-${i}`} src={normalizeImageSrc(foto)} alt={`Depois salvo ${i + 1}`} className="h-28 w-full rounded-lg object-cover" />
               ))}
             </div>
           </div>
@@ -405,7 +397,7 @@ export default function DepoisPage() {
                         {os.antes.fotos.map((foto, index) => (
                           <div key={`antes-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                             <img
-                              src={normalizePreviewImageSrc(foto)}
+                              src={normalizeImageSrc(foto)}
                               alt={`Foto inicial ${index + 1}`}
                               className="h-28 w-full object-cover"
                             />
