@@ -446,12 +446,6 @@ export default function DetalheOSPage() {
           <Info label="Solicitante" value={os.solicitante_nome} />
           <Info label="Tipo manutenção" value={os.tipo_manutencao} />
           <Info label="Prioridade" value={os.prioridade} />
-          <Info label="Equipamento" value={os.equipamento_nome} />
-          <Info label="Fabricante" value={os.equipamento_fabricante} />
-          <Info label="Modelo" value={os.equipamento_modelo} />
-          <Info label="Número de série" value={os.equipamento_numero_serie} />
-          <Info label="Patrimônio" value={os.equipamento_patrimonio} />
-          <Info label="Orçamento previsto" value={os.orcamento_previsto} />
           <Info label="Endereço" value={os.endereco} />
           <Info label="Email" value={os.email} />
           <Info label="Telefone" value={os.telefone} />

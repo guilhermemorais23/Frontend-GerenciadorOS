@@ -515,6 +515,7 @@ function renderOsCard(
     "Não definido";
   const osId = os._id || os.id;
   const detalheHref = `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`;
+  const unidadeOuSubcliente = getUnidadeOuSubcliente(os);
 
   if (!osId) return null;
 
@@ -535,7 +536,7 @@ function renderOsCard(
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <p className="text-lg font-extrabold text-slate-900">{os.osNumero || "Sem número"}</p>
-          <p className="text-sm font-semibold text-slate-700">{os.cliente || "Sem cliente"}</p>
+          <p className="text-sm font-semibold text-slate-700">{unidadeOuSubcliente}</p>
         </div>
         <span
           className={`rounded-full px-3 py-1 text-xs font-bold ${legacyStatusColor(os.status, os)}`}
@@ -597,6 +598,16 @@ function renderOsCard(
       </div>
     </div>
   );
+}
+
+function getUnidadeOuSubcliente(os: OSItem) {
+  const isDasa = String(os.cliente || "").trim().toLowerCase() === "dasa";
+  if (isDasa) {
+    const partes = [os.unidade, os.marca].map((item) => String(item || "").trim()).filter(Boolean);
+    if (partes.length > 0) return partes.join(" | ");
+  }
+
+  return os.subcliente || os.Subcliente || os.subgrupo || os.unidade || os.marca || "Sem unidade";
 }
 
 function dashboardStatusBucket(os: OSItem) {
