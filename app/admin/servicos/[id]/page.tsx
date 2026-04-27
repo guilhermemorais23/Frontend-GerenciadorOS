@@ -330,7 +330,14 @@ export default function DetalheOSPage() {
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
-          <ActionButton onClick={gerarPDF} icon={<Printer size={16} />} variant="primary" iconOnly>
+          <ActionButton
+            onClick={async () => {
+              await gerarPDF();
+            }}
+            icon={<Printer size={16} />}
+            variant="primary"
+            iconOnly
+          >
             Baixar PDF
           </ActionButton>
 
