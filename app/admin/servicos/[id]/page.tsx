@@ -15,6 +15,8 @@ type OSDetalhe = {
   subcliente?: string;
   Subcliente?: string;
   subgrupo?: string;
+  marca?: string;
+  unidade?: string;
   solicitante_nome?: string;
   tipo_manutencao?: string;
   orcamento_previsto?: string;
@@ -315,6 +317,7 @@ export default function DetalheOSPage() {
   if (!os) return <div className="p-6 text-center text-rose-700">OS não encontrada</div>;
 
   const status = normalizeStatus(os.status);
+  const isDasa = String(os.cliente || "").trim().toLowerCase() === "dasa";
 
   return (
     <div className="min-h-screen p-4 sm:p-6">
@@ -449,7 +452,14 @@ export default function DetalheOSPage() {
 
         <div className="grid gap-4 text-sm text-slate-700 sm:grid-cols-2">
           <Info label="Cliente" value={os.cliente} />
-          <Info label="Subcliente" value={os.subcliente || os.Subcliente || os.subgrupo} />
+          {isDasa ? (
+            <>
+              <Info label="Unidade" value={os.unidade} />
+              <Info label="Marca" value={os.marca} />
+            </>
+          ) : (
+            <Info label="Subcliente" value={os.subcliente || os.Subcliente || os.subgrupo} />
+          )}
           <Info label="Solicitante" value={os.solicitante_nome} />
           <Info label="Tipo manutenção" value={os.tipo_manutencao} />
           <Info label="Prioridade" value={os.prioridade} />
