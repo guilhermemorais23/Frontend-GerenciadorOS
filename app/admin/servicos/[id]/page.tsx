@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, Download, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Download, FilePenLine, MapPinned, Phone, Printer, RotateCcw, Send, Trash2, XCircle } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
@@ -61,6 +61,7 @@ type OSDetalhe = {
 type HistoricoBloco = {
   relatorio?: string;
   observacao?: string;
+  fotos_nao_autorizadas?: boolean;
   fotos?: string[];
 };
 
@@ -328,9 +329,21 @@ export default function DetalheOSPage() {
             <p className="text-sm text-slate-600">{os.osNumero}</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(status)}`}>
-            {statusLabel(status)}
+            <span className="inline-flex items-center gap-1">
+              {status === STATUS.FINALIZADA_COM_PENDENCIA && <AlertTriangle size={13} />}
+              {statusLabel(status)}
+            </span>
           </span>
         </div>
+
+        {status === STATUS.FINALIZADA_COM_PENDENCIA && (
+          <div className="mb-5 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>Esta OS foi finalizada com pendência. Revise o parecer e envie ao cliente se estiver correto.</p>
+            </div>
+          </div>
+        )}
 
         <div className="mb-5 flex flex-wrap gap-2">
           <ActionButton
@@ -344,7 +357,7 @@ export default function DetalheOSPage() {
             Baixar PDF
           </ActionButton>
 
-          {userRole === "admin" && status === STATUS.FINALIZADA_PELO_TECNICO && (
+          {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.FINALIZADA_COM_PENDENCIA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.FINALIZADA_COM_PENDENCIA) && (
             <div className="grid w-full gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 sm:grid-cols-2">
               <label className="text-sm font-semibold text-slate-700">
                 Canal de envio
@@ -419,7 +432,7 @@ export default function DetalheOSPage() {
               </div>
             </div>
           )}
-          {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.VALIDADA_PELO_ADMIN, STATUS.CANCELADA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.VALIDADA_PELO_ADMIN | typeof STATUS.CANCELADA) && (
+          {userRole === "admin" && [STATUS.FINALIZADA_PELO_TECNICO, STATUS.FINALIZADA_COM_PENDENCIA, STATUS.VALIDADA_PELO_ADMIN, STATUS.CANCELADA].includes(status as typeof STATUS.FINALIZADA_PELO_TECNICO | typeof STATUS.FINALIZADA_COM_PENDENCIA | typeof STATUS.VALIDADA_PELO_ADMIN | typeof STATUS.CANCELADA) && (
             <ActionButton onClick={reabrirOS} icon={<RotateCcw size={16} />} variant="dark">
               Reabrir OS
             </ActionButton>
@@ -590,7 +603,7 @@ export default function DetalheOSPage() {
 function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco }) {
   if (!bloco) return null;
   const fotos = bloco.fotos || [];
-  const semConteudo = !bloco.relatorio && !bloco.observacao && fotos.length === 0;
+  const semConteudo = !bloco.relatorio && !bloco.observacao && fotos.length === 0 && !bloco.fotos_nao_autorizadas;
   if (semConteudo) return null;
 
   return (
@@ -608,6 +621,11 @@ function PreviewBloco({ title, bloco }: { title: string; bloco?: HistoricoBloco 
           ))}
         </div>
       )}
+      {bloco.fotos_nao_autorizadas ? (
+        <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+          Fotografias não autorizadas.
+        </p>
+      ) : null}
 
       <div className="mt-3 grid gap-2 text-sm text-slate-700">
         <p>
@@ -627,7 +645,8 @@ function buildDeliveryMessage(os: OSDetalhe | null, id: string) {
   const numero = os?.osNumero || id;
   const cliente = os?.subcliente || os?.Subcliente || os?.subgrupo || os?.cliente || "cliente";
   const solicitante = os?.solicitante_nome ? `\nSolicitante: ${os.solicitante_nome}` : "";
-  return `Olá! A OS ${numero} do cliente ${cliente} foi validada pelo admin.${solicitante}\n\nSe precisar de suporte, responda esta mensagem.`;
+  const pendencia = normalizeStatus(os?.status) === STATUS.FINALIZADA_COM_PENDENCIA ? "\nStatus anterior: finalizada com pendência." : "";
+  return `Olá! A OS ${numero} do cliente ${cliente} foi validada pelo admin.${solicitante}${pendencia}\n\nSe precisar de suporte, responda esta mensagem.`;
 }
 
 function ActionButton({

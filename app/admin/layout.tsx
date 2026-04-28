@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Bell, ClipboardList, LayoutDashboard, Menu, Plus, Users, Wrench, X } from "lucide-react";
+import { BarChart3, Bell, ClipboardList, Database, LayoutDashboard, Menu, Plus, Users, Wrench, X } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 
 const LINKS = [
@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/admin/terceiros", label: "Terceiros", icon: Users },
   { href: "/admin/catalogo", label: "Catálogo", icon: ClipboardList },
   { href: "/admin/graficos", label: "Gráficos", icon: BarChart3 },
+  { href: "/admin/banco-de-dados", label: "Banco de dados", icon: Database },
 ];
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -38,6 +39,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     if (pathname.startsWith("/admin/terceiros")) return "Terceiros";
     if (pathname.startsWith("/admin/catalogo")) return "Catálogo";
     if (pathname.startsWith("/admin/graficos")) return "Gráficos";
+    if (pathname.startsWith("/admin/banco-de-dados")) return "Banco de dados";
     return "Dashboard";
   }, [pathname]);
 
@@ -63,7 +65,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       if (document.visibilityState === "visible") {
         carregarNotificacoes();
       }
-    }, 15000);
+    }, 60000);
 
     const onFocus = () => carregarNotificacoes();
     const onVisibilityChange = () => {

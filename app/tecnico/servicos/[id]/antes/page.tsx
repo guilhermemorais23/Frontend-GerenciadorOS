@@ -12,6 +12,7 @@ type OSTecnico = {
   antes?: {
     relatorio?: string;
     observacao?: string;
+    fotos_nao_autorizadas?: boolean;
     fotos?: string[];
   };
   materiais_solicitados?: MaterialSolicitado[];
@@ -47,6 +48,7 @@ export default function AntesPage() {
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
   const [fotosSalvasAntes, setFotosSalvasAntes] = useState<string[]>([]);
+  const [fotosNaoAutorizadas, setFotosNaoAutorizadas] = useState(false);
   const [catalogo, setCatalogo] = useState<EquipamentoCatalogo[]>([]);
   const [materialId, setMaterialId] = useState("");
   const [materialNomeLivre, setMaterialNomeLivre] = useState("");
@@ -65,6 +67,7 @@ export default function AntesPage() {
     setObservacao("");
     setFotos([]);
     setFotosSalvasAntes([]);
+    setFotosNaoAutorizadas(false);
     setMaterialId("");
     setMaterialNomeLivre("");
     setMaterialQuantidade("1");
@@ -99,6 +102,7 @@ export default function AntesPage() {
       setRelatorio(String(data.antes?.relatorio || ""));
       setObservacao(String(data.antes?.observacao || ""));
       setFotosSalvasAntes(Array.isArray(data.antes?.fotos) ? data.antes.fotos : []);
+      setFotosNaoAutorizadas(Boolean(data.antes?.fotos_nao_autorizadas));
       const materiaisSalvos = Array.isArray(data.materiais_solicitados) ? data.materiais_solicitados : [];
       setMateriais(materiaisSalvos);
       setUsaMateriais(materiaisSalvos.length > 0);
@@ -183,6 +187,7 @@ export default function AntesPage() {
 
   const materialSelecionado = catalogo.find((item) => item._id === materialId);
   const totalFotosAntes = fotosSalvasAntes.length + fotos.length;
+  const fotosValidas = fotosNaoAutorizadas || (totalFotosAntes >= 1 && totalFotosAntes <= 4);
 
   async function salvarAntes() {
     if (!relatorio.trim()) {
@@ -196,6 +201,7 @@ export default function AntesPage() {
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
+      formData.append("fotos_nao_autorizadas", String(fotosNaoAutorizadas));
       formData.append("materiais_solicitados", JSON.stringify(usaMateriais ? materiais : []));
       fotos.forEach((f) => formData.append("fotos", f));
 
@@ -255,6 +261,24 @@ export default function AntesPage() {
         <p className={`mt-2 text-sm ${totalFotosAntes >= 1 && totalFotosAntes <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
           {totalFotosAntes} / 4 foto{totalFotosAntes !== 1 && "s"} (incluindo já salvas)
         </p>
+
+        <button
+          type="button"
+          onClick={() => setFotosNaoAutorizadas((value) => !value)}
+          className={`mt-3 rounded-xl border px-4 py-2 text-sm font-bold transition ${
+            fotosNaoAutorizadas
+              ? "border-amber-300 bg-amber-50 text-amber-800"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          {fotosNaoAutorizadas ? "Fotografias não autorizadas" : "Não autorizado fotografias"}
+        </button>
+
+        {fotosNaoAutorizadas && (
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+            O ANTES poderá ser salvo sem fotos porque o registro fotográfico não foi autorizado.
+          </p>
+        )}
 
         {fotosSalvasAntes.length > 0 && (
           <div className="mt-4">
@@ -364,7 +388,7 @@ export default function AntesPage() {
 
         <button
           onClick={salvarAntes}
-          disabled={salvando || totalFotosAntes < 1 || totalFotosAntes > 4 || !relatorio.trim()}
+          disabled={salvando || !fotosValidas || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-sky-700 px-4 py-3 font-bold text-white transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Salvando..." : "Salvar ANTES e ir para DEPOIS"}

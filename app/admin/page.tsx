@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Printer } from "lucide-react";
+import { AlertTriangle, ArrowRight, Printer } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, isOpenStatus, normalizeStatus, STATUS } from "@/app/lib/os";
 
@@ -56,35 +56,13 @@ type MaterialSolicitado = {
   observacao?: string;
 };
 
-type MetricsResponse = {
-  total_abertas?: number;
-  total_em_atendimento?: number;
-  total_pausadas?: number;
-  total_finalizadas_tecnico?: number;
-  total_validadas_admin?: number;
-  total_canceladas?: number;
-  total_fechadas?: number;
-  total_pendentes?: number;
-};
-
-type StorageEstimateResponse = {
-  mode?: "supabase" | "mongo";
-  target_mb?: number;
-  target_bytes?: number;
-  db_size_bytes?: number;
-  projects_table_bytes?: number;
-  total_os?: number;
-  avg_os_row_bytes?: number;
-  estimated_os_to_delete?: number;
-  message?: string;
-};
-
 const STATUS_SOLICITACOES_CLIENTE = "solicitacoes_cliente";
 const STATUS_AGUARDANDO_TECNICO = "aguardando_tecnico";
 const STATUS_EM_DESLOCAMENTO = "em_deslocamento";
 const STATUS_EM_ANDAMENTO = "em_andamento";
 const STATUS_PAUSADA = "pausada";
 const STATUS_AGUARDANDO_VALIDACAO = "aguardando_validacao";
+const STATUS_PENDENCIAS = "pendencias";
 const STATUS_FINALIZADAS = "finalizadas";
 const ADMIN_FILTER_STORAGE_KEY = "admin-dashboard-filters";
 
@@ -109,25 +87,11 @@ function sortByOsDescending(items: OSItem[]) {
   });
 }
 
-function formatBytes(value?: number) {
-  const bytes = Number(value || 0);
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  let size = bytes;
-  let index = 0;
-  while (size >= 1024 && index < units.length - 1) {
-    size /= 1024;
-    index += 1;
-  }
-  return `${size.toFixed(size >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
-}
-
 export default function AdminDashboard() {
   const router = useRouter();
 
   const [osList, setOsList] = useState<OSItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [storageEstimate, setStorageEstimate] = useState<StorageEstimateResponse | null>(null);
   const [statusFiltro, setStatusFiltro] = useState("");
   const [busca, setBusca] = useState("");
   const [dataInicio, setDataInicio] = useState("");
@@ -185,27 +149,6 @@ export default function AdminDashboard() {
     try {
       const lista = await apiFetch("/projects/admin/all");
       setOsList(Array.isArray(lista) ? lista : []);
-      try {
-        const month = new Date().toISOString().slice(0, 7);
-        const metricas = (await apiFetch(`/dashboard/metrics?month=${month}`)) as MetricsResponse;
-        if (metricas && typeof metricas === "object") {
-          // metricas carregadas para manter compatibilidade com a rota atual
-        }
-      } catch {
-        // noop
-      }
-
-      try {
-        const estimate = (await apiFetch("/dashboard/storage-estimate?targetMb=450")) as StorageEstimateResponse;
-        if (estimate && typeof estimate === "object") {
-          setStorageEstimate(estimate);
-        } else {
-          setStorageEstimate(null);
-        }
-      } catch {
-        setStorageEstimate(null);
-      }
-
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao carregar OS");
     } finally {
@@ -293,6 +236,7 @@ export default function AdminDashboard() {
       andamento: byBucket[STATUS_EM_ANDAMENTO] || 0,
       pausadas: byBucket[STATUS_PAUSADA] || 0,
       aguardandoValidacao: byBucket[STATUS_AGUARDANDO_VALIDACAO] || 0,
+      pendencias: byBucket[STATUS_PENDENCIAS] || 0,
       finalizadas: byBucket[STATUS_FINALIZADAS] || 0,
     };
   }, [osBaseFiltrada]);
@@ -370,32 +314,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-8">
         <Card titulo="Solicitações do cliente" valor={contadores.solicitacoesCliente ?? 0} cor="bg-indigo-600" onClick={() => setStatusFiltro(STATUS_SOLICITACOES_CLIENTE)} active={statusFiltro === STATUS_SOLICITACOES_CLIENTE} />
         <Card titulo="Aguardando técnico" valor={contadores.aguardando ?? 0} cor="bg-amber-500" onClick={() => setStatusFiltro(STATUS_AGUARDANDO_TECNICO)} active={statusFiltro === STATUS_AGUARDANDO_TECNICO} />
         <Card titulo="Em deslocamento" valor={contadores.deslocamento ?? 0} cor="bg-cyan-600" onClick={() => setStatusFiltro(STATUS_EM_DESLOCAMENTO)} active={statusFiltro === STATUS_EM_DESLOCAMENTO} />
         <Card titulo="Em andamento" valor={contadores.andamento ?? 0} cor="bg-sky-600" onClick={() => setStatusFiltro(STATUS_EM_ANDAMENTO)} active={statusFiltro === STATUS_EM_ANDAMENTO} />
         <Card titulo="Pausada" valor={contadores.pausadas ?? 0} cor="bg-purple-600" onClick={() => setStatusFiltro(STATUS_PAUSADA)} active={statusFiltro === STATUS_PAUSADA} />
         <Card titulo="Aguardando validação" valor={contadores.aguardandoValidacao ?? 0} cor="bg-orange-600" onClick={() => setStatusFiltro(STATUS_AGUARDANDO_VALIDACAO)} active={statusFiltro === STATUS_AGUARDANDO_VALIDACAO} />
+        <Card titulo="Com pendência" valor={contadores.pendencias ?? 0} cor="bg-amber-700" onClick={() => setStatusFiltro(STATUS_PENDENCIAS)} active={statusFiltro === STATUS_PENDENCIAS} />
         <Card titulo="Concluída" valor={contadores.finalizadas ?? 0} cor="bg-green-700" onClick={() => setStatusFiltro(STATUS_FINALIZADAS)} active={statusFiltro === STATUS_FINALIZADAS} />
       </div>
-
-      {storageEstimate && (
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Armazenamento</p>
-          <h2 className="mt-1 text-lg font-extrabold text-slate-900">Estimativa Supabase (plano gratuito)</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-            <StatBox label="Total de OS" value={String(storageEstimate.total_os || 0)} />
-            <StatBox label="Banco atual" value={formatBytes(storageEstimate.db_size_bytes)} />
-            <StatBox label="Tabela projects" value={formatBytes(storageEstimate.projects_table_bytes)} />
-            <StatBox label="Média por OS" value={formatBytes(storageEstimate.avg_os_row_bytes)} />
-            <StatBox label={`OS para alvo ${storageEstimate.target_mb || 450} MB`} value={String(storageEstimate.estimated_os_to_delete || 0)} />
-          </div>
-          {storageEstimate.message && (
-            <p className="mt-3 text-xs text-slate-600">{storageEstimate.message}</p>
-          )}
-        </div>
-      )}
 
       <div className="grid gap-3 rounded-2xl border border-slate-200/70 bg-white p-4 sm:grid-cols-2 xl:grid-cols-4">
         <select
@@ -410,6 +338,7 @@ export default function AdminDashboard() {
           <option value={STATUS_EM_ANDAMENTO}>Em andamento</option>
           <option value={STATUS_PAUSADA}>Pausada</option>
           <option value={STATUS_AGUARDANDO_VALIDACAO}>Aguardando validação</option>
+          <option value={STATUS_PENDENCIAS}>Com pendência</option>
           <option value={STATUS_FINALIZADAS}>Concluída</option>
         </select>
 
@@ -495,15 +424,6 @@ function Card({
   );
 }
 
-function StatBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-lg font-extrabold text-slate-900">{value}</p>
-    </div>
-  );
-}
-
 function renderOsCard(
   os: OSItem,
   router: { push: (href: string) => void },
@@ -516,6 +436,7 @@ function renderOsCard(
   const osId = os._id || os.id;
   const detalheHref = `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`;
   const unidadeOuSubcliente = getUnidadeOuSubcliente(os);
+  const status = normalizeStatus(os.status);
 
   if (!osId) return null;
 
@@ -524,7 +445,11 @@ function renderOsCard(
       key={osId}
       role="button"
       tabIndex={0}
-      className="w-full rounded-2xl border border-slate-200/80 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className={`w-full rounded-2xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${
+        status === STATUS.FINALIZADA_COM_PENDENCIA
+          ? "border-orange-200 bg-orange-50/70"
+          : "border-slate-200/80 bg-white"
+      }`}
       onClick={() => router.push(detalheHref)}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -541,9 +466,19 @@ function renderOsCard(
         <span
           className={`rounded-full px-3 py-1 text-xs font-bold ${legacyStatusColor(os.status, os)}`}
         >
-          {legacyStatusLabel(os.status, os)}
+          <span className="inline-flex items-center gap-1">
+            {status === STATUS.FINALIZADA_COM_PENDENCIA && <AlertTriangle size={13} />}
+            {legacyStatusLabel(os.status, os)}
+          </span>
         </span>
       </div>
+
+      {status === STATUS.FINALIZADA_COM_PENDENCIA && (
+        <p className="mt-2 inline-flex items-center gap-1 rounded-xl border border-orange-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-800">
+          <AlertTriangle size={13} />
+          Finalizada com pendência
+        </p>
+      )}
 
       <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
         <p>
@@ -623,6 +558,7 @@ function dashboardStatusBucket(os: OSItem) {
   if (emDeslocamento) return STATUS_EM_DESLOCAMENTO;
   if (status === STATUS.EM_ATENDIMENTO) return STATUS_EM_ANDAMENTO;
   if (status === STATUS.FINALIZADA_PELO_TECNICO) return STATUS_AGUARDANDO_VALIDACAO;
+  if (status === STATUS.FINALIZADA_COM_PENDENCIA) return STATUS_PENDENCIAS;
   if (status === STATUS.VALIDADA_PELO_ADMIN) return STATUS_FINALIZADAS;
   return STATUS_AGUARDANDO_TECNICO;
 }
@@ -635,6 +571,7 @@ function legacyStatusLabel(rawStatus?: string, os?: OSItem) {
   if (bucket === STATUS_EM_ANDAMENTO) return "Em andamento";
   if (bucket === STATUS_PAUSADA) return "Pausada";
   if (bucket === STATUS_AGUARDANDO_VALIDACAO) return "Aguardando validação";
+  if (bucket === STATUS_PENDENCIAS) return "Finalizada com pendência";
   if (bucket === STATUS_FINALIZADAS) return "Concluída";
   return rawStatus || "status";
 }
@@ -647,6 +584,7 @@ function legacyStatusColor(rawStatus?: string, os?: OSItem) {
   if (bucket === STATUS_EM_ANDAMENTO) return "bg-sky-100 text-sky-800";
   if (bucket === STATUS_PAUSADA) return "bg-purple-100 text-purple-800";
   if (bucket === STATUS_AGUARDANDO_VALIDACAO) return "bg-orange-100 text-orange-800";
+  if (bucket === STATUS_PENDENCIAS) return "bg-amber-100 text-amber-900";
   if (bucket === STATUS_FINALIZADAS) return "bg-green-100 text-green-800";
   return "bg-gray-200 text-gray-800";
 }

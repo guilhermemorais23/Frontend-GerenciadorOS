@@ -3,6 +3,7 @@
   EM_ATENDIMENTO: "EM_ATENDIMENTO",
   PAUSADA: "PAUSADA",
   FINALIZADA_PELO_TECNICO: "FINALIZADA_PELO_TECNICO",
+  FINALIZADA_COM_PENDENCIA: "FINALIZADA_COM_PENDENCIA",
   VALIDADA_PELO_ADMIN: "VALIDADA_PELO_ADMIN",
   CANCELADA: "CANCELADA",
 } as const;
@@ -15,6 +16,8 @@ const LEGACY_TO_CURRENT: Record<string, string> = {
   pausada: STATUS.PAUSADA,
   pausado: STATUS.PAUSADA,
   finalizada_pelo_tecnico: STATUS.FINALIZADA_PELO_TECNICO,
+  finalizada_com_pendencia: STATUS.FINALIZADA_COM_PENDENCIA,
+  finalizacao_com_pendencia: STATUS.FINALIZADA_COM_PENDENCIA,
   validada_pelo_admin: STATUS.VALIDADA_PELO_ADMIN,
   concluido: STATUS.VALIDADA_PELO_ADMIN,
   concluida: STATUS.VALIDADA_PELO_ADMIN,
@@ -31,6 +34,7 @@ export const STATUS_OPTIONS = [
   STATUS.EM_ATENDIMENTO,
   STATUS.PAUSADA,
   STATUS.FINALIZADA_PELO_TECNICO,
+  STATUS.FINALIZADA_COM_PENDENCIA,
   STATUS.VALIDADA_PELO_ADMIN,
   STATUS.CANCELADA,
 ];
@@ -53,6 +57,7 @@ export function statusLabel(rawStatus?: string | null) {
   if (status === STATUS.EM_ATENDIMENTO) return "Em andamento";
   if (status === STATUS.PAUSADA) return "Pausada";
   if (status === STATUS.FINALIZADA_PELO_TECNICO) return "Aguardando validação";
+  if (status === STATUS.FINALIZADA_COM_PENDENCIA) return "Finalizada com pendência";
   if (status === STATUS.VALIDADA_PELO_ADMIN) return "Finalizada";
   if (status === STATUS.CANCELADA) return "Cancelada";
   return status;
@@ -65,6 +70,7 @@ export function statusBadgeClass(rawStatus?: string | null) {
   if (status === STATUS.EM_ATENDIMENTO) return "bg-sky-100 text-sky-700 border border-sky-200";
   if (status === STATUS.PAUSADA) return "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200";
   if (status === STATUS.FINALIZADA_PELO_TECNICO) return "bg-amber-100 text-amber-800 border border-amber-200";
+  if (status === STATUS.FINALIZADA_COM_PENDENCIA) return "bg-orange-100 text-orange-800 border border-orange-200";
   if (status === STATUS.VALIDADA_PELO_ADMIN) return "bg-green-100 text-green-800 border border-green-200";
   if (status === STATUS.CANCELADA) return "bg-rose-100 text-rose-700 border border-rose-200";
   return "bg-slate-100 text-slate-700 border border-slate-200";

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Check, FilePenLine, Send } from "lucide-react";
+import { AlertTriangle, Check, FilePenLine, Send } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import SignaturePad from "@/app/components/SignaturePad";
 import { MOTIVOS_NAO_ASSINOU, normalizeStatus, STATUS } from "@/app/lib/os";
@@ -15,11 +15,13 @@ type OSTecnico = {
   antes?: {
     relatorio?: string;
     observacao?: string;
+    fotos_nao_autorizadas?: boolean;
     fotos?: string[];
   } | null;
   depois?: {
     relatorio?: string;
     observacao?: string;
+    fotos_nao_autorizadas?: boolean;
     fotos?: string[];
   } | null;
   materiais_solicitados?: Array<{
@@ -44,6 +46,7 @@ export default function DepoisPage() {
   const [observacao, setObservacao] = useState("");
   const [fotos, setFotos] = useState<File[]>([]);
   const [fotosSalvasDepois, setFotosSalvasDepois] = useState<string[]>([]);
+  const [fotosNaoAutorizadas, setFotosNaoAutorizadas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -54,6 +57,7 @@ export default function DepoisPage() {
   const [clienteFuncao, setClienteFuncao] = useState("");
   const [clienteNaoAssinou, setClienteNaoAssinou] = useState(false);
   const [motivoNaoAssinou, setMotivoNaoAssinou] = useState("");
+  const [finalizarComPendencia, setFinalizarComPendencia] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -62,6 +66,7 @@ export default function DepoisPage() {
     setObservacao("");
     setFotos([]);
     setFotosSalvasDepois([]);
+    setFotosNaoAutorizadas(false);
     setSalvando(false);
     setPreviewOpen(false);
     setAssinaturaTecnico("");
@@ -70,6 +75,7 @@ export default function DepoisPage() {
     setClienteFuncao("");
     setClienteNaoAssinou(false);
     setMotivoNaoAssinou("");
+    setFinalizarComPendencia(false);
     void carregarOS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -88,6 +94,7 @@ export default function DepoisPage() {
       setRelatorio(String(data.depois?.relatorio || ""));
       setObservacao(String(data.depois?.observacao || ""));
       setFotosSalvasDepois(Array.isArray(data.depois?.fotos) ? data.depois.fotos : []);
+      setFotosNaoAutorizadas(Boolean(data.depois?.fotos_nao_autorizadas));
     } catch {
       setOs(null);
     } finally {
@@ -136,6 +143,7 @@ export default function DepoisPage() {
   }
 
   const totalFotosDepois = fotosSalvasDepois.length + fotos.length;
+  const fotosValidas = fotosNaoAutorizadas || (totalFotosDepois >= 1 && totalFotosDepois <= 4);
 
   function validarFinalizacao() {
     if (!assinaturaTecnico.trim()) {
@@ -160,18 +168,19 @@ export default function DepoisPage() {
     return true;
   }
 
-  function abrirPreview() {
+  function abrirPreview(pendente = false) {
     if (!relatorio.trim()) {
       alert("Preencha o parecer final");
       return;
     }
 
-    if (totalFotosDepois < 1 || totalFotosDepois > 4) {
+    if (!fotosValidas) {
       alert("Adicione de 1 a 4 fotos para finalizar");
       return;
     }
 
     if (!validarFinalizacao()) return;
+    setFinalizarComPendencia(pendente);
     setPreviewOpen(true);
   }
 
@@ -189,6 +198,7 @@ export default function DepoisPage() {
       const formData = new FormData();
       formData.append("relatorio", relatorio);
       formData.append("observacao", observacao);
+      formData.append("fotos_nao_autorizadas", String(fotosNaoAutorizadas));
       fotos.forEach((f) => formData.append("fotos", f));
 
       await apiFetch(`/projects/tecnico/depois/${id}`, {
@@ -205,10 +215,12 @@ export default function DepoisPage() {
           client_signed_role: clienteFuncao || null,
           client_did_not_sign: clienteNaoAssinou,
           client_did_not_sign_reason: clienteNaoAssinou ? motivoNaoAssinou : null,
+          finalizacao_com_pendencia: finalizarComPendencia,
+          pending: finalizarComPendencia,
         }),
       });
 
-      alert("OS enviada para o admin com sucesso!");
+      alert(finalizarComPendencia ? "OS enviada para o admin com pendência!" : "OS enviada para o admin com sucesso!");
       router.push(returnTo || "/tecnico");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao finalizar OS");
@@ -261,6 +273,24 @@ export default function DepoisPage() {
         <p className={`mt-2 text-sm ${totalFotosDepois >= 1 && totalFotosDepois <= 4 ? "text-emerald-700" : "text-rose-700"}`}>
           {totalFotosDepois} / 4 foto{totalFotosDepois !== 1 && "s"} (incluindo já salvas)
         </p>
+
+        <button
+          type="button"
+          onClick={() => setFotosNaoAutorizadas((value) => !value)}
+          className={`mt-3 rounded-xl border px-4 py-2 text-sm font-bold transition ${
+            fotosNaoAutorizadas
+              ? "border-amber-300 bg-amber-50 text-amber-800"
+              : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          {fotosNaoAutorizadas ? "Fotografias não autorizadas" : "Não autorizado fotografias"}
+        </button>
+
+        {fotosNaoAutorizadas && (
+          <p className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+            A finalização poderá seguir sem fotos porque o registro fotográfico não foi autorizado.
+          </p>
+        )}
 
         {fotosSalvasDepois.length > 0 && (
           <div className="mt-4">
@@ -342,11 +372,19 @@ export default function DepoisPage() {
         </div>
 
         <button
-          onClick={abrirPreview}
-          disabled={salvando || totalFotosDepois < 1 || totalFotosDepois > 4 || !relatorio.trim()}
+          onClick={() => abrirPreview(false)}
+          disabled={salvando || !fotosValidas || !relatorio.trim()}
           className="mt-6 w-full rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
           {salvando ? "Enviando..." : "Finalizar e revisar envio"}
+        </button>
+        <button
+          type="button"
+          onClick={() => abrirPreview(true)}
+          disabled={salvando || !fotosValidas || !relatorio.trim()}
+          className="mt-3 w-full rounded-xl bg-amber-600 px-4 py-3 font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          Finalizar com pendência
         </button>
         <button
           type="button"
@@ -362,11 +400,13 @@ export default function DepoisPage() {
           <div className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-slate-200 bg-white shadow-2xl">
             <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Preview final</p>
+                <p className={`text-xs font-bold uppercase tracking-[0.18em] ${finalizarComPendencia ? "text-amber-700" : "text-emerald-700"}`}>
+                  {finalizarComPendencia ? "Preview com pendência" : "Preview final"}
+                </p>
                 <h2 className="text-lg font-extrabold text-slate-900">Conferir antes de enviar para o admin</h2>
               </div>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                {os.osNumero}
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${finalizarComPendencia ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                {finalizarComPendencia ? "Pendência" : os.osNumero}
               </span>
             </div>
 
@@ -407,6 +447,12 @@ export default function DepoisPage() {
                     </div>
                   )}
 
+                  {os.antes?.fotos_nao_autorizadas && (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                      Fotografias do ANTES não autorizadas.
+                    </p>
+                  )}
+
                   {Array.isArray(os.materiais_solicitados) && os.materiais_solicitados.length > 0 && (
                     <div>
                       <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Materiais solicitados no ANTES</p>
@@ -443,13 +489,24 @@ export default function DepoisPage() {
 
                 <div className="mt-4">
                   <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">Relatorio fotografico final</p>
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {fotos.map((foto, index) => (
-                      <div key={`${foto.name}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                        <img src={URL.createObjectURL(foto)} alt={`Foto final ${index + 1}`} className="h-28 w-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
+                  {fotosNaoAutorizadas ? (
+                    <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                      Fotografias do DEPOIS não autorizadas.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {fotosSalvasDepois.map((foto, index) => (
+                        <div key={`salva-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          <img src={normalizeImageSrc(foto)} alt={`Foto final salva ${index + 1}`} className="h-28 w-full object-cover" />
+                        </div>
+                      ))}
+                      {fotos.map((foto, index) => (
+                        <div key={`${foto.name}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                          <img src={URL.createObjectURL(foto)} alt={`Foto final ${index + 1}`} className="h-28 w-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -487,10 +544,18 @@ export default function DepoisPage() {
                 </div>
               </section>
 
-              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              <div className={`rounded-2xl border px-4 py-3 text-sm ${
+                finalizarComPendencia
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-900"
+              }`}>
                 <div className="flex items-start gap-2">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p>Ao confirmar, a OS sera enviada para o admin validar e a notificacao aparecera no painel do admin.</p>
+                  {finalizarComPendencia ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> : <Check className="mt-0.5 h-4 w-4 shrink-0" />}
+                  <p>
+                    {finalizarComPendencia
+                      ? "Ao confirmar, a OS sera enviada para o admin validar com alerta de pendencia."
+                      : "Ao confirmar, a OS sera enviada para o admin validar e a notificacao aparecera no painel do admin."}
+                  </p>
                 </div>
               </div>
             </div>

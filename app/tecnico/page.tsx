@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CarFront, Eye, MapPinned, Phone } from "lucide-react";
+import { AlertTriangle, CarFront, Eye, MapPinned, Phone } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import {
   clearAllTecnicoDashboardSessionKeys,
@@ -40,6 +40,7 @@ export default function TecnicoPage() {
   const router = useRouter();
   const FILTRO_INICIAL = "__INICIAL__";
   const FILTRO_TODAS = "__TODAS__";
+  const FILTRO_PENDENCIAS = "__PENDENCIAS__";
   const FILTRO_FINALIZADAS = "__FINALIZADAS__";
   const [servicos, setServicos] = useState<Servico[]>([]);
   const [filtro, setFiltro] = useState(FILTRO_INICIAL);
@@ -88,7 +89,7 @@ export default function TecnicoPage() {
     };
     const intervalId = window.setInterval(() => {
       if (document.visibilityState === "visible") carregarServicos();
-    }, 15000);
+    }, 60000);
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibilityChange);
@@ -167,13 +168,15 @@ export default function TecnicoPage() {
     { label: "Abertas", value: STATUS.ABERTA },
     { label: "Em andamento", value: STATUS.EM_ATENDIMENTO },
     { label: "Pausadas", value: STATUS.PAUSADA },
+    { label: "Pendências", value: FILTRO_PENDENCIAS },
     { label: "Finalizadas", value: FILTRO_FINALIZADAS },
   ];
 
   const listaFiltrada = useMemo(() => {
     return servicos.filter((s) => {
       const status = normalizeStatus(s.status);
-      const concluida = status === STATUS.FINALIZADA_PELO_TECNICO || status === STATUS.VALIDADA_PELO_ADMIN;
+      const pendente = status === STATUS.FINALIZADA_COM_PENDENCIA;
+      const concluida = status === STATUS.FINALIZADA_PELO_TECNICO || pendente || status === STATUS.VALIDADA_PELO_ADMIN;
       const termo = busca.trim().toLowerCase();
 
       if (filtro === FILTRO_INICIAL) {
@@ -184,6 +187,8 @@ export default function TecnicoPage() {
         // sem filtro adicional
       } else if (filtro === FILTRO_FINALIZADAS) {
         if (!concluida) return false;
+      } else if (filtro === FILTRO_PENDENCIAS) {
+        if (!pendente) return false;
       } else {
         if (concluida) return false;
         if (status !== filtro) return false;
@@ -308,7 +313,11 @@ export default function TecnicoPage() {
                 key={s._id}
                 role="button"
                 tabIndex={0}
-                className="rounded-2xl border border-slate-200 p-4 transition hover:-translate-y-0.5 hover:shadow-sm"
+                className={`rounded-2xl border p-4 transition hover:-translate-y-0.5 hover:shadow-sm ${
+                  status === STATUS.FINALIZADA_COM_PENDENCIA
+                    ? "border-orange-200 bg-orange-50/60"
+                    : "border-slate-200"
+                }`}
                 onClick={() => router.push(`/tecnico/servicos/${s._id}?returnTo=/tecnico`)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -323,9 +332,19 @@ export default function TecnicoPage() {
                     <p className="text-sm font-semibold text-slate-700">{s.cliente || "Sem cliente"}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(status)}`}>
-                    {statusLabel(status)}
+                    <span className="inline-flex items-center gap-1">
+                      {status === STATUS.FINALIZADA_COM_PENDENCIA && <AlertTriangle size={13} />}
+                      {statusLabel(status)}
+                    </span>
                   </span>
                 </div>
+
+                {status === STATUS.FINALIZADA_COM_PENDENCIA && (
+                  <p className="mt-2 inline-flex items-center gap-1 rounded-xl border border-orange-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-800">
+                    <AlertTriangle size={13} />
+                    OS finalizada com pendência
+                  </p>
+                )}
 
                 <div className="mt-3 grid gap-2 text-sm text-slate-600 sm:grid-cols-2 lg:grid-cols-4">
                   <p>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
+import { AlertTriangle, ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone, Play } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import { normalizeImageSrc } from "@/app/lib/image-url";
 import { formatDate, formatDuration, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
@@ -10,6 +10,7 @@ import { formatDate, formatDuration, priorityBadgeClass, priorityLabel, statusBa
 type HistoricoBloco = {
   relatorio?: string;
   observacao?: string;
+  fotos_nao_autorizadas?: boolean;
   fotos?: string[];
 };
 
@@ -136,9 +137,21 @@ export default function ServicoPage() {
             <p className="text-sm text-slate-600">{os.cliente}</p>
           </div>
           <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(status)}`}>
-            {statusLabel(status)}
+            <span className="inline-flex items-center gap-1">
+              {status === STATUS.FINALIZADA_COM_PENDENCIA && <AlertTriangle size={13} />}
+              {statusLabel(status)}
+            </span>
           </span>
         </div>
+
+        {status === STATUS.FINALIZADA_COM_PENDENCIA && (
+          <div className="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm font-semibold text-orange-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>Esta OS foi finalizada com pendência e aguarda validação do admin.</p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-5 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-3">
           <p><b>Subcliente:</b> {os.subcliente || "-"}</p>
@@ -335,6 +348,11 @@ function SectionHistorico({ titulo, bloco }: { titulo: string; bloco?: Historico
       <h2 className="text-base font-extrabold text-slate-800">{titulo}</h2>
       <p className="text-sm"><b>Parecer:</b> {bloco?.relatorio || "-"}</p>
       {bloco?.observacao ? <p className="text-sm"><b>Observação:</b> {bloco.observacao}</p> : null}
+      {bloco?.fotos_nao_autorizadas ? (
+        <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+          Fotografias não autorizadas.
+        </p>
+      ) : null}
 
       {bloco?.fotos && bloco.fotos.length > 0 && (
         <div className="grid grid-cols-2 gap-2">

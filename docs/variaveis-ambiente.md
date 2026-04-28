@@ -52,6 +52,8 @@ npm run dev
 | `WASENDER_BASE_URL` | Padrão: `https://www.wasenderapi.com` |
 | `WASENDER_API_KEY` | Chave WasenderAPI |
 | `WASENDER_SESSION` | Opcional |
+| `WASENDER_OS_CONTROL_GROUP_ID` | Opcional; grupo fixo que recebe resumo/PDF quando o admin valida uma OS |
+| `WASENDER_OS_CONTROL_GROUP_NAME` | Opcional; nome usado pelo helper de criação do grupo |
 
 Comportamento esperado pelo código: em produção, sem URI de Mongo, o processo encerra no boot. Rotas de compatibilidade de desenvolvimento ficam desativadas.
 
@@ -74,6 +76,7 @@ Comportamento esperado pelo código: em produção, sem URI de Mongo, o processo
 
 - Canal de e-mail pode estar desativado ou opcional; SMTP está documentado no `.env.example` do backend.
 - Fluxo de WhatsApp atual passa pelo backend (WasenderAPI), endpoint de envio conforme implementação em rotas/serviços.
+- Para criar o grupo de controle, execute uma única vez o helper `createWasenderControlGroup()` do serviço de delivery. Ele chama `/api/groups` com o participante `558387037644`; salve o ID retornado em `WASENDER_OS_CONTROL_GROUP_ID` para evitar duplicar grupos.
 
 ## Opcional: Postgres / Supabase
 
