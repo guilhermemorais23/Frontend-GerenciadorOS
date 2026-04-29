@@ -54,6 +54,11 @@ npm run dev
 | `WASENDER_SESSION` | Opcional |
 | `WASENDER_OS_CONTROL_GROUP_ID` | Opcional; grupo fixo que recebe resumo/PDF quando o admin valida uma OS |
 | `WASENDER_OS_CONTROL_GROUP_NAME` | Opcional; nome usado pelo helper de criação do grupo |
+| `WASENDER_STALE_OS_GROUP_ID` | Grupo fixo para alertas de OS com mais de 10h no mesmo status; atual: `120363424500153835@g.us` |
+| `WASENDER_STALE_OS_GROUP_NAME` | Nome do grupo de OS paradas; padrao: `OS paradas` |
+| `WASENDER_FINALIZED_TECH_GROUP_ID` | Grupo fixo avisado quando o tecnico envia OS para validacao; atual: `120363409975436755@g.us` |
+| `WASENDER_FINALIZED_TECH_GROUP_NAME` | Nome do grupo de finalizacao do tecnico; padrao: `OS FINALIZADA PELO TECNICO` |
+| `STALE_OS_NOTIFIER_INTERVAL_MS` | Opcional; intervalo do verificador de OS paradas, padrao 15 minutos |
 
 Comportamento esperado pelo código: em produção, sem URI de Mongo, o processo encerra no boot. Rotas de compatibilidade de desenvolvimento ficam desativadas.
 
@@ -77,6 +82,7 @@ Comportamento esperado pelo código: em produção, sem URI de Mongo, o processo
 - Canal de e-mail pode estar desativado ou opcional; SMTP está documentado no `.env.example` do backend.
 - Fluxo de WhatsApp atual passa pelo backend (WasenderAPI), endpoint de envio conforme implementação em rotas/serviços.
 - Para criar o grupo de controle, execute uma única vez o helper `createWasenderControlGroup()` do serviço de delivery. Ele chama `/api/groups` com o participante `558387037644`; salve o ID retornado em `WASENDER_OS_CONTROL_GROUP_ID` para evitar duplicar grupos.
+- Para evitar duplicar os grupos no deploy, mantenha `WASENDER_STALE_OS_GROUP_ID=120363424500153835@g.us` e `WASENDER_FINALIZED_TECH_GROUP_ID=120363409975436755@g.us` nas variáveis do backend.
 
 ## Opcional: Postgres / Supabase
 
