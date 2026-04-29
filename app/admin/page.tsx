@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, ArrowRight, Printer } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
-import { formatDate, isOpenStatus, normalizeStatus, STATUS } from "@/app/lib/os";
+import { formatDate, getStatusAgeWarning, isOpenStatus, normalizeStatus, STATUS } from "@/app/lib/os";
 
 type OSItem = {
   _id: string;
@@ -21,7 +21,11 @@ type OSItem = {
   tecnicoNome?: string;
   status?: string;
   createdAt?: string;
+  updatedAt?: string;
   data_abertura?: string;
+  data_inicio_atendimento?: string | null;
+  data_retomada_atendimento?: string | null;
+  data_pausa_atendimento?: string | null;
   data_validacao_admin?: string | null;
   data_inicio_deslocamento?: string | null;
   data_fim_deslocamento?: string | null;
@@ -437,6 +441,7 @@ function renderOsCard(
   const detalheHref = `/admin/servicos/${osId}?returnTo=${encodeURIComponent("/admin")}`;
   const unidadeOuSubcliente = getUnidadeOuSubcliente(os);
   const status = normalizeStatus(os.status);
+  const statusWarning = getStatusAgeWarning(os);
 
   if (!osId) return null;
 
@@ -477,6 +482,13 @@ function renderOsCard(
         <p className="mt-2 inline-flex items-center gap-1 rounded-xl border border-orange-200 bg-white px-3 py-1 text-xs font-bold uppercase tracking-wide text-orange-800">
           <AlertTriangle size={13} />
           Finalizada com pendência
+        </p>
+      )}
+
+      {statusWarning && (
+        <p className="mt-2 inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">
+          <AlertTriangle size={13} />
+          Mais de 24h em {statusWarning.statusLabel.toLowerCase()} ({statusWarning.hours}h)
         </p>
       )}
 

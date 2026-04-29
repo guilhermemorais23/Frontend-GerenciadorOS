@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
-import { formatDate, statusBadgeClass, statusLabel } from "@/app/lib/os";
+import { formatDate, getStatusAgeWarning, statusBadgeClass, statusLabel } from "@/app/lib/os";
 
 type Servico = {
   _id: string;
@@ -11,6 +12,11 @@ type Servico = {
   cliente?: string;
   status?: string;
   data_abertura?: string;
+  data_inicio_atendimento?: string | null;
+  data_retomada_atendimento?: string | null;
+  data_pausa_atendimento?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export default function AdminServicosPage() {
@@ -136,48 +142,59 @@ export default function AdminServicosPage() {
         </div>
       </div>
 
-      {servicos.map((s) => (
-        <div key={s._id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-start gap-3">
-              <label className="mt-0.5 inline-flex cursor-pointer items-center rounded-md p-1">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(s._id)}
-                  onChange={() => toggleSelection(s._id)}
-                  className="h-5 w-5 cursor-pointer accent-blue-700"
-                />
-              </label>
+      {servicos.map((s) => {
+        const statusWarning = getStatusAgeWarning(s);
 
-              <div>
-                <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
-                <p className="text-sm text-slate-700">{s.cliente}</p>
-                <p className="text-xs text-slate-500">Abertura: {formatDate(s.data_abertura)}</p>
+        return (
+          <div key={s._id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-start gap-3">
+                <label className="mt-0.5 inline-flex cursor-pointer items-center rounded-md p-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(s._id)}
+                    onChange={() => toggleSelection(s._id)}
+                    className="h-5 w-5 cursor-pointer accent-blue-700"
+                  />
+                </label>
+
+                <div>
+                  <p className="text-lg font-extrabold text-slate-900">{s.osNumero}</p>
+                  <p className="text-sm text-slate-700">{s.cliente}</p>
+                  <p className="text-xs text-slate-500">Abertura: {formatDate(s.data_abertura)}</p>
+                </div>
               </div>
+
+              <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(s.status)}`}>
+                {statusLabel(s.status)}
+              </span>
             </div>
 
-            <span className={`rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(s.status)}`}>
-              {statusLabel(s.status)}
-            </span>
-          </div>
+            {statusWarning && (
+              <p className="mt-3 inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">
+                <AlertTriangle size={13} />
+                Mais de 24h em {statusWarning.statusLabel.toLowerCase()} ({statusWarning.hours}h)
+              </p>
+            )}
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              onClick={() => router.push(`/admin/servicos/${s._id}`)}
-              className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white"
-            >
-              Ver
-            </button>
-            <button
-              onClick={() => excluirSelecionadas([s._id])}
-              disabled={deleting}
-              className="rounded-xl bg-rose-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Excluir
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => router.push(`/admin/servicos/${s._id}`)}
+                className="rounded-xl bg-slate-800 px-3 py-2 text-sm font-bold text-white"
+              >
+                Ver
+              </button>
+              <button
+                onClick={() => excluirSelecionadas([s._id])}
+                disabled={deleting}
+                className="rounded-xl bg-rose-700 px-3 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Excluir
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {!servicos.length && (
         <p className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">

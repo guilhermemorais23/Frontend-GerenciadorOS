@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileDown, FileText, LogOut, Plus, RefreshCcw } from "lucide-react";
+import { AlertTriangle, FileDown, FileText, LogOut, Plus, RefreshCcw } from "lucide-react";
 import { API_URL, apiFetch } from "@/app/lib/api";
-import { formatDate, normalizeStatus, statusLabel, STATUS } from "@/app/lib/os";
+import { formatDate, getStatusAgeWarning, normalizeStatus, statusLabel, STATUS } from "@/app/lib/os";
 
 type OSItem = {
   _id?: string;
@@ -20,7 +20,11 @@ type OSItem = {
   tipo_manutencao?: string;
   status?: string;
   data_abertura?: string;
+  data_inicio_atendimento?: string | null;
+  data_retomada_atendimento?: string | null;
+  data_pausa_atendimento?: string | null;
   createdAt?: string;
+  updatedAt?: string;
   data_validacao_admin?: string | null;
   tecnico?: { nome?: string } | string | null;
   tecnicoNome?: string;
@@ -270,6 +274,7 @@ export default function TerceiroPage() {
                 (typeof os.tecnico === "object" ? os.tecnico?.nome : os.tecnico) || os.tecnicoNome || "A definir";
               const osId = os._id || os.id || os.osNumero || "sem-id";
               const fotosTecnico = (os.depois?.fotos?.length || 0) + (os.antes?.fotos?.length || 0);
+              const statusWarning = getStatusAgeWarning(os);
 
               return (
                 <article key={osId} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -286,6 +291,13 @@ export default function TerceiroPage() {
                       {concluida ? "Concluída" : statusLabel(os.status)}
                     </span>
                   </div>
+
+                  {statusWarning && (
+                    <p className="mt-3 inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">
+                      <AlertTriangle size={13} />
+                      Mais de 24h em {statusWarning.statusLabel.toLowerCase()} ({statusWarning.hours}h)
+                    </p>
+                  )}
 
                   <div className="mt-5 grid gap-2 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
                     <InfoLine label="Abertura" value={formatDate(os.data_abertura || os.createdAt)} />

@@ -3,7 +3,7 @@
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, Bell, ClipboardList, Database, LayoutDashboard, Menu, Plus, Users, Wrench, X } from "lucide-react";
+import { BarChart3, Bell, ClipboardList, Database, LayoutDashboard, Menu, Plus, Send, Users, Wrench, X } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 
 const LINKS = [
@@ -245,6 +245,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
 function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
   const router = useRouter();
+  const [sendingTest, setSendingTest] = useState(false);
+
+  async function enviarTesteOsParada() {
+    if (sendingTest) return;
+
+    setSendingTest(true);
+    try {
+      await apiFetch("/admin/whatsapp/stale-os-test", { method: "POST" });
+      alert("Teste enviado para o grupo OS paradas.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao enviar teste de OS parada");
+    } finally {
+      setSendingTest(false);
+    }
+  }
 
   return (
     <>
@@ -280,6 +295,16 @@ function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: (
           );
         })}
       </nav>
+
+      <button
+        type="button"
+        onClick={enviarTesteOsParada}
+        disabled={sendingTest}
+        className="mt-4 flex w-full items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm font-bold text-amber-800 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Send size={18} />
+        {sendingTest ? "Enviando teste..." : "Teste"}
+      </button>
 
       <button
         onClick={() => {

@@ -82,6 +82,65 @@ export function isOpenStatus(rawStatus?: string | null) {
   return openStatuses.includes(status);
 }
 
+const STALE_STATUS_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+type StatusAgeInput = {
+  status?: string | null;
+  data_abertura?: string | null;
+  data_inicio_atendimento?: string | null;
+  data_retomada_atendimento?: string | null;
+  data_pausa_atendimento?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+};
+
+function parseDateMs(date?: string | null) {
+  if (!date) return null;
+  const time = new Date(date).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+function firstValidDate(...dates: Array<string | null | undefined>) {
+  for (const date of dates) {
+    const time = parseDateMs(date);
+    if (time !== null) return { date, time };
+  }
+
+  return null;
+}
+
+export function getStatusAgeWarning(os: StatusAgeInput, nowMs = Date.now()) {
+  const status = normalizeStatus(os.status);
+  let since = null as ReturnType<typeof firstValidDate>;
+
+  if (status === STATUS.ABERTA) {
+    since = firstValidDate(os.data_abertura, os.createdAt);
+  } else if (status === STATUS.EM_ATENDIMENTO) {
+    since = firstValidDate(
+      os.data_retomada_atendimento,
+      os.data_inicio_atendimento,
+      os.updatedAt,
+      os.data_abertura,
+      os.createdAt
+    );
+  } else if (status === STATUS.PAUSADA) {
+    since = firstValidDate(os.data_pausa_atendimento, os.updatedAt, os.data_abertura, os.createdAt);
+  } else {
+    return null;
+  }
+
+  if (!since) return null;
+
+  const elapsedMs = nowMs - since.time;
+  if (elapsedMs < STALE_STATUS_THRESHOLD_MS) return null;
+
+  return {
+    since: since.date || null,
+    hours: Math.floor(elapsedMs / (60 * 60 * 1000)),
+    statusLabel: statusLabel(status),
+  };
+}
+
 export function formatDate(date?: string | null) {
   if (!date) return "-";
   const d = new Date(date);
