@@ -92,6 +92,7 @@ type ValidationResponse = {
     whatsapp?: { success?: boolean; endpoint?: string };
     email?: { success?: boolean; to?: string };
     controlGroup?: { success?: boolean; groupId?: string; to?: string };
+    warning?: string;
   };
 };
 
@@ -237,6 +238,9 @@ export default function DetalheOSPage() {
       }
       if (data.delivery?.controlGroup?.success) {
         partes.push(`PDF enviado para grupo de relatorio: ${data.delivery.controlGroup.groupId || data.delivery.controlGroup.to || "ok"}`);
+      }
+      if (data.delivery?.warning) {
+        partes.push(`Aviso: ${data.delivery.warning}`);
       }
       if (data.warning) {
         partes.push(`Aviso: ${data.warning}`);
