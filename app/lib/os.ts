@@ -82,7 +82,7 @@ export function isOpenStatus(rawStatus?: string | null) {
   return openStatuses.includes(status);
 }
 
-const STALE_STATUS_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+const STALE_STATUS_THRESHOLD_MS = 10 * 60 * 60 * 1000;
 
 type StatusAgeInput = {
   status?: string | null;

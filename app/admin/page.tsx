@@ -488,7 +488,7 @@ function renderOsCard(
       {statusWarning && (
         <p className="mt-2 inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-1 text-xs font-bold uppercase tracking-wide text-red-700">
           <AlertTriangle size={13} />
-          Mais de 24h em {statusWarning.statusLabel.toLowerCase()} ({statusWarning.hours}h)
+          Mais de 10h em {statusWarning.statusLabel.toLowerCase()} ({statusWarning.hours}h)
         </p>
       )}
 

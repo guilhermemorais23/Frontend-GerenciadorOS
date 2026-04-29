@@ -252,8 +252,15 @@ function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: (
 
     setSendingTest(true);
     try {
-      await apiFetch("/admin/whatsapp/stale-os-test", { method: "POST" });
-      alert("Teste enviado para o grupo OS paradas.");
+      const data = (await apiFetch("/admin/whatsapp/stale-os-test", { method: "POST" })) as {
+        success?: boolean;
+        groupId?: string;
+        result?: { status?: string; response?: { data?: { status?: string } } };
+      };
+      if (!data?.success) {
+        throw new Error("A API respondeu sem confirmar o envio do teste.");
+      }
+      alert(`Teste enviado para o grupo OS paradas.${data.groupId ? `\nGrupo: ${data.groupId}` : ""}`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao enviar teste de OS parada");
     } finally {
