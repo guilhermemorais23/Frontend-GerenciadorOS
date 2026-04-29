@@ -246,6 +246,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: () => void }) {
   const router = useRouter();
   const [sendingTest, setSendingTest] = useState(false);
+  const [sendingControlTest, setSendingControlTest] = useState(false);
 
   async function enviarTesteOsParada() {
     if (sendingTest) return;
@@ -265,6 +266,26 @@ function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: (
       alert(err instanceof Error ? err.message : "Erro ao enviar teste de OS parada");
     } finally {
       setSendingTest(false);
+    }
+  }
+
+  async function enviarTesteGrupoControle() {
+    if (sendingControlTest) return;
+
+    setSendingControlTest(true);
+    try {
+      const data = (await apiFetch("/admin/whatsapp/control-group-test", { method: "POST" })) as {
+        success?: boolean;
+        result?: { to?: string };
+      };
+      if (!data?.success) {
+        throw new Error("A API respondeu sem confirmar o envio do teste.");
+      }
+      alert(`Teste enviado para o grupo de controle.${data.result?.to ? `\nGrupo: ${data.result.to}` : ""}`);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Erro ao enviar teste para grupo de controle");
+    } finally {
+      setSendingControlTest(false);
     }
   }
 
@@ -311,6 +332,16 @@ function SideContent({ pathname, onNavigate }: { pathname: string; onNavigate: (
       >
         <Send size={18} />
         {sendingTest ? "Enviando teste..." : "Teste"}
+      </button>
+
+      <button
+        type="button"
+        onClick={enviarTesteGrupoControle}
+        disabled={sendingControlTest}
+        className="mt-2 flex w-full items-center gap-3 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2.5 text-sm font-bold text-blue-800 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Send size={18} />
+        {sendingControlTest ? "Enviando controle..." : "Teste grupo controle"}
       </button>
 
       <button
