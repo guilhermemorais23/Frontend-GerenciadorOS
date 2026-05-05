@@ -159,6 +159,13 @@ export default function AdminPage() {
   </button>
 
   <button
+    onClick={() => router.push("/admin/solicitantes")}
+    className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg transition"
+  >
+    Solicitantes
+  </button>
+
+  <button
     onClick={() => {
       const hoje = new Date().toISOString().split("T")[0];
       setDataInicio(hoje);
