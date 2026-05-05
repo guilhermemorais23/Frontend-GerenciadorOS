@@ -5,6 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { normalizeStatus, STATUS } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
+import { clearOsSessionKeys } from "@/app/lib/os-session";
 
 type OSTecnico = {
   osNumero?: string;
@@ -210,6 +211,7 @@ export default function AntesPage() {
         body: formData,
       });
 
+      clearOsSessionKeys();
       router.push(`/tecnico/servicos/${id}/depois${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao salvar ANTES");

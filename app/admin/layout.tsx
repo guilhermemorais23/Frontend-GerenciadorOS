@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/servicos", label: "Serviços", icon: ClipboardList },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/solicitantes", label: "Solicitantes", icon: Users },
   { href: "/admin/tecnicos", label: "Técnicos", icon: Wrench },
   { href: "/admin/terceiros", label: "Terceiros", icon: Users },
   { href: "/admin/catalogo", label: "Catálogo", icon: ClipboardList },
@@ -35,6 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const currentTitle = useMemo(() => {
     if (pathname.startsWith("/admin/servicos")) return "Serviços";
     if (pathname.startsWith("/admin/clientes")) return "Clientes";
+    if (pathname.startsWith("/admin/solicitantes")) return "Solicitantes";
     if (pathname.startsWith("/admin/tecnicos")) return "Técnicos";
     if (pathname.startsWith("/admin/terceiros")) return "Terceiros";
     if (pathname.startsWith("/admin/catalogo")) return "Catálogo";

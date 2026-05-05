@@ -1,4 +1,5 @@
 import { clearAllTecnicoDashboardSessionKeys } from "./tecnico-session";
+import { clearOsSessionKeys } from "./os-session";
 
 const API_URL_RAW =
   process.env.BACKEND_URL ||
@@ -36,6 +37,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     localStorage.removeItem("nome");
 
     clearAllTecnicoDashboardSessionKeys();
+    clearOsSessionKeys();
 
     const isLoginRoute = window.location.pathname.startsWith("/login");
     if (!isLoginRoute) {

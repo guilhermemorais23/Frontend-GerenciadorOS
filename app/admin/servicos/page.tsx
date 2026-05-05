@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle } from "lucide-react";
 import { apiFetch } from "@/app/lib/api";
 import { formatDate, getStatusAgeWarning, statusBadgeClass, statusLabel } from "@/app/lib/os";
+import { adminServicosCacheKey, clearOsSessionKeys, readSessionJson, writeSessionJson } from "@/app/lib/os-session";
 
 type Servico = {
   _id: string;
@@ -33,6 +34,12 @@ export default function AdminServicosPage() {
       return;
     }
 
+    const cached = readSessionJson<Servico[]>(adminServicosCacheKey());
+    if (Array.isArray(cached) && cached.length > 0) {
+      setServicos(cached);
+      setLoading(false);
+    }
+
     carregar();
   }, [router]);
 
@@ -41,6 +48,7 @@ export default function AdminServicosPage() {
       const data = await apiFetch("/projects/admin/all");
       const list = Array.isArray(data) ? data : [];
       setServicos(list);
+      writeSessionJson(adminServicosCacheKey(), list);
       setSelectedIds((prev) => prev.filter((id) => list.some((item) => item._id === id)));
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao carregar servicos";
@@ -80,7 +88,12 @@ export default function AdminServicosPage() {
       const failedCount = ids.length - removedIds.length;
 
       if (removedIds.length) {
-        setServicos((prev) => prev.filter((s) => !removedIds.includes(s._id)));
+        clearOsSessionKeys();
+        setServicos((prev) => {
+          const next = prev.filter((s) => !removedIds.includes(s._id));
+          writeSessionJson(adminServicosCacheKey(), next);
+          return next;
+        });
         setSelectedIds((prev) => prev.filter((id) => !removedIds.includes(id)));
       }
 

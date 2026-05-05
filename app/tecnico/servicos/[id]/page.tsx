@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, CarFront, CircleStop, MapPinned, Pause, Phone
 import { apiFetch } from "@/app/lib/api";
 import { normalizeImageSrc } from "@/app/lib/image-url";
 import { formatDate, formatDuration, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
+import { clearOsSessionKeys, osDetailCacheKey, readSessionJson, writeSessionJson } from "@/app/lib/os-session";
 
 type HistoricoBloco = {
   relatorio?: string;
@@ -66,8 +67,14 @@ export default function ServicoPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    setOs(null);
+    const cached = readSessionJson<ServicoDetalhe>(osDetailCacheKey("tecnico", id));
+    if (cached) {
+      setOs(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+      setOs(null);
+    }
     void carregarOS();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -76,6 +83,7 @@ export default function ServicoPage() {
     try {
       const data = (await apiFetch(`/projects/tecnico/view/${id}`)) as ServicoDetalhe;
       setOs(data);
+      writeSessionJson(osDetailCacheKey("tecnico", id), data);
     } catch {
       setOs(null);
     } finally {
@@ -91,6 +99,7 @@ export default function ServicoPage() {
         retomar: "resume",
       };
       await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
+      clearOsSessionKeys();
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar status");
@@ -104,6 +113,7 @@ export default function ServicoPage() {
           ? `/projects/tecnico/deslocamento/iniciar/${id}`
           : `/projects/tecnico/deslocamento/finalizar/${id}`;
       await apiFetch(endpoint, { method: "PUT" });
+      clearOsSessionKeys();
       await carregarOS();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar deslocamento");

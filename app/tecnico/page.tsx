@@ -10,6 +10,7 @@ import {
   tecnicoDashboardCacheKey,
   tecnicoDashboardFiltersKey,
 } from "@/app/lib/tecnico-session";
+import { clearOsSessionKeys } from "@/app/lib/os-session";
 import { formatDate, normalizeStatus, priorityBadgeClass, priorityLabel, statusBadgeClass, statusLabel, STATUS } from "@/app/lib/os";
 
 type Servico = {
@@ -128,6 +129,7 @@ export default function TecnicoPage() {
         retomar: "resume",
       };
       await apiFetch(`/os/${id}/${map[acao]}`, { method: "POST" });
+      clearOsSessionKeys();
 
       if (acao === "iniciar") {
         router.push(`/tecnico/servicos/${id}/antes?returnTo=/tecnico`);
@@ -147,6 +149,7 @@ export default function TecnicoPage() {
           ? `/projects/tecnico/deslocamento/iniciar/${id}`
           : `/projects/tecnico/deslocamento/finalizar/${id}`;
       await apiFetch(endpoint, { method: "PUT" });
+      clearOsSessionKeys();
       await carregarServicos();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao atualizar deslocamento");
@@ -158,6 +161,7 @@ export default function TecnicoPage() {
     if (!ok) return;
 
     clearAllTecnicoDashboardSessionKeys();
+    clearOsSessionKeys();
     localStorage.clear();
     router.push("/login");
   }

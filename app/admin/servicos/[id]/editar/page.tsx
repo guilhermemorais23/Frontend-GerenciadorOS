@@ -5,6 +5,7 @@ import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { apiFetch } from "@/app/lib/api";
 import { PRIORIDADES, TIPO_MANUTENCAO } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
+import { clearOsSessionKeys } from "@/app/lib/os-session";
 
 type Tecnico = { _id: string; nome: string };
 
@@ -246,6 +247,7 @@ export default function EditarOSPage() {
         method: "POST",
         body: fd,
       })) as { urls?: string[] };
+      clearOsSessionKeys();
       const urls = Array.isArray(res?.urls) ? res.urls : [];
       if (section === "antes") setAntesFotos((prev) => [...prev, ...urls]);
       else setDepoisFotos((prev) => [...prev, ...urls]);
@@ -296,6 +298,7 @@ export default function EditarOSPage() {
         }),
       });
 
+      clearOsSessionKeys();
       router.push(`/admin/servicos/${id}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
     } catch (err: unknown) {
       alert("Erro ao salvar: " + (err instanceof Error ? err.message : "erro desconhecido"));

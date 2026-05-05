@@ -6,6 +6,7 @@ import { AlertTriangle, ArrowLeft, Download, FilePenLine, MapPinned, Phone, Prin
 import { API_URL, apiFetch } from "@/app/lib/api";
 import { formatDate, formatDuration, statusBadgeClass, statusLabel, normalizeStatus, STATUS } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
+import { clearOsSessionKeys, osDetailCacheKey, readSessionJson, writeSessionJson } from "@/app/lib/os-session";
 
 type OSDetalhe = {
   _id?: string;
@@ -119,30 +120,40 @@ export default function DetalheOSPage() {
   const returnTo = searchParams.get("returnTo");
 
   useEffect(() => {
+    const cached = readSessionJson<OSDetalhe>(osDetailCacheKey("admin", id));
+    if (cached) {
+      aplicarDadosOS(cached);
+      setLoading(false);
+    }
     carregarOS();
     setUserRole(localStorage.getItem("role"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function aplicarDadosOS(data: OSDetalhe) {
+    setOs(data);
+    setIncludePdfWhatsapp(false);
+    setDeliveryPhone(String(data?.telefone || ""));
+    setDeliveryEmail(String(data?.email || ""));
+    setDeliveryRecipientName(
+      String(
+        data?.subcliente ||
+          data?.Subcliente ||
+          data?.subgrupo ||
+          data?.cliente_nome ||
+          data?.solicitante_nome ||
+          data?.cliente ||
+          ""
+      )
+    );
+    setDeliveryMessage(buildDeliveryMessage(data, id));
+  }
+
   async function carregarOS() {
     try {
       const data = await apiFetch(`/projects/admin/view/${id}`);
-      setOs(data as OSDetalhe);
-      setIncludePdfWhatsapp(false);
-      setDeliveryPhone(String((data as OSDetalhe)?.telefone || ""));
-      setDeliveryEmail(String((data as OSDetalhe)?.email || ""));
-      setDeliveryRecipientName(
-        String(
-          (data as OSDetalhe)?.subcliente ||
-            (data as OSDetalhe)?.Subcliente ||
-            (data as OSDetalhe)?.subgrupo ||
-            (data as OSDetalhe)?.cliente_nome ||
-            (data as OSDetalhe)?.solicitante_nome ||
-            (data as OSDetalhe)?.cliente ||
-            ""
-        )
-      );
-      setDeliveryMessage(buildDeliveryMessage(data as OSDetalhe, id));
+      aplicarDadosOS(data as OSDetalhe);
+      writeSessionJson(osDetailCacheKey("admin", id), data);
       try {
         const timerData = await apiFetch(`/os/${id}/timer`);
         setTimer(timerData as TimerData);
@@ -168,6 +179,7 @@ export default function DetalheOSPage() {
 
     try {
       await apiFetch(`/projects/admin/cancelar/${id}`, { method: "PUT" });
+      clearOsSessionKeys();
       await carregarOS();
     } catch (err: unknown) {
       alert("Erro ao cancelar: " + (err instanceof Error ? err.message : "erro desconhecido"));
@@ -180,6 +192,7 @@ export default function DetalheOSPage() {
 
     try {
       await apiFetch(`/projects/admin/delete/${id}`, { method: "DELETE" });
+      clearOsSessionKeys();
       if (returnTo) {
         router.push(returnTo);
         return;
@@ -228,6 +241,7 @@ export default function DetalheOSPage() {
           include_pdf_whatsapp: includePdfWhatsapp,
         }),
       })) as ValidationResponse;
+      clearOsSessionKeys();
       console.log("VALIDACAO OS - RESPONSE", data);
       const partes = [data.message || "OS validada com sucesso"];
       if (data.delivery?.whatsapp?.success) {
@@ -259,6 +273,7 @@ export default function DetalheOSPage() {
   async function reabrirOS() {
     try {
       await apiFetch(`/os/${id}/reopen`, { method: "POST" });
+      clearOsSessionKeys();
       alert("OS reaberta com sucesso");
       await carregarOS();
     } catch (err: unknown) {

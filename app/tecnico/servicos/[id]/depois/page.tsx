@@ -7,6 +7,7 @@ import { apiFetch } from "@/app/lib/api";
 import SignaturePad from "@/app/components/SignaturePad";
 import { MOTIVOS_NAO_ASSINOU, normalizeStatus, STATUS } from "@/app/lib/os";
 import { normalizeImageSrc } from "@/app/lib/image-url";
+import { clearOsSessionKeys } from "@/app/lib/os-session";
 
 type OSTecnico = {
   osNumero?: string;
@@ -220,6 +221,7 @@ export default function DepoisPage() {
         }),
       });
 
+      clearOsSessionKeys();
       alert(finalizarComPendencia ? "OS enviada para o admin com pendência!" : "OS enviada para o admin com sucesso!");
       router.push(returnTo || "/tecnico");
     } catch (err: unknown) {
